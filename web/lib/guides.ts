@@ -28,7 +28,10 @@ export type GuideSection = {
 export type Guide = {
   slug: string;
   title: string;
+  /** Shown on the page as the lead paragraph. */
   description: string;
+  /** Search-result description when `description` runs past 160 characters. */
+  metaDescription?: string;
   category: string;
   minutes: number;
   published: string;
@@ -224,6 +227,7 @@ export const GUIDES: Guide[] = [
     slug: "menu-bar-balance",
     title: "Keep your money balance in the Mac menu bar",
     description: "Pocket puts the money you have left in the Mac menu bar. See what the number counts, add spending from the menu bar panel and keep it visible on a Mac with a notch.",
+    metaDescription: "Pocket puts the money you have left in the Mac menu bar. See what the number counts, add spending from the panel and keep it visible on a notched Mac.",
     category: "Start here",
     minutes: 3,
     published: "2026-10-13",
@@ -290,6 +294,7 @@ export const GUIDES: Guide[] = [
     slug: "manual-vs-bank-sync",
     title: "Manual money tracking vs bank sync: which one fits",
     description: "Bank-sync apps import transactions for you. Manual trackers like Pocket count only what you enter. When each works better, and how to keep a manual budget accurate without a bank connection.",
+    metaDescription: "Bank-sync apps import transactions; manual trackers like Pocket count only what you enter. When each works better, and how to stay accurate without a bank.",
     category: "Choosing an approach",
     minutes: 5,
     published: "2026-10-13",
@@ -360,6 +365,7 @@ export const GUIDES: Guide[] = [
     slug: "mac-menu-bar-money-apps",
     title: "Mac menu bar money apps compared",
     description: "Three Mac apps keep money in the menu bar: simplebanking shows a German or EU bank balance, Up Only tracks net worth, and Pocket counts what you enter. What each one does, what it costs and which fits.",
+    metaDescription: "Three Mac apps keep money in the menu bar: simplebanking, Up Only and Pocket. What each one shows, what it costs and which one fits you.",
     category: "Choosing an approach",
     minutes: 5,
     published: "2026-10-17",
@@ -436,6 +442,7 @@ export const GUIDES: Guide[] = [
     slug: "freelance-income",
     title: "Plan around irregular freelance income on a Mac",
     description: "A weekly routine for irregular income: spend from money that has arrived, keep unpaid invoices in the forecast, and see the date your balance would run out if a client pays late.",
+    metaDescription: "A weekly routine for irregular income: spend only money that has arrived, keep unpaid invoices in the forecast and see when a late payment would run you dry.",
     category: "Upcoming money",
     minutes: 5,
     published: "2026-10-13",

@@ -23,11 +23,12 @@ function findGuide(slug: string) { return GUIDES.find((guide) => guide.slug === 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const guide = findGuide((await params).slug);
   const title = `${guide.title} · Pocket`;
+  const description = guide.metaDescription ?? guide.description;
   return {
-    title, description: guide.description,
+    title, description,
     alternates: { canonical: guideUrl(guide.slug) },
-    openGraph: { type: "article", title, description: guide.description, url: guideUrl(guide.slug), modifiedTime: guide.updated, images: [{ url: guide.image, alt: guide.imageAlt }] },
-    twitter: { card: "summary_large_image", title, description: guide.description, images: [guide.image] },
+    openGraph: { type: "article", title, description, url: guideUrl(guide.slug), modifiedTime: guide.updated, images: [{ url: guide.image, alt: guide.imageAlt }] },
+    twitter: { card: "summary_large_image", title, description, images: [guide.image] },
   };
 }
 

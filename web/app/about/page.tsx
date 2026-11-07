@@ -11,8 +11,8 @@ import { DOWNLOAD_URL, ISSUES_URL, REPO_URL, SITE_URL } from "@/lib/site";
 import "../guides/guides.css";
 
 // The "official" page answer engines look for: what Pocket is, in plain facts, and which Pocket it is.
-const title = "What is Pocket for Mac? · Pocket at a glance";
-const description = "Pocket for Mac is a free menu bar app that shows how much money you have left. Price, Mac requirements, where data is stored, what it doesn't do, and how it differs from Mozilla Pocket.";
+const title = "What is Pocket for Mac? PocketLeft at a glance";
+const description = "Pocket (PocketLeft) is a free Mac menu bar app that shows the money you have left. Price, requirements, where data lives and how it differs from Mozilla Pocket.";
 const updated = RELEASES[0].date;
 
 export const metadata: Metadata = {
