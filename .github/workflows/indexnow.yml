@@ -1,13 +1,16 @@
-# After Vercel finishes a production deploy, tell Bing and other IndexNow engines what changed.
-# Vercel reports deploys to GitHub as deployment statuses; previews are ignored.
+# After a push to main deploys on Netlify, tell Bing and other IndexNow engines what changed.
+# Netlify doesn't report deploys back to GitHub, so this waits until /build-id.txt on the live
+# site shows the pushed commit, then submits every sitemap URL.
 name: Submit pages to IndexNow
 on:
-  deployment_status:
+  push:
+    branches: [main]
+    paths: ["web/**"]
   workflow_dispatch:
 jobs:
   submit:
-    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -15,5 +18,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Wait for this commit to be live
+        if: github.event_name == 'push'
+        run: |
+          for attempt in $(seq 1 60); do
+            live=$(curl -fsSL "https://pocketleft.app/build-id.txt?t=$attempt" || true)
+            if [ "$live" = "$GITHUB_SHA" ]; then echo "Live after $attempt checks."; exit 0; fi
+            sleep 20
+          done
+          echo "Commit $GITHUB_SHA never went live (last seen: ${live:-nothing}). Check the Netlify deploy."
+          exit 1
       - name: Submit sitemap URLs
         run: node web/scripts/indexnow.mjs
