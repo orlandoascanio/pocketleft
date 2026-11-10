@@ -22,7 +22,11 @@ final class PocketNotificationDelegate: NSObject, NSApplicationDelegate, UNUserN
         let id = response.notification.request.identifier
         if response.actionIdentifier == UNNotificationDefaultActionIdentifier,
            id.hasPrefix("pocket.") || id == PaymentReminders.testIdentifier {
-            DispatchQueue.main.async { NotificationCenter.default.post(name: .pocketReminderOpened, object: nil) }
+            let subscriptions = response.notification.request.content.userInfo["subscriptions"] as? Bool ?? false
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .pocketReminderOpened, object: nil,
+                                                userInfo: ["subscriptions": subscriptions])
+            }
         }
         completionHandler()
     }
@@ -98,8 +102,8 @@ struct MenuLabel: View {
     var body: some View {
         Text(store.menuTitle)
             .monospacedDigit()
-            .onReceive(NotificationCenter.default.publisher(for: .pocketReminderOpened)) { _ in
-                store.windowRequest = .waiting
+            .onReceive(NotificationCenter.default.publisher(for: .pocketReminderOpened)) { notification in
+                store.windowRequest = notification.userInfo?["subscriptions"] as? Bool == true ? .section(.subscriptions) : .waiting
                 openWindow(id: "main")
                 NSApp.activate(ignoringOtherApps: true)
             }

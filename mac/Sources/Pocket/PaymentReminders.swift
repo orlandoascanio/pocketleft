@@ -7,12 +7,14 @@ struct PaymentReminder {
     let day: Day
     let date: Date
     let title: String
-    let body = "Open Pocket to log it, with the real amount if it changed."
+    var body = "Open Pocket to log it, with the real amount if it changed."
+    var catchUp = true
 
     var content: UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
+        content.userInfo = ["subscriptions": identifier.hasPrefix("pocket.subscription.")]
         content.sound = .default
         return content
     }
@@ -21,9 +23,10 @@ struct PaymentReminder {
 enum PaymentReminders {
     static let testIdentifier = "pocket-test-reminder"
 
-    static func plans(for rules: [Rule], now: Date, calendar: Calendar = .current) -> [PaymentReminder] {
+    static func plans(for rules: [Rule], now: Date, calendar: Calendar = .current,
+                      payments: Bool = true, subscriptions: Bool = false) -> [PaymentReminder] {
         let today = Day(now, calendar: calendar)
-        return rules.filter { $0.active && !$0.auto && !$0.finished && $0.next >= today }.compactMap { rule in
+        let paymentPlans = rules.filter { payments && $0.active && !$0.auto && !$0.finished && $0.next >= today }.compactMap { rule -> PaymentReminder? in
             let day = rule.next
             var components = DateComponents(year: day.year, month: day.month, day: day.day, hour: 10)
             components.timeZone = calendar.timeZone
@@ -33,7 +36,18 @@ enum PaymentReminders {
             return PaymentReminder(identifier: "pocket.\(rule.id.uuidString).\(rule.posted).\(day.iso)",
                                    day: day, date: date,
                                    title: rule.cents > 0 ? "Did \(rule.label) pay?" : "Was \(rule.label) paid?")
-        }.sorted { $0.date < $1.date }
+        }
+        let renewalPlans = rules.filter { subscriptions && $0.isSubscription && $0.active && !$0.finished }.compactMap { rule -> PaymentReminder? in
+            let day = rule.next.adding(days: -1)
+            var components = DateComponents(year: day.year, month: day.month, day: day.day, hour: 10)
+            components.timeZone = calendar.timeZone
+            // A renewal warning is useful before the charge, never as a late catch-up.
+            guard day >= today, let date = calendar.date(from: components) else { return nil }
+            return PaymentReminder(identifier: "pocket.subscription.\(rule.id.uuidString).\(rule.posted).\(day.iso)",
+                                   day: day, date: date, title: "\(rule.label) renews tomorrow",
+                                   body: "Open Subscriptions in Pocket to review the next charge.", catchUp: false)
+        }
+        return (paymentPlans + renewalPlans).sorted { $0.date < $1.date }
     }
 
     static func calendarTrigger(for reminder: PaymentReminder, calendar: Calendar = .current) -> UNCalendarNotificationTrigger {

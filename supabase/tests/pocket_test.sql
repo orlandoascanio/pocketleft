@@ -114,5 +114,22 @@ select pocket_pair_finish('x', 'Phone') from generate_series(1, 4);
 select pg_temp.eq(pocket_pair_finish('x', 'Phone')->>'error', 'too_many', 'fifth wrong code burns it');
 select pg_temp.eq(pocket_pair_finish((select code from t_pair2), 'Phone')->>'error', 'expired', 'burned code is dead');
 
+-- 10. Subscription membership is independent of category and older edits preserve it.
+create temp table t_subscription as select (pocket_recurring_add(pg_temp.k(), -9.99, 'Cloud subscription',
+  'monthly', '2026-11-11', '2026-11-09', null, 'apps', true, true)->>'id')::uuid as id;
+select pg_temp.eq((select subscription from recurring where id = (select id from t_subscription)), true, 'subscription marked');
+select pocket_recurring_update(pg_temp.k(), (select id from t_subscription), -12.99, 'Cloud subscription',
+  'monthly', '2026-11-11', null, '2026-11-09', null, 'apps', true);
+select pg_temp.eq((select subscription from recurring where id = (select id from t_subscription)), true, 'older edit keeps membership');
+select pocket_subscription_set(pg_temp.k(), (select id from t_subscription), false);
+select pg_temp.eq((select subscription from recurring where id = (select id from t_subscription)), false, 'membership removed');
+select pg_temp.eq((select category from recurring where id = (select id from t_subscription)), 'apps', 'membership keeps category');
+select pg_temp.eq((pocket_state(pg_temp.k(), '2026-11-09')->>'subscription_tracking')::boolean, true, 'server advertises support');
+do $$ begin
+  perform pocket_subscription_set('wrong-key-0123456789', (select id from t_subscription), true);
+  raise exception 'FAIL subscription setter accepted wrong key';
+exception when sqlstate '28000' then null;
+end $$;
+
 select 'all tests passed' as result;
 rollback;

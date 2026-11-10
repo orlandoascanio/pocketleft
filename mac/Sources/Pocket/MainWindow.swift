@@ -4,7 +4,7 @@ import SwiftUI
 
 struct EditTarget: Identifiable {
     /// An existing entry or plan, or a new entry (optionally carrying what was typed in the menu).
-    enum Kind { case entry(Entry), rule(Rule), new(EntryDraft?) }
+    enum Kind { case entry(Entry), rule(Rule), new(EntryDraft?), subscription }
     let kind: Kind
     let id = UUID()
 }
@@ -70,7 +70,7 @@ struct MainWindow: View {
         NavigationSplitView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(spacing: 4) {
-                    ForEach([AppSection.overview, .plan, .insights]) { s in
+                    ForEach([AppSection.overview, .plan, .subscriptions, .insights]) { s in
                         sidebarRow(s)
                     }
                 }
@@ -110,6 +110,7 @@ struct MainWindow: View {
                 switch section {
                 case .overview: OverviewView(editor: editor, query: $query, waitingExpanded: $waitingExpanded, scrollTarget: $scrollTarget, onEdit: { editTarget = $0 })
                 case .plan: PlanView(onEdit: { editTarget = $0 })
+                case .subscriptions: SubscriptionsView(onEdit: { editTarget = $0 })
                 case .insights: InsightsView(onShow: { cat, month in
                         query = EntryQuery(category: cat, month: month)
                         withAnimation(reduceMotion ? nil : .snappy) { section = .overview }
@@ -244,6 +245,7 @@ struct EditSheet: View {
                 case .rule(let r): state.load(r)
                 case .new(let draft?): state.load(draft)
                 case .new(nil): state.showDetails = true; state.focusAmount += 1
+                case .subscription: state.startSubscription()
                 }
             }
             .onChange(of: state.saved) { _, _ in dismiss() }

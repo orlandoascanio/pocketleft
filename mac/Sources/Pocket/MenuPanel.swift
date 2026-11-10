@@ -189,6 +189,7 @@ struct MenuPanel: View {
             Menu {
                 Button("Open Pocket") { open("main") }
                 Button("Plan") { request(.section(.plan)) }
+                Button("Subscriptions") { request(.section(.subscriptions)) }
                 Button(AppSection.insights.title) { request(.section(.insights)) }
                 Divider()
                 Button("Settings…") { request(.section(.settings)) }

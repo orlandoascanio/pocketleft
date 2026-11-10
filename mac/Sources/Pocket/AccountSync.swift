@@ -159,6 +159,8 @@ struct ServerState: Decodable {
         let category: String?
         let next_on: String
         let remaining: Int?
+        let subscription: Bool?
+        let once: Bool?
     }
     struct Button: Decodable {
         let id: UUID
@@ -170,6 +172,7 @@ struct ServerState: Decodable {
     let transactions: [Tx]
     let recurring: [Recurring]
     let presets: [Button]?
+    let subscription_tracking: Bool?
 
     static func cents(_ amount: Double) -> Cents { Int((amount * 100).rounded()) }
 
@@ -196,7 +199,8 @@ struct ServerState: Decodable {
         let rules = recurring.compactMap { r -> Rule? in
             guard let cadence = Cadence(rawValue: r.cadence), let next = Day(iso: r.next_on) else { return nil }
             return Rule(id: r.id, cents: ServerState.cents(r.amount), label: r.label, cadence: cadence, anchor: next,
-                        total: r.remaining, active: r.active ?? true, auto: r.auto ?? true, category: r.category)
+                        total: r.remaining, active: r.active ?? true, auto: r.auto ?? true, category: r.category,
+                        subscription: r.subscription, once: r.once)
         }
         let buttons = (presets ?? []).map {
             Preset(id: $0.id, label: $0.label, cents: $0.amount.map(ServerState.cents), sign: $0.sign, category: $0.category)

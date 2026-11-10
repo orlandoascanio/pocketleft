@@ -43,6 +43,42 @@ final class ReminderTests: XCTestCase {
         XCTAssertEqual(plans.first?.date, date("2026-10-13T10:00:00Z"))
     }
 
+    func testSubscriptionWarningsAreOptInAndPrecedeAutomaticCharges() {
+        let rule = Rule(cents: -1500, label: "Music", cadence: .monthly, anchor: dueDay, auto: true, subscription: true)
+        let now = date("2026-10-11T09:00:00Z")
+        XCTAssertTrue(PaymentReminders.plans(for: [rule], now: now, calendar: calendar).isEmpty)
+        let plans = PaymentReminders.plans(for: [rule], now: now, calendar: calendar, payments: false, subscriptions: true)
+        XCTAssertEqual(plans.count, 1)
+        XCTAssertEqual(plans.first?.date, date("2026-10-12T10:00:00Z"))
+        XCTAssertEqual(plans.first?.title, "Music renews tomorrow")
+        XCTAssertEqual(plans.first?.content.userInfo["subscriptions"] as? Bool, true)
+        XCTAssertFalse(plans.first?.catchUp ?? true)
+        var paused = rule; paused.active = false
+        XCTAssertTrue(PaymentReminders.plans(for: [paused], now: now, calendar: calendar, subscriptions: true).isEmpty)
+    }
+
+    func testSubscriptionWarningRetainsDueDayRequestWithoutLateCatchUp() async throws {
+        let backend = FakeReminderClient()
+        let clock = ReminderClock(localDate(hour: 9, on: dueDay.adding(days: -1)))
+        let (store, _, _) = try fixture(backend, clock: clock)
+        store.reminders = false
+        store.subscriptionReminders = true
+        let rule = Rule(cents: -1500, label: "Music", cadence: .monthly, anchor: dueDay, auto: false, subscription: true)
+        XCTAssertTrue(store.addRule(rule))
+        await store.refreshReminders()
+        XCTAssertEqual(backend.requests.count, 1)
+        let id = try XCTUnwrap(backend.requests.keys.first)
+        clock.now = localDate(hour: 11, on: dueDay.adding(days: -1))
+        await store.refreshReminders()
+        XCTAssertNotNil(backend.requests[id])
+        backend.requests.removeAll()
+        await store.refreshReminders()
+        XCTAssertEqual(backend.added.count, 1, "Do not send a late renewal warning after delivery")
+        store.subscriptionReminders = false
+        await store.refreshReminders()
+        XCTAssertTrue(backend.requests.isEmpty)
+    }
+
     func testTenAMUsesLocalTimeAcrossDaylightSavingTransition() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/New_York")!

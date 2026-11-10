@@ -12,6 +12,7 @@ final class MockAccount: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var rules: [[String: Any]] = []
     nonisolated(unsafe) static var setUpKey: String?
     nonisolated(unsafe) static var hosts: Set<String> = []
+    nonisolated(unsafe) static var subscriptionTracking = true
     static let key = "test-key"
 
     static func reset(balance: Double) {
@@ -23,6 +24,7 @@ final class MockAccount: URLProtocol, @unchecked Sendable {
         rules = []
         setUpKey = nil
         hosts = []
+        subscriptionTracking = true
     }
 
     override class func canInit(with request: URLRequest) -> Bool { true }
@@ -49,7 +51,7 @@ final class MockAccount: URLProtocol, @unchecked Sendable {
         }
         switch fn {
         case "pocket_state":
-            respond(200, ["transactions": Self.txs, "recurring": Self.rules, "upcoming": [Any](), "presets": Self.presets])
+            respond(200, ["transactions": Self.txs, "recurring": Self.rules, "upcoming": [Any](), "presets": Self.presets, "subscription_tracking": Self.subscriptionTracking])
         case "pocket_add":
             let row: [String: Any] = ["id": UUID().uuidString, "amount": args["p_amount"]!, "label": args["p_label"]!,
                                       "occurred_on": args["p_on"]!, "created_at": "2026-10-12T15:00:00.5+00:00",
@@ -69,7 +71,13 @@ final class MockAccount: URLProtocol, @unchecked Sendable {
             Self.rules.append(["id": id, "amount": args["p_amount"]!, "label": args["p_label"]!, "cadence": args["p_cadence"]!,
                                "active": true, "auto": args["p_auto"] ?? true, "category": args["p_category"] ?? NSNull(),
                                "next_on": args["p_start"]!, "remaining": args["p_times"] ?? NSNull()])
+            Self.rules[Self.rules.count - 1]["subscription"] = args["p_subscription"]
             respond(200, ["id": id])
+        case "pocket_subscription_set":
+            if let i = Self.rules.firstIndex(where: { $0["id"] as? String == args["p_id"] as? String }) {
+                Self.rules[i]["subscription"] = args["p_subscription"]
+            }
+            respond(204, nil)
         case "pocket_recurring_set_active":
             if let i = Self.rules.firstIndex(where: { $0["id"] as? String == args["p_id"] as? String }) { Self.rules[i]["active"] = args["p_active"] }
             respond(204, nil)
@@ -268,6 +276,18 @@ final class AccountSyncTests: XCTestCase {
 }
 
 extension AccountSyncTests {
+    func testOlderServerRejectsMembershipChangesBeforeWritingOrQueuing() async throws {
+        MockAccount.reset(balance: 100)
+        MockAccount.subscriptionTracking = false
+        let store = try makeStore()
+        try await store.connect(key: MockAccount.key)
+        let rule = Rule(cents: -999, label: "Cloud", cadence: .monthly, anchor: Day.today.adding(days: 2), subscription: true)
+        XCTAssertFalse(store.addRule(rule))
+        XCTAssertTrue(store.ledger.rules.isEmpty)
+        XCTAssertTrue(store.outbox.isEmpty)
+        XCTAssertNotNil(store.saveError)
+    }
+
     func testSettingUpAnEmptyServerMovesThisMacsMoneyThereOnce() async throws {
         MockAccount.reset(balance: 0)
         MockAccount.txs = []
@@ -319,4 +339,26 @@ extension AccountSyncTests {
 
 private extension JSONDecoder {
     static var iso: JSONDecoder { let d = JSONDecoder(); d.dateDecodingStrategy = .iso8601; return d }
+}
+
+extension AccountSyncTests {
+    func testSubscriptionMembershipSyncsWithoutChangingCategoryOrAddingAnotherRule() async throws {
+        MockAccount.reset(balance: 100)
+        let store = try makeStore()
+        try await store.connect(key: MockAccount.key)
+        let rule = Rule(cents: -999, label: "Cloud", cadence: .monthly, anchor: Day.today.adding(days: 2),
+                        category: "apps", subscription: true)
+        XCTAssertTrue(store.addRule(rule))
+        await store.syncNow()
+        let saved = try XCTUnwrap(store.ledger.rules.first)
+        XCTAssertTrue(saved.isSubscription)
+        XCTAssertEqual(saved.category, "apps")
+        XCTAssertEqual(MockAccount.rules.count, 1)
+        XCTAssertEqual(store.balance, 10000)
+        XCTAssertTrue(store.setSubscription(saved.id, false))
+        await store.syncNow()
+        XCTAssertFalse(try XCTUnwrap(store.ledger.rules.first).isSubscription)
+        XCTAssertEqual(store.ledger.rules.first?.category, "apps")
+        XCTAssertEqual(MockAccount.rules.count, 1)
+    }
 }

@@ -52,7 +52,7 @@ extension Ledger {
     /// Edit a rule. Changing how often or the next date restarts the schedule from `next`;
     /// `left` counts the payments still to come, including the next one (nil = no end).
     public mutating func updateRule(_ id: UUID, cents: Cents, label: String, cadence: Cadence, next: Day,
-                                    left: Int?, category: String?, auto: Bool, today: Day) {
+                                    left: Int?, category: String?, auto: Bool, today: Day, subscription: Bool? = nil, once: Bool? = nil) {
         guard let i = rules.firstIndex(where: { $0.id == id }) else { return }
         if cadence != rules[i].cadence || next != rules[i].next {
             rules[i].anchor = next
@@ -66,6 +66,8 @@ extension Ledger {
         rules[i].label = label
         rules[i].category = category
         rules[i].auto = auto
+        if let subscription { rules[i].subscription = subscription }
+        if let once { rules[i].once = once }
         postDue(today: today)
     }
 

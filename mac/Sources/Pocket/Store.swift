@@ -43,13 +43,14 @@ struct Backup: Identifiable, Equatable {
 }
 
 enum AppSection: String, CaseIterable, Identifiable, Hashable {
-    case overview = "Overview", plan = "Plan", insights = "Insights", settings = "Settings"
+    case overview = "Overview", plan = "Plan", subscriptions = "Subscriptions", insights = "Insights", settings = "Settings"
     var id: String { rawValue }
     var title: String { self == .insights ? "Categories" : rawValue }
     var symbol: String {
         switch self {
         case .overview: "house"
         case .plan: "chart.line.uptrend.xyaxis"
+        case .subscriptions: "repeat.circle"
         case .insights: "chart.bar.xaxis"
         case .settings: "gearshape"
         }
@@ -85,6 +86,14 @@ final class Store: ObservableObject {
             scheduleReminders()
         }
     }
+    @Published var subscriptionReminders: Bool {
+        didSet {
+            defaults.set(subscriptionReminders, forKey: "subscriptionReminders")
+            reminderMessage = nil
+            if subscriptionReminders { requestNotificationPermission() }
+            scheduleReminders()
+        }
+    }
     @Published private(set) var reminderMessage: String?
     /// The one-time "Know someone who'd like Pocket?" note: nil until it's earned, then "due", then "done" for good.
     @Published private(set) var sharePrompt: String? { didSet { defaults.set(sharePrompt, forKey: "sharePrompt") } }
@@ -117,6 +126,7 @@ final class Store: ObservableObject {
     @Published private(set) var journal = SyncJournal()
     private var syncInFlight = false
     private var syncAgain = false
+    private var subscriptionSyncAvailable = false
     var connected: Bool { accountKey != nil }
     /// Changes still on their way to the account, and ones that need a look before retrying.
     var outbox: [PendingOp] { journal.outbox }
@@ -193,6 +203,7 @@ final class Store: ObservableObject {
         range = [30, 91, 182, 365].contains(r) ? r : 91
         includeEveryday = defaults.object(forKey: "includeEveryday") as? Bool ?? true
         reminders = defaults.object(forKey: "reminders") as? Bool ?? true
+        subscriptionReminders = defaults.bool(forKey: "subscriptionReminders")
         sharePrompt = defaults.string(forKey: "sharePrompt")
         loadError = initialLoadError
         saveError = initialLoadError
@@ -404,11 +415,13 @@ final class Store: ObservableObject {
 
     @discardableResult
     func addRule(_ rule: Rule) -> Bool {
+        guard canSaveSubscription(rule.subscription) else { return false }
         let before = ledger.balance
         guard mutate(category: rule.category, { $0.addRule(rule, today: today) }) else { return false }
         var args: [String: Any] = ["p_amount": dollars(rule.cents), "p_label": rule.label, "p_cadence": rule.cadence.rawValue,
                                    "p_start": rule.anchor.iso, "p_today": today.iso, "p_category": rule.category ?? NSNull(), "p_auto": rule.auto]
         if let total = rule.total { args["p_times"] = total }
+        if let subscription = rule.subscription { args["p_subscription"] = subscription }
         send("pocket_recurring_add", args, label: rule.label, localID: rule.id)
         receipt = EntryReceipt(text: "Scheduled \(money.string(rule.cents, signed: true)) · \(rule.label)", target: .editRule(rule.id))
         if ledger.balance == before {
@@ -420,16 +433,36 @@ final class Store: ObservableObject {
 
     @discardableResult
     func updateRule(_ id: UUID, cents: Cents, label: String, cadence: Cadence, next: Day, left: Int?,
-                    category: String?, auto: Bool) -> Bool {
+                    category: String?, auto: Bool, subscription: Bool? = nil, once: Bool? = nil) -> Bool {
+        guard canSaveSubscription(subscription) else { return false }
         guard mutate(category: category, {
             $0.updateRule(id, cents: cents, label: label, cadence: cadence, next: next, left: left,
-                          category: category, auto: auto, today: today)
+                          category: category, auto: auto, today: today, subscription: subscription, once: once)
         }) else { return false }
         var args: [String: Any] = ["p_id": id.uuidString, "p_amount": dollars(cents), "p_label": label, "p_cadence": cadence.rawValue,
                                    "p_next": next.iso, "p_today": today.iso, "p_category": category ?? "", "p_auto": auto]
         if let left { args["p_left"] = left }
+        if let subscription { args["p_subscription"] = subscription }
         send("pocket_recurring_update", args, label: label)
         return true
+    }
+
+    @discardableResult
+    func setSubscription(_ id: UUID, _ included: Bool) -> Bool {
+        guard canSaveSubscription(included) else { return false }
+        guard let rule = ledger.rules.first(where: { $0.id == id }), rule.cents < 0, !rule.isOnce, !rule.finished else { return false }
+        guard mutate({ ledger in
+            guard let index = ledger.rules.firstIndex(where: { $0.id == id }) else { return }
+            ledger.rules[index].subscription = included
+        }) else { return false }
+        send("pocket_subscription_set", ["p_id": id.uuidString, "p_subscription": included], label: rule.label)
+        return true
+    }
+
+    private func canSaveSubscription(_ membership: Bool?) -> Bool {
+        guard connected && membership != nil && !subscriptionSyncAvailable else { return true }
+        saveError = "This sync server needs the Subscriptions update before it can save subscription changes. Update its SQL, then sync again."
+        return false
     }
 
     @discardableResult
@@ -618,6 +651,7 @@ final class Store: ObservableObject {
                 guard !journal.outbox.contains(where: { !$0.needsReview }) else { syncState = .offline; return }
                 let data = try await client.rpc("pocket_state", ["p_today": Day.today.iso, "p_days": 1], key: key)
                 let state = try Store.decoder().decode(ServerState.self, from: data)
+                subscriptionSyncAvailable = state.subscription_tracking == true
                 guard key == accountKey else { return }
                 // A change made while the request was out goes first; the next round picks up the result.
                 if journal.outbox.contains(where: { !$0.needsReview }) { syncAgain = true; continue }
@@ -715,6 +749,7 @@ final class Store: ObservableObject {
         catch let e as APIError where e.badKey { throw APIError(badKey: true, message: "That access was removed. Make a pairing code instead.") }
         catch is URLError { throw APIError(badKey: false, message: "Couldn't reach your account. Check your connection.") }
         let state = try Store.decoder().decode(ServerState.self, from: data)
+        subscriptionSyncAvailable = state.subscription_tracking == true
         let copy = state.ledger(currency: ledger.currency)
         do {
             try Store.encoder().encode(copy).write(to: accountURL, options: .atomic)
@@ -776,6 +811,7 @@ final class Store: ObservableObject {
             var args: [String: Any] = ["p_amount": dollars(r.cents), "p_label": String(r.label.prefix(120)), "p_cadence": r.cadence.rawValue,
                                        "p_start": r.next.iso, "p_today": today.iso, "p_category": r.category ?? NSNull(), "p_auto": r.auto]
             if let left = r.remaining { args["p_times"] = left }
+            if let subscription = r.subscription { args["p_subscription"] = subscription }
             send("pocket_recurring_add", args, label: r.label, localID: r.id, start: false)
             if !r.active {
                 send("pocket_recurring_set_active", ["p_id": r.id.uuidString, "p_active": false, "p_today": today.iso], label: r.label, start: false)
@@ -860,11 +896,11 @@ final class Store: ObservableObject {
     // MARK: reminders
 
     private func requestNotificationPermission() {
-        guard reminderClient != nil && reminders else { return }
+        guard reminderClient != nil && (reminders || subscriptionReminders) else { return }
         Task { [weak self] in
             guard let self else { return }
             do {
-                if try await !self.notificationPermission(), self.reminders {
+                if try await !self.notificationPermission(), self.reminders || self.subscriptionReminders {
                     self.reminderMessage = "Allow Pocket in System Settings → Notifications to receive reminders."
                 }
             } catch {
@@ -925,8 +961,9 @@ final class Store: ObservableObject {
             while self.reminderRefreshNeeded {
                 self.reminderRefreshNeeded = false
                 let now = self.reminderNow()
-                let plans = PaymentReminders.plans(for: self.ledger.liveRules, now: now)
-                let enabled = self.reminders && self.loadError == nil
+                let plans = PaymentReminders.plans(for: self.ledger.liveRules, now: now,
+                                                  payments: self.reminders, subscriptions: self.subscriptionReminders)
+                let enabled = (self.reminders || self.subscriptionReminders) && self.loadError == nil
                 let status = await client.authorization()
                 let pending = await client.pending()
                 if self.reminderRefreshNeeded { continue }
@@ -954,6 +991,7 @@ final class Store: ObservableObject {
                     let existing = pending.first { $0.identifier == plan.identifier }
                     let trigger: UNNotificationTrigger
                     if plan.date <= now {
+                        if !plan.catchUp { continue }
                         // Preserve a queued due-day reminder; after delivery/dismissal, don't post it again.
                         if existing != nil || requested.contains(plan.identifier) { continue }
                         trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)

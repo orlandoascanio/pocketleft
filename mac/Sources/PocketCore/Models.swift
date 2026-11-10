@@ -90,11 +90,15 @@ public struct Rule: Codable, Identifiable, Equatable, Sendable {
     /// false = don't log it by itself; wait until the user confirms it arrived.
     public var auto: Bool
     public var category: String?
+    /// Separate from the category. nil recognizes older subscription-category rules.
+    public var subscription: Bool?
+    /// The server distinguishes a one-time payment from the last renewal of a finite schedule.
+    public var once: Bool?
     public var created: Date
 
     public init(id: UUID = UUID(), cents: Cents, label: String, cadence: Cadence, anchor: Day, posted: Int = 0,
                 total: Int? = nil, active: Bool = true, auto: Bool = true, category: String? = nil,
-                created: Date = Date()) {
+                created: Date = Date(), subscription: Bool? = nil, once: Bool? = nil) {
         self.id = id
         self.cents = cents
         self.label = label
@@ -105,10 +109,13 @@ public struct Rule: Codable, Identifiable, Equatable, Sendable {
         self.active = active
         self.auto = auto
         self.category = category
+        self.subscription = subscription
+        self.once = once
         self.created = created
     }
 
-    public var isOnce: Bool { total == 1 }
+    public var isOnce: Bool { once ?? (total == 1) }
+    public var isSubscription: Bool { cents < 0 && !isOnce && (subscription ?? (category == "subscriptions")) }
     public var finished: Bool { total.map { posted >= $0 } ?? false }
     public var remaining: Int? { total.map { max(0, $0 - posted) } }
     public func occurrence(_ n: Int) -> Day { cadence.step(from: anchor, n) }

@@ -60,6 +60,7 @@ final class EditorState: ObservableObject {
         }
     }
     @Published var category: String?
+    @Published var subscription: Bool?
     @Published var categoryTouched = false
     @Published var date = Date()
     @Published var times = ""
@@ -90,6 +91,7 @@ final class EditorState: ObservableObject {
         amount = ""
         label = ""
         category = nil
+        subscription = nil
         categoryTouched = false
         date = Date()
         times = ""
@@ -127,6 +129,17 @@ final class EditorState: ObservableObject {
         times = r.isOnce ? "" : r.remaining.map(String.init) ?? ""
         confirm = !r.auto
         confirmTouched = true
+        subscription = r.subscription
+    }
+
+    func startSubscription() {
+        reset()
+        frequency = .monthly
+        subscription = true
+        category = "subscriptions"
+        categoryTouched = true
+        showDetails = true
+        focusAmount += 1
     }
 
     /// Fill the form from a quick-add button that asks for the amount each time.
@@ -176,12 +189,15 @@ final class EditorState: ObservableObject {
             success = store.updateEntry(e)
         case .rule(let r):
             success = store.updateRule(r.id, cents: signed, label: l, cadence: frequency.cadence ?? .monthly, next: day,
-                             left: frequency == .once ? 1 : count, category: category, auto: !confirm)
+                             left: frequency == .once ? 1 : count, category: category, auto: !confirm,
+                             subscription: spent && frequency != .once ? subscription : (r.subscription == nil ? nil : false),
+                             once: frequency == .once)
         case .new:
             if isPlanned {
                 // A one-time entry in the future is a rule with a single payment, so it counts on its day.
                 success = store.addRule(Rule(cents: signed, label: l, cadence: frequency.cadence ?? .monthly, anchor: day,
-                                   total: frequency == .once ? 1 : count, auto: waitsNow ? false : !confirm, category: category))
+                                   total: frequency == .once ? 1 : count, auto: waitsNow ? false : !confirm, category: category,
+                                   subscription: spent && frequency != .once ? subscription : nil))
             } else {
                 let preset = savePreset ? Preset(label: l, cents: cents, sign: spent ? -1 : 1, category: category) : nil
                 success = store.addEntry(cents: signed, label: l, day: day, category: category, preset: preset) != nil
@@ -366,6 +382,16 @@ struct EntryEditor: View {
                     Text(state.confirm ? "Waits in Overview until you confirm the real amount and date." : "Counts automatically on its date.")
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            if state.spent && state.frequency != .once && !state.editingEntry {
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("Show in Subscriptions", isOn: Binding(
+                        get: { state.subscription ?? (state.category == "subscriptions") },
+                        set: { state.subscription = $0 }))
+                        .toggleStyle(.checkbox)
+                    Text("Keep its category. This uses the same payment in Plan.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             if state.mode == .new && !state.isPlanned {

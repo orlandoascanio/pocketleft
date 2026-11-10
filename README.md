@@ -20,6 +20,9 @@ wait for review instead of being sent again, so nothing posts twice. The access 
   version (`codesign` with a team and bundle ID requirement), replaces the app and relaunches. When the app can't be
   replaced in place (Downloads, the disk image), it opens the downloaded disk image instead.
 - Repeating money that can wait for confirmation, quick-add buttons (⌘1–⌘9), categories, reminders when money is due.
+- Subscriptions: active and paused services, monthly/annual cost equivalents, renewals in the next 7/30 days,
+  and optional 10 AM reminders the day before the next charge. Include existing repeating expenses without
+  changing their category or recording a second payment. Stopping tracking in Pocket does not cancel a provider.
 - `swift test` (in `mac/`) runs the money-logic tests and the app tests, including sync against a mock server
   (`Tests/PocketAppTests/AccountSyncTests.swift`). Set `POCKET_SNAPSHOT_DIR` to also render screen previews.
 - `./mac/build.sh` builds a universal app signed with Developer ID; `NOTARY_PROFILE=<name> ./mac/build.sh --release`
@@ -28,6 +31,11 @@ wait for review instead of being sent again, so nothing posts twice. The access 
   runs against a separate data folder (and an in-memory key) and opens a window at launch.
 
 ### Releasing a new version
+
+Version 1.5.0 adds a nullable subscription marker to repeating payments. Before using subscription edits with
+sync, apply `supabase/migrations/20261109120000_subscriptions.sql` to the server. It preserves the older clients'
+RPC arguments and category behavior. The Mac checks the server's capability before saving subscription changes;
+local use does not need a migration. The browser and mobile apps retain their existing screens.
 
 One-time setup: save your notarization login in the keychain (needs an app-specific password from account.apple.com):
 
