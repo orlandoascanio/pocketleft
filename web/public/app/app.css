@@ -383,11 +383,21 @@
   .check[hidden] { display: none !important; }
 
   /* tabs */
-  .tabs { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: repeat(3, 1fr); margin: 28px -16px 0; padding: 4px 16px 0; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .tabs { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 28px -16px 0; padding: 4px 16px 0; background: var(--bg); border-bottom: 1px solid var(--line); }
   .tab { appearance: none; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 600; color: var(--muted); padding: 10px 0 12px; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: 6px; transition: color 200ms ease; }
   .tab[aria-selected="true"] { color: var(--ink); }
   .tab .count { min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; }
-  .tab-ink { position: absolute; left: 16px; bottom: -1px; height: 2px; width: calc((100% - 32px) / 3); background: var(--ink); border-radius: 2px; transition: transform 340ms var(--ease-out); }
+  .tab-ink { position: absolute; left: 16px; bottom: -1px; height: 2px; width: calc((100% - 32px) / 4); background: var(--ink); border-radius: 2px; transition: transform 340ms var(--ease-out); }
+  .tabs .tab { min-width: 0; font-size: clamp(11px, 2.8vw, 15px); }
+  .subscription-head { flex-wrap: wrap; gap: 12px; }
+  .subscription-head p { margin: 4px 0 0; }
+  .subscription-item { border-top: 1px solid var(--line); }
+  .subscription-item:first-child { border-top: 0; }
+  .subscription-item > .tx::before { display: none; }
+  .subscription-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px 58px; }
+  .subscription-actions .btn { min-height: 32px; padding: 6px 10px; font-size: 12px; }
+  #otherSubscriptions { margin-top: 12px; }
+  #subscriptionList:empty, #subscriptionRenewals:empty { display: none; }
   .panel .section:first-child { margin-top: 18px; }
 
   /* filter chip over history */
@@ -593,7 +603,7 @@
     #txForm { grid-area: entry; }
     .cats { flex-wrap: wrap; overflow: visible; margin: 10px 0 0; padding: 2px 0; }
     .tabs { grid-area: tabs; position: relative; align-self: end; margin: 0 0 16px; padding: 0; }
-    .tab-ink { left: 0; width: calc(100% / 3); }
+    .tab-ink { left: 0; width: calc(100% / 4); }
     .panel { grid-area: panel; }
     .panel .section:first-child, .panel > .section[hidden] + .section { margin-top: 0; }
     .foot-hint { grid-area: hint; margin-top: 24px; }

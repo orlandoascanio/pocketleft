@@ -73,6 +73,12 @@
 .home-demos .bento-more { font-size: 12px; }
 #tour { padding-top: 115px; }
 #tour h2 { max-width: 650px; font-size: clamp(38px, 5vw, 60px); }
+#subscriptions .subscriptions-local { margin-top: 18px; }
+#subscriptions .subscriptions-cta { margin-top: 24px; }
+@media (max-width: 480px) {
+  .tour-tabs { max-width: 100%; }
+  .tour-tabs button { padding: 8px 9px; font-size: 12px; }
+}
 #tour .tour-stage { background: #dce6d6; border-radius: 16px; }
 #tour .tour-behind { transform: rotate(-5deg); top: 17%; left: 5%; }
 #tour .tour-panel { transform: rotate(3deg); right: 10%; top: 46px; }

@@ -106,6 +106,8 @@ final class SubscriptionFlowTests: XCTestCase {
             NSApp.appearance = NSAppearance(named: appearance)
             try capture(SubscriptionsView(onEdit: { _ in }).environmentObject(store), size: NSSize(width: 800, height: 1080), path: path + "/subscriptions-\(name).png")
             try capture(SubscriptionsView(onEdit: { _ in }).environmentObject(store), size: NSSize(width: 580, height: 560), path: path + "/subscriptions-minimum-\(name).png")
+            store.windowRequest = .section(.subscriptions)
+            try capture(MainWindow().environmentObject(store), size: NSSize(width: 1000, height: 780), path: path + "/subscriptions-window-\(name).png")
         }
         let empty = try self.store()
         NSApp.appearance = NSAppearance(named: .aqua)
@@ -118,6 +120,7 @@ final class SubscriptionFlowTests: XCTestCase {
     private func capture<V: View>(_ view: V, size: NSSize, path: String) throws {
         let host = NSHostingView(rootView: view)
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
         window.contentView = host
         host.frame = NSRect(origin: .zero, size: size)
         window.orderFront(nil)
@@ -126,6 +129,7 @@ final class SubscriptionFlowTests: XCTestCase {
         let rep = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
         host.cacheDisplay(in: host.bounds, to: rep)
         try XCTUnwrap(rep.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: path))
-        window.orderOut(nil)
+        window.contentView = nil
+        window.close()
     }
 }

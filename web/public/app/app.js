@@ -396,6 +396,8 @@ let txs = [], rules = [], upcoming = [], presets = [];
 let loaded = false, lastSig = "";
 let sign = -1, cadence = "once", cat = null, catTouched = false, confirmTouched = false;
 let editing = null; // { kind: "tx" | "rule", id }
+let subscriptionChoice = null, subscriptionTracking = false, subscriptionDays = 30;
+const TAB_NAMES = ["activity", "plan", "subscriptions", "insights"];
 let pollTimer = null;
 let shownBalance = null;
 let knownTx = null, knownRules = null;
@@ -403,7 +405,7 @@ let fresh = { tx: new Set(), rules: new Set() };
 let pendingFlight = null;  // { amount, from, scheduled } from a local add
 let pendingReason = null;  // "delete" | "undo"
 let range = [30, 91, 182, 365].includes(Number(ls.get(RANGE_STORE))) ? Number(ls.get(RANGE_STORE)) : 91;
-let tab = ["activity", "plan", "insights"].includes(ls.get(TAB_STORE)) ? ls.get(TAB_STORE) : "activity";
+let tab = TAB_NAMES.includes(ls.get(TAB_STORE)) ? ls.get(TAB_STORE) : "activity";
 let filter = null;        // { cat, month|null } narrowing History
 let insight = { scope: "month", month: todayISO().slice(0, 7) };
 let openOcc = new Set();  // expanded "Got it / Skip" rows, kept across re-renders
@@ -491,6 +493,7 @@ async function load({ quiet = false } = {}) {
   try {
     await flushQueue();
     const s = await rpc("pocket_state", { p_today: todayISO(), p_days: range });
+    subscriptionTracking = s.subscription_tracking === true;
     const sig = JSON.stringify(s);
     if (sig !== lastSig) {
       lastSig = sig;
@@ -762,6 +765,7 @@ function render() {
   renderWaiting();
   renderHistory();
   renderPlan();
+  renderSubscriptions();
   renderInsights();
   fresh = { tx: new Set(), rules: new Set() }; // play each arrival once
 }
@@ -1008,6 +1012,79 @@ function renderPlan() {
   $("rulesMeta").textContent = parts.length ? `≈ ${parts.join(" · ")} a month` : "";
 }
 
+function renderSubscriptions() {
+  const summary = PocketSubscriptions.summarize(rules, upcoming, todayISO(), addDays(todayISO(), subscriptionDays));
+  $("subscriptionCount").textContent = `${summary.active.length} active` + (summary.paused.length ? ` · ${summary.paused.length} paused` : "");
+  const stats = $("subscriptionStats");
+  stats.replaceChildren();
+  for (const [title, cents] of [["Per month", summary.monthly], ["Per year", summary.annual], [`Next ${subscriptionDays} days`, summary.upcomingTotal]]) {
+    const box = mk("div", "stat");
+    box.append(mk("div", "k", title), mk("div", "v num", fmt(cents / 100)));
+    stats.append(box);
+  }
+  const active = $("subscriptionList"), paused = $("pausedSubscriptions"), other = $("otherSubscriptions");
+  active.replaceChildren(); paused.replaceChildren(); other.replaceChildren();
+  $("subscriptionEmpty").hidden = !!summary.active.length;
+  $("pausedSubscriptionsSection").hidden = !summary.paused.length;
+  $("otherSubscriptionsSection").hidden = !summary.other.length;
+  for (const rule of [...summary.active, ...summary.paused]) {
+    const item = mk("div", "subscription-item");
+    item.append(row({ title: rule.label, iconName: catIcon(rule.category, -1), hue: catHue(rule.category, -1),
+      amount: Number(rule.amount), tag: rule.active ? null : "paused", cls: rule.active ? "" : "paused",
+      noteLeft: `${CADENCE[rule.cadence].name} · ${rule.active ? "next" : "was due"} ${shortFmt.format(asDate(rule.next_on))}`,
+      noteRight: `per ${CADENCE[rule.cadence].unit}`, onClick: () => startEditRule(rule) }));
+    const actions = mk("div", "subscription-actions");
+    const pause = mk("button", "btn ghost", rule.active ? "Pause tracking" : "Resume tracking");
+    pause.type = "button"; pause.setAttribute("aria-label", `${rule.active ? "Pause" : "Resume"} tracking ${rule.label}`);
+    pause.addEventListener("click", async () => {
+      pause.disabled = true;
+      try {
+        await rpc("pocket_recurring_set_active", { p_id: rule.id, p_active: !rule.active, p_today: todayISO() });
+        $("subscriptionMessage").textContent = "";
+        await load({ quiet: true });
+      } catch { $("subscriptionMessage").textContent = "Couldn't change tracking. Check your connection and try again."; }
+      finally { pause.disabled = false; }
+    });
+    const remove = mk("button", "btn ghost", "Remove from list");
+    remove.type = "button"; remove.setAttribute("aria-label", `Remove ${rule.label} from Subscriptions`);
+    remove.addEventListener("click", () => changeSubscription(rule, false, remove));
+    actions.append(pause, remove); item.append(actions);
+    (rule.active ? active : paused).append(item);
+  }
+  for (const rule of summary.other) {
+    const item = mk("div", "subscription-item");
+    item.append(row({ title: rule.label, iconName: catIcon(rule.category, -1), hue: catHue(rule.category, -1),
+      amount: Number(rule.amount), noteLeft: CADENCE[rule.cadence].name, onClick: () => startEditRule(rule) }));
+    const actions = mk("div", "subscription-actions"), include = mk("button", "btn ghost", "Include in Subscriptions");
+    include.type = "button"; include.setAttribute("aria-label", `Include ${rule.label} in Subscriptions`);
+    include.addEventListener("click", () => changeSubscription(rule, true, include));
+    actions.append(include); item.append(actions); other.append(item);
+  }
+  const renewals = $("subscriptionRenewals"); renewals.replaceChildren();
+  for (const renewal of summary.renewals) {
+    renewals.append(row({ title: renewal.label, iconName: catIcon(renewal.category, -1), hue: catHue(renewal.category, -1),
+      amount: Number(renewal.amount), noteLeft: renewal.due_on === todayISO() ? "Today" : dayFmt.format(asDate(renewal.due_on)),
+      onClick: () => { const rule = rules.find((r) => r.id === renewal.recurring_id); if (rule) startEditRule(rule); } }));
+  }
+  $("subscriptionRenewalsEmpty").hidden = !!summary.renewals.length;
+  $("subscriptionRenewalsEmpty").textContent = `No renewals in the next ${subscriptionDays} days.`;
+  document.querySelectorAll("[data-subscription-days]").forEach((button) => button.setAttribute("aria-pressed", String(Number(button.dataset.subscriptionDays) === subscriptionDays)));
+}
+
+async function changeSubscription(rule, included, button) {
+  if (!subscriptionTracking) {
+    $("subscriptionMessage").textContent = "This sync server needs the Subscriptions update to change list membership. Existing subscriptions and tracking still work.";
+    return;
+  }
+  button.disabled = true;
+  try {
+    await rpc("pocket_subscription_set", { p_id: rule.id, p_subscription: included });
+    $("subscriptionMessage").textContent = "";
+    await load({ quiet: true });
+  } catch { $("subscriptionMessage").textContent = "Couldn't update the list. Check your connection and try again."; }
+  finally { button.disabled = false; }
+}
+
 function monthsWithData() {
   const first = txs.length ? txs[txs.length - 1].occurred_on.slice(0, 7) : todayISO().slice(0, 7);
   return { first, last: todayISO().slice(0, 7) };
@@ -1102,7 +1179,7 @@ function renderInsights() {
 function setTab(name) {
   tab = name;
   ls.set(TAB_STORE, name);
-  const names = ["activity", "plan", "insights"];
+  const names = TAB_NAMES;
   names.forEach((n) => {
     $(`tab-${n}`).setAttribute("aria-selected", String(n === name));
     $(`tab-${n}`).tabIndex = n === name ? 0 : -1;
@@ -1145,6 +1222,7 @@ function renderCats() {
     b.addEventListener("click", () => { cat = cat === c ? null : c; catTouched = true; renderCats(); });
     box.append(b);
   }
+  $("subscriptionBox").checked = subscriptionChoice ?? (cat === "subscriptions");
 }
 
 // Typing a name you've used before picks its category for you.
@@ -1192,6 +1270,8 @@ function updateFormText() {
   $("confirmRow").hidden = !planned;
   if (planned && !confirmTouched && !editingRule) $("confirmBox").checked = sign > 0;
   $("presetRow").hidden = !!editing || repeating || future;
+  $("subscriptionRow").hidden = !(repeating && sign < 0 && editing?.kind !== "tx");
+  $("subscriptionBox").checked = subscriptionChoice ?? (cat === "subscriptions");
 
   let hint = "";
   if (repeating && !editing) {
@@ -1227,6 +1307,7 @@ function enterEdit(title, deleteLabel) {
 }
 
 function startEditTx(t) {
+  subscriptionChoice = null;
   editing = { kind: "tx", id: t.id };
   const amt = Number(t.amount);
   cat = t.category === "start" ? null : t.category;
@@ -1242,6 +1323,7 @@ function startEditTx(t) {
 }
 
 function startEditRule(r) {
+  subscriptionChoice = r.subscription ?? null;
   editing = { kind: "rule", id: r.id };
   const amt = Number(r.amount);
   cat = r.category;
@@ -1261,6 +1343,7 @@ function startEditRule(r) {
 
 function resetForm() {
   editing = null;
+  subscriptionChoice = null;
   $("txForm").reset();
   $("txForm").classList.remove("is-editing");
   $("chips").hidden = false;
@@ -1329,18 +1412,20 @@ async function onSubmit(e) {
     const planned = !once || date > today;
     const auto = !$("confirmBox").checked;
     const saveAsPreset = !editing && !planned && $("presetBox").checked;
+    const choice = sign < 0 && !once ? subscriptionChoice : subscriptionChoice == null ? null : false;
+    const membership = PocketSubscriptions.membershipArgs(choice, subscriptionTracking);
     let res = null;
     if (editing?.kind === "rule") {
       await rpc("pocket_recurring_update", {
         p_id: editing.id, p_amount: sign * amount, p_label: label, p_cadence: once ? "monthly" : cadence, p_next: date,
-        p_today: today, p_left: once ? 1 : times, p_category: cat || "", p_auto: auto,
+        p_today: today, p_left: once ? 1 : times, p_category: cat || "", p_auto: auto, ...membership,
       });
     } else if (editing?.kind === "tx") {
       await rpc("pocket_update", { p_id: editing.id, p_amount: sign * amount, p_label: label, p_on: date, p_category: cat || "" });
     } else if (planned) {
       res = await rpcAdd("pocket_recurring_add", {
         p_amount: sign * amount, p_label: label, p_cadence: once ? "monthly" : cadence, p_start: date,
-        p_today: today, p_times: once ? 1 : times, p_category: cat, p_auto: auto,
+        p_today: today, p_times: once ? 1 : times, p_category: cat, p_auto: auto, ...membership,
       });
     } else {
       res = await rpcAdd("pocket_add", { p_amount: sign * amount, p_label: label, p_on: date, p_category: cat });
@@ -1364,7 +1449,7 @@ async function onSubmit(e) {
   } catch (err) {
     pendingFlight = null;
     if (err.badKey) return lock("This device was removed or its access changed. Pair it again.");
-    formError("Couldn't save. Check your connection and try again.");
+    formError(err.message?.includes("Subscriptions update") ? err.message : "Couldn't save. Check your connection and try again.");
   } finally {
     btn.disabled = false;
   }
@@ -1866,13 +1951,28 @@ $("amount").addEventListener("input", updatePreview);
 $("label").addEventListener("input", guessCategory);
 $("date").addEventListener("input", updateFormText);
 $("confirmBox").addEventListener("change", () => { confirmTouched = true; updateFormText(); });
+$("subscriptionBox").addEventListener("change", () => { subscriptionChoice = $("subscriptionBox").checked; });
+$("addSubscription").addEventListener("click", () => {
+  resetForm();
+  subscriptionChoice = subscriptionTracking ? true : null;
+  cat = "subscriptions"; catTouched = true;
+  setCadence("monthly"); renderCats(); setDetails(true);
+  $("txForm").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "center" });
+  $("amount").focus({ preventScroll: true });
+});
+document.querySelectorAll("[data-subscription-days]").forEach((button) => button.addEventListener("click", () => {
+  subscriptionDays = Number(button.dataset.subscriptionDays);
+  renderSubscriptions();
+}));
 document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setSign(Number(b.dataset.sign))));
 document.querySelectorAll("#chips button").forEach((b) => b.addEventListener("click", () => setCadence(b.dataset.cadence)));
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => setTab(b.id.slice(4))));
 document.querySelector(".tabs").addEventListener("keydown", (e) => {
-  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-  const names = ["activity", "plan", "insights"];
-  const next = names[(names.indexOf(tab) + (e.key === "ArrowRight" ? 1 : 2)) % 3];
+  if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
+  const names = TAB_NAMES;
+  const index = e.key === "Home" ? 0 : e.key === "End" ? names.length - 1
+    : (names.indexOf(tab) + (e.key === "ArrowRight" ? 1 : names.length - 1)) % names.length;
+  const next = names[index];
   setTab(next);
   $(`tab-${next}`).focus();
 });
@@ -1903,7 +2003,7 @@ scheduleBlink();
 
 // Browsers sometimes keep an old copy of this page. Ask for the current version (never cached)
 // and reload into it when it changed, so nobody gets stuck on an old release.
-const APP_VERSION = "9";
+const APP_VERSION = "10";
 async function checkForUpdate() {
   try {
     const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });

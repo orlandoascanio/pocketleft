@@ -9,6 +9,7 @@ import { DOWNLOAD_URL } from "@/lib/site";
 const LINKS = [
   { href: "#tour", label: "Features" },
   { href: "#plan", label: "Plan ahead" },
+  { href: "#subscriptions", label: "Subscriptions" },
   { href: "#private", label: "Data & privacy" },
   { href: "#faq", label: "FAQ" },
   { href: "/guides/", label: "Guides" },

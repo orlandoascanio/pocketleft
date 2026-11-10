@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=8">
+<link rel="stylesheet" href="app.css?v=10">
 </head>
 <body>
 <main>
@@ -124,6 +124,7 @@
           </div>
           <div class="checks">
             <label id="confirmRow" class="check" hidden><input id="confirmBox" type="checkbox"> Wait for me to confirm each payment arrived</label>
+            <label id="subscriptionRow" class="check" hidden><input id="subscriptionBox" type="checkbox"> Show in Subscriptions (keeps its category)</label>
             <label id="presetRow" class="check"><input id="presetBox" type="checkbox"> Also save as a quick-add button</label>
           </div>
         </div></div>
@@ -142,6 +143,7 @@
     <nav class="tabs" role="tablist" aria-label="Views">
       <button class="tab" role="tab" id="tab-activity" aria-controls="panel-activity" aria-selected="true">Activity</button>
       <button class="tab" role="tab" id="tab-plan" aria-controls="panel-plan" aria-selected="false">Plan</button>
+      <button class="tab" role="tab" id="tab-subscriptions" aria-controls="panel-subscriptions" aria-selected="false">Subscriptions</button>
       <button class="tab" role="tab" id="tab-insights" aria-controls="panel-insights" aria-selected="false">Insights</button>
       <span class="tab-ink" aria-hidden="true"></span>
     </nav>
@@ -183,6 +185,43 @@
         <div id="rules" class="rows"></div>
       </section>
       <p id="planEmpty" class="empty" hidden>Nothing planned yet. Add something with Weekly, Monthly or Yearly, or a date in the future.</p>
+    </div>
+
+    <div id="panel-subscriptions" class="panel" role="tabpanel" aria-labelledby="tab-subscriptions" hidden>
+      <section class="section">
+        <div class="section-head subscription-head">
+          <div><h2>Subscriptions</h2><p id="subscriptionCount" class="meta"></p></div>
+          <button id="addSubscription" class="btn" type="button">Add subscription</button>
+        </div>
+        <div id="subscriptionStats" class="stats"></div>
+        <p class="fine-print">Monthly and annual costs are equivalents at current prices. Paused subscriptions are excluded.</p>
+      </section>
+      <section class="section">
+        <div class="section-head"><h2>Your subscriptions</h2></div>
+        <div id="subscriptionList" class="rows"></div>
+        <p id="subscriptionEmpty" class="empty" hidden>No subscriptions yet. Add one or include a repeating payment below.</p>
+      </section>
+      <section class="section">
+        <div class="section-head subscription-head">
+          <h2>Upcoming renewals</h2>
+          <div class="range" role="group" aria-label="Renewal window">
+            <button type="button" data-subscription-days="7">7 days</button>
+            <button type="button" data-subscription-days="30" aria-pressed="true">30 days</button>
+          </div>
+        </div>
+        <div id="subscriptionRenewals" class="rows"></div>
+        <p id="subscriptionRenewalsEmpty" class="empty" hidden></p>
+      </section>
+      <section id="pausedSubscriptionsSection" class="section" hidden>
+        <div class="section-head"><h2>Paused</h2></div>
+        <div id="pausedSubscriptions" class="rows"></div>
+      </section>
+      <details id="otherSubscriptionsSection" class="section alt" hidden>
+        <summary>Add from repeating payments</summary>
+        <div id="otherSubscriptions" class="rows"></div>
+      </details>
+      <p class="fine-print">These are the same payments as Plan. For optional reminders before renewal, use Subscriptions in Pocket for Mac. Pausing or stopping tracking in Pocket does not cancel with the provider.</p>
+      <p id="subscriptionMessage" class="form-msg" role="status"></p>
     </div>
 
     <div id="panel-insights" class="panel" role="tabpanel" aria-labelledby="tab-insights" hidden>
@@ -255,6 +294,7 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn" type="button"></button></div>
 
-<script src="app.js?v=8"></script>
+<script src="subscriptions.js?v=10"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

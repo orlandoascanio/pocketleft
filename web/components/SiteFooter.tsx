@@ -38,6 +38,7 @@ export function SiteFooter() {
           </a>
           <a href="/#tour">Features</a>
           <a href="/#plan">Plan ahead</a>
+          <a href="/#subscriptions">Subscriptions</a>
           <a href={WEB_APP_URL}>Web app</a>
         </nav>
         <nav className="foot-col" aria-label="Help">

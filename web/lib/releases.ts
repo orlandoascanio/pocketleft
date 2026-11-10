@@ -28,7 +28,7 @@ export const RELEASES: Release[] = [
     detailsTitle: "Good to know",
     details: [
       "Subscriptions uses the same repeating payments as Plan, so each charge counts once.",
-      "The Subscriptions tab is available in the Mac app. The browser and mobile app keep their existing screens.",
+      "Subscriptions is available in the Mac app and, in the follow-up website update, the paired browser app. Renewal notifications are available on the Mac; the mobile app keeps its existing screens.",
       "For synced accounts, apply supabase/migrations/20261109120000_subscriptions.sql to your server first. The Mac protects subscription edits until the server supports them; local use needs no server update.",
       "Renewal reminders are optional and apply to the next scheduled charge. Pocket needs permission to send macOS notifications.",
     ],

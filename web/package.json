@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "check": "tsc --noEmit && node scripts/verify-integrations.mjs",
+    "check": "tsc --noEmit && node scripts/verify-integrations.mjs && node scripts/verify-subscriptions.mjs",
     "build": "next build",
     "start": "next start",
     "indexnow": "node scripts/indexnow.mjs"

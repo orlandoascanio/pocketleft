@@ -35,7 +35,8 @@ wait for review instead of being sent again, so nothing posts twice. The access 
 Version 1.5.0 adds a nullable subscription marker to repeating payments. Before using subscription edits with
 sync, apply `supabase/migrations/20261109120000_subscriptions.sql` to the server. It preserves the older clients'
 RPC arguments and category behavior. The Mac checks the server's capability before saving subscription changes;
-local use does not need a migration. The browser and mobile apps retain their existing screens.
+local use does not need a migration. The browser app also has Subscriptions, using the same paired account;
+the mobile app retains its existing screens. Browser renewal reminders are provided by the Mac app.
 
 One-time setup: save your notarization login in the keychain (needs an app-specific password from account.apple.com):
 

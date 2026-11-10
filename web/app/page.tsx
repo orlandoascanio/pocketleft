@@ -19,6 +19,7 @@ import {
   DESCRIPTION,
   DMG_SIZE,
   DOWNLOAD_URL,
+  WEB_APP_URL,
   REPO_URL,
   SELF_HOSTING_GUIDE_URL,
   SITE_URL,
@@ -142,7 +143,7 @@ export default function Home() {
         <section className="section wrap" id="tour">
           <h2>Everything happens in one small window.</h2>
           <p className="section-lead">
-            Your balance sits in the menu bar. Open the window to add entries, confirm payments and look ahead.
+            Your balance sits in the menu bar. Open the window to add entries, confirm payments, manage subscriptions and look ahead.
           </p>
           <Tour initialView="overview" />
           <div className="tour-download">
@@ -154,6 +155,16 @@ export default function Home() {
         <div className="wrap wrap-wide home-demos">
           <Bento />
         </div>
+
+        <section className="section wrap" id="subscriptions">
+          <h2>Know what you're subscribed to.</h2>
+          <p className="section-lead">See active and paused subscriptions, monthly and annual cost equivalents, and the charges coming in the next 7 or 30 days. Include payments you already track without logging them twice.</p>
+          <p className="section-lead subscriptions-local">Works locally in Pocket for Mac, with no account or server. Turn on optional reminders before the next renewal. The browser app has a Subscriptions tab too, for your connected Pocket.</p>
+          <div className="cta subscriptions-cta">
+            <DownloadButton />
+            <a className="pill pill-soft" href={WEB_APP_URL}>Open the browser app</a>
+          </div>
+        </section>
 
         <section className="section wrap" id="plan">
           <div className="feature">
