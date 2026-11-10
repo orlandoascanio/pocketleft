@@ -3,7 +3,7 @@ export type Release = {
   date: string;
   title: string;
   summary: string;
-  theme: "sync" | "launch" | "findable" | "update" | "share";
+  theme: "sync" | "launch" | "findable" | "update" | "share" | "subscriptions";
   highlights: { title: string; description: string }[];
   detailsTitle: string;
   details: string[];
@@ -13,6 +13,27 @@ export type Release = {
 // Curated from the published GitHub releases. Add a new entry here when shipping,
 // and update VERSION in site.ts. Dates are publication dates, not commit dates.
 export const RELEASES: Release[] = [
+  {
+    version: "1.5.0",
+    date: "2026-11-09",
+    title: "Know what you're subscribed to.",
+    summary: "The new Subscriptions tab brings your recurring services together, with monthly and annual cost equivalents, upcoming renewals, and optional reminders before the next charge.",
+    theme: "subscriptions",
+    highlights: [
+      { title: "All your subscriptions", description: "See active and paused subscriptions in one place. Existing repeating payments in the Subscriptions category appear automatically; include other repeating expenses without changing their category or logging them twice." },
+      { title: "See what it adds up to", description: "Compare monthly and annual cost equivalents at current prices, and see the actual charges planned over the next 7 or 30 days. Paused subscriptions are excluded from totals." },
+      { title: "A reminder before renewal", description: "Turn on renewal reminders to receive a notification on this Mac at 10 AM the day before the next charge. Open it to review your subscriptions." },
+      { title: "Manage tracking", description: "Add or edit a subscription, pause or resume tracking, or remove future payments from Pocket while keeping past payments in History. Cancel with the provider separately to stop being charged." },
+    ],
+    detailsTitle: "Good to know",
+    details: [
+      "Subscriptions uses the same repeating payments as Plan, so each charge counts once.",
+      "The Subscriptions tab is available in the Mac app. The browser and mobile app keep their existing screens.",
+      "For synced accounts, apply supabase/migrations/20261109120000_subscriptions.sql to your server first. The Mac protects subscription edits until the server supports them; local use needs no server update.",
+      "Renewal reminders are optional and apply to the next scheduled charge. Pocket needs permission to send macOS notifications.",
+    ],
+    source: "https://github.com/orlandoascanio/pocketleft/releases/tag/v1.5.0",
+  },
   {
     version: "1.4.1",
     date: "2026-10-17",

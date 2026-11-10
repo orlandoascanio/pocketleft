@@ -5,8 +5,8 @@ export const DESCRIPTION =
   "Free Mac menu bar app that shows how much money you have left. Log spending and income, plan upcoming bills, and keep your data on your Mac.";
 
 // Bump these with each release (see README: Releasing a new version).
-export const VERSION = "1.4.1";
-export const DMG_SIZE = "3.8 MB";
+export const VERSION = "1.5.0";
+export const DMG_SIZE = "4.2 MB";
 export const RELEASE_URL = `${REPO_URL}/releases/tag/v${VERSION}`;
 export const RELEASES_URL = `${REPO_URL}/releases`;
 // The on-site guide is where visitors go; the GitHub file stays the full technical reference.
