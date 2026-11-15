@@ -14,6 +14,38 @@ export type Release = {
 // and update VERSION in site.ts. Dates are publication dates, not commit dates.
 export const RELEASES: Release[] = [
   {
+    "version": "1.5.1",
+    "date": "2026-11-15",
+    "title": "Less work in the background.",
+    "summary": "Pocket now syncs less often in the background, formats amounts faster, and opens History in smaller pages as your records grow.",
+    "theme": "update",
+    "highlights": [
+      {
+        "title": "Quieter background sync",
+        "description": "Pocket checks for changes every five minutes in the background, or every fifteen minutes in Low Power Mode. While active, it checks every thirty seconds. Your own edits still sync immediately."
+      },
+      {
+        "title": "Smaller History pages",
+        "description": "History starts with your latest 100 entries. Choose Show more to see older entries. Search, totals and CSV export still cover your full history."
+      },
+      {
+        "title": "Faster amounts",
+        "description": "Amounts take less work to display throughout Pocket, while keeping your currency, locale and recorded precision."
+      },
+      {
+        "title": "Fewer failed retries",
+        "description": "Connection problems now increase the time between automatic retries. If account access was removed, Pocket pauses automatic retries until you reconnect or explicitly try again."
+      }
+    ],
+    "detailsTitle": "Good to know",
+    "details": [
+      "Changes made on another device can take up to five minutes to appear while Pocket is in the background, or fifteen minutes in Low Power Mode. Failed connections may take longer; you can still retry manually.",
+      "This update changes the Mac app. Your existing entries, subscriptions and sync server remain compatible; no new server migration is required for 1.5.1.",
+      "These changes reduce background work. Battery savings have not been measured."
+    ],
+    "source": "https://github.com/orlandoascanio/pocketleft/releases/tag/v1.5.1"
+  },
+  {
     version: "1.5.0",
     date: "2026-11-09",
     title: "Know what you're subscribed to.",

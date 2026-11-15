@@ -110,7 +110,7 @@ export default function Home() {
               <a className="announce" href="/changelog/">
                 <span className="announce-tag">New</span>
                 <b>Pocket {VERSION.replace(/\.0$/, "")}</b>
-                <span className="announce-text">Your subscriptions, costs and renewals in one place.</span>
+                <span className="announce-text">Quieter background sync and a lighter History view.</span>
                 <span className="announce-arrow" aria-hidden="true">
                   ↗
                 </span>
