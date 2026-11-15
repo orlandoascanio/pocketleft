@@ -10,29 +10,27 @@ public struct Money: Sendable {
         self.locale = locale
     }
 
-    private var formatter: NumberFormatter {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencyCode = currency
-        f.locale = locale
-        return f
-    }
+    // Formatters are mutable, so cache separate modes and keep every use under the cache lock.
+    private static let formatters = CurrencyFormatters()
 
     /// Input precision follows the ledger's integer cents, regardless of display currency.
     public var fractionDigits: Int { 2 }
 
     /// "$", "€", "¥": shown beside an amount while it's typed.
-    public var symbol: String { formatter.currencySymbol ?? currency }
+    public var symbol: String {
+        Self.formatters.use(currency: currency, locale: locale, mode: .standard) { $0.currencySymbol ?? currency }
+    }
 
     /// What an empty amount field shows, matching the precision that can be recorded.
     public var placeholder: String { fractionDigits == 0 ? "0" : "0." + String(repeating: "0", count: fractionDigits) }
 
     public func string(_ cents: Cents, signed: Bool = false) -> String {
         let value = Double(cents) / 100
-        let f = formatter
         // Keep a fractional recorded amount visible even for a whole-unit currency.
-        if cents % 100 != 0 { f.maximumFractionDigits = max(2, f.maximumFractionDigits) }
-        let s = f.string(from: NSNumber(value: value)) ?? "\(value)"
+        let s = Self.formatters.use(currency: currency, locale: locale,
+                                    mode: cents % 100 == 0 ? .standard : .fractional) {
+            $0.string(from: NSNumber(value: value)) ?? "\(value)"
+        }
         return signed && cents > 0 ? "+" + s : s
     }
 
@@ -40,20 +38,17 @@ public struct Money: Sendable {
     public func compact(_ cents: Cents) -> String {
         let value = Double(cents) / 100
         let mag = abs(value)
-        let f = formatter
-        f.maximumFractionDigits = 1
-        f.minimumFractionDigits = 0
         let (n, suffix) = mag >= 1_000_000 ? (value / 1_000_000, "M") : mag >= 1_000 ? (value / 1_000, "K") : (value, "")
-        if suffix.isEmpty { f.maximumFractionDigits = 0 }
-        return (f.string(from: NSNumber(value: n)) ?? "\(n)") + suffix
+        return Self.formatters.use(currency: currency, locale: locale, mode: suffix.isEmpty ? .whole : .compact) {
+            ($0.string(from: NSNumber(value: n)) ?? "\(n)") + suffix
+        }
     }
 
     /// Whole units only ("$750"), for rough monthly totals.
     public func whole(_ cents: Cents) -> String {
-        let f = formatter
-        f.maximumFractionDigits = 0
-        f.minimumFractionDigits = 0
-        return f.string(from: NSNumber(value: (Double(cents) / 100).rounded())) ?? "\(cents / 100)"
+        Self.formatters.use(currency: currency, locale: locale, mode: .whole) {
+            $0.string(from: NSNumber(value: (Double(cents) / 100).rounded())) ?? "\(cents / 100)"
+        }
     }
 
     /// Reads what someone typed ("9.99", "9,99", "$9.99", "1,234.50") as a positive amount in cents.
@@ -110,4 +105,40 @@ public struct Money: Sendable {
 
     /// Cents as an editable string ("9.99").
     public static func edit(_ cents: Cents) -> String { String(format: "%.2f", Double(abs(cents)) / 100) }
+}
+
+/// A bounded cache shared by Money values. No formatter escapes the lock or changes mode after creation.
+private final class CurrencyFormatters: @unchecked Sendable {
+    enum Mode: String { case standard, fractional, compact, whole }
+    private let lock = NSLock()
+    private let cache = NSCache<NSString, NumberFormatter>()
+
+    init() { cache.countLimit = 64 }
+
+    func use<T>(currency: String, locale: Locale, mode: Mode, _ body: (NumberFormatter) -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        let key = "\(locale.identifier)|\(currency)|\(mode.rawValue)" as NSString
+        let formatter: NumberFormatter
+        if let existing = cache.object(forKey: key) {
+            formatter = existing
+        } else {
+            formatter = NumberFormatter()
+            formatter.numberStyle = .currency
+            formatter.currencyCode = currency
+            formatter.locale = locale
+            switch mode {
+            case .standard: break
+            case .fractional: formatter.maximumFractionDigits = max(2, formatter.maximumFractionDigits)
+            case .compact:
+                formatter.maximumFractionDigits = 1
+                formatter.minimumFractionDigits = 0
+            case .whole:
+                formatter.maximumFractionDigits = 0
+                formatter.minimumFractionDigits = 0
+            }
+            cache.setObject(formatter, forKey: key)
+        }
+        return body(formatter)
+    }
 }

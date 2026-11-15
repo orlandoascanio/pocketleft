@@ -10,7 +10,11 @@ enum AccountConfig {
     static let webURL = URL(string: "https://pocketleft.app/app/")!
     static let selfHostGuide = URL(string: "https://github.com/orlandoascanio/pocket/blob/main/SELF-HOSTING.md")!
     static let deviceName = "Mac · Pocket"
-    static let syncEvery: TimeInterval = 30
+    /// Keep visible accounts fresh; hidden accounts can wait to reduce idle work.
+    static func syncInterval(active: Bool, lowPower: Bool, failures: Int) -> TimeInterval {
+        let base: TimeInterval = lowPower ? 15 * 60 : active ? 30 : 5 * 60
+        return min(30 * 60, base * pow(2, Double(min(max(0, failures), 6))))
+    }
 }
 
 /// Where an account lives: a Supabase project (hosted or self-hosted) with Pocket's SQL loaded.

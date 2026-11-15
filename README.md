@@ -6,6 +6,9 @@ How much money is left, everywhere.
 
 ## Pocket for Mac
 
+Version 1.5.1 reduces background sync activity, reuses currency formatters, and shows History in
+pages of 100 entries. Search and CSV export still cover the full history. See [the performance notes](mac/PERFORMANCE.md).
+
 `mac/` is the Mac app. By default your money stays on your Mac in one JSON file
 (`~/Library/Application Support/Pocket/ledger.json`, with 7 daily backups), with no account and no server.
 

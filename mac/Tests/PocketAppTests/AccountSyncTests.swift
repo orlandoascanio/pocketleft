@@ -132,6 +132,48 @@ final class AccountSyncTests: XCTestCase {
                      session: URLSession(configuration: config), keyStore: keyStore)
     }
 
+    func testAutomaticSyncStopsRetryingRevokedAccessButExplicitRetryAndReconnectWork() async throws {
+        MockAccount.reset(balance: 100)
+        let keys = AccountKeyStore.memory()
+        keys.save("revoked")
+        let store = try makeStore(keys)
+        await store.syncNow()
+        XCTAssertEqual(store.syncState, .badKey)
+        let calls = MockAccount.calls.count
+        await store.syncNow(automatically: true)
+        await store.syncNow(automatically: true)
+        XCTAssertEqual(MockAccount.calls.count, calls, "Background triggers must not retry revoked access")
+        await store.syncNow()
+        XCTAssertEqual(MockAccount.calls.count, calls + 1, "An explicit retry remains available")
+        try await store.connect(key: MockAccount.key)
+        await store.syncNow(automatically: true)
+        XCTAssertEqual(store.balance, 10_000)
+        if case .ok = store.syncState {} else { XCTFail("Reconnecting must resume automatic sync") }
+    }
+
+    func testLocalOnlyAutomaticSyncMakesNoRequests() async throws {
+        MockAccount.reset(balance: 100)
+        let store = try makeStore()
+        await store.syncNow(automatically: true)
+        XCTAssertTrue(MockAccount.calls.isEmpty)
+    }
+
+    func testAutomaticTriggersRespectFailureBackoffAndManualRecoveryResumesSync() async throws {
+        MockAccount.reset(balance: 100)
+        let store = try makeStore()
+        try await store.connect(key: MockAccount.key)
+        MockAccount.failure = .notConnectedToInternet
+        await store.syncNow()
+        XCTAssertEqual(store.syncState, .offline)
+        let calls = MockAccount.calls.count
+        await store.syncNow(automatically: true)
+        XCTAssertEqual(MockAccount.calls.count, calls, "Activation and day checks must respect backoff too")
+        MockAccount.failure = nil
+        await store.syncNow()
+        await store.syncNow(automatically: true)
+        XCTAssertEqual(MockAccount.calls.count, calls + 2, "Success clears automatic retry delays")
+    }
+
     func testConnectBringsTheAccountBalanceAndKeepsACopyOnThisMac() async throws {
         MockAccount.reset(balance: -69.08)
         let store = try makeStore()

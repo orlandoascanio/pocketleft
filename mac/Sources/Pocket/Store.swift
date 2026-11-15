@@ -114,6 +114,8 @@ final class Store: ObservableObject {
     private var reminderTask: Task<Void, Never>?
     private var timer: Timer?
     private var syncTimer: Timer?
+    private var syncFailures = 0
+    private var lastSyncFailure: Date?
 
     // MARK: account state
     private let keyStore: AccountKeyStore
@@ -214,6 +216,7 @@ final class Store: ObservableObject {
             timer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { [weak self] _ in
                 Task { @MainActor in self?.tick() }
             }
+            timer?.tolerance = 60
             let nc = NSWorkspace.shared.notificationCenter
             nc.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.tick() }
@@ -222,11 +225,13 @@ final class Store: ObservableObject {
                 Task { @MainActor in self?.tick() }
             }
             NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor in await self?.syncNow() }
+                Task { @MainActor in await self?.syncNow(automatically: true) }
             }
-            // Changes made on the phone show up here within half a minute.
-            syncTimer = Timer.scheduledTimer(withTimeInterval: AccountConfig.syncEvery, repeats: true) { [weak self] _ in
-                Task { @MainActor in await self?.syncNow() }
+            NotificationCenter.default.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.scheduleNextSync() }
+            }
+            NotificationCenter.default.addObserver(forName: .NSProcessInfoPowerStateDidChange, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.scheduleNextSync() }
             }
         }
         if notificationsEnabled {
@@ -351,7 +356,7 @@ final class Store: ObservableObject {
             }
         }
         scheduleReminders()
-        if connected { Task { await syncNow() } }
+        if connected { Task { await syncNow(automatically: true) } }
     }
 
     @discardableResult
@@ -637,11 +642,22 @@ final class Store: ObservableObject {
 
     /// Sends what's waiting, in order, then replaces this Mac's copy with the account's.
     /// While anything can still be retried, the copy here (with those changes in it) is kept instead.
-    func syncNow() async {
+    func syncNow(automatically: Bool = false) async {
         guard let key = accountKey else { return }
-        if syncInFlight { syncAgain = true; return }
+        // A revoked key needs user action, not periodic requests. Explicit retries remain available.
+        if automatically && syncState == .badKey { return }
+        if automatically, let failed = lastSyncFailure,
+           Date().timeIntervalSince(failed) < automaticSyncInterval { return }
+        if syncInFlight {
+            if !automatically { syncAgain = true }
+            return
+        }
+        syncTimer?.invalidate()
         syncInFlight = true
-        defer { syncInFlight = false }
+        defer {
+            syncInFlight = false
+            scheduleNextSync()
+        }
         repeat {
             syncAgain = false
             if case .ok = syncState {} else { syncState = .syncing }
@@ -655,19 +671,53 @@ final class Store: ObservableObject {
                 guard key == accountKey else { return }
                 // A change made while the request was out goes first; the next round picks up the result.
                 if journal.outbox.contains(where: { !$0.needsReview }) { syncAgain = true; continue }
-                guard adopt(state.ledger(currency: ledger.currency)) else { syncState = .offline; return }
+                guard adopt(state.ledger(currency: ledger.currency)) else {
+                    recordSyncFailure()
+                    syncState = .offline
+                    return
+                }
                 journal.lastSync = Date()
                 if journal.outbox.isEmpty { journal.ids = [:] }
                 saveJournal()
                 syncState = .ok(Date())
+                syncFailures = 0
+                lastSyncFailure = nil
             } catch let e as APIError where e.badKey {
                 if key == accountKey { syncState = .badKey }
                 return
             } catch {
-                if key == accountKey { syncState = .offline }
+                if key == accountKey {
+                    recordSyncFailure()
+                    syncState = .offline
+                }
                 return
             }
         } while syncAgain
+    }
+
+    private var automaticSyncInterval: TimeInterval {
+        AccountConfig.syncInterval(active: servicesEnabled && NSApp.isActive,
+                                   lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled,
+                                   failures: syncFailures)
+    }
+
+    private func recordSyncFailure() {
+        syncFailures = min(syncFailures + 1, 6)
+        lastSyncFailure = Date()
+    }
+
+    /// One tolerant timer, scheduled after completion so failures cannot keep polling at 30 seconds.
+    private func scheduleNextSync() {
+        syncTimer?.invalidate()
+        syncTimer = nil
+        guard servicesEnabled, connected, syncState != .badKey, !syncInFlight else { return }
+        let delay = automaticSyncInterval
+        let next = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
+            Task { @MainActor in await self?.syncNow(automatically: true) }
+        }
+        next.tolerance = min(60, delay * 0.2)
+        RunLoop.main.add(next, forMode: .common)
+        syncTimer = next
     }
 
     /// Takes the account's ledger as this Mac's copy, so edits from the phone show up (and the pocket reacts).
@@ -766,6 +816,9 @@ final class Store: ObservableObject {
         loadError = nil
         saveError = nil
         syncState = .ok(Date())
+        syncFailures = 0
+        lastSyncFailure = nil
+        scheduleNextSync()
         onboarded = true
         scheduleReminders()
     }
@@ -846,6 +899,10 @@ final class Store: ObservableObject {
         }
         keyStore.save(nil)
         accountKey = nil
+        syncTimer?.invalidate()
+        syncTimer = nil
+        syncFailures = 0
+        lastSyncFailure = nil
         journal = SyncJournal()
         try? FileManager.default.removeItem(at: journalURL)
         syncState = .offline

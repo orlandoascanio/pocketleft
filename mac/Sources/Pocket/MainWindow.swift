@@ -264,6 +264,8 @@ struct OverviewView: View {
     @State private var pendingDelete: Entry?
     @State private var exportMessage: String?
     @State private var choosingDates = false
+    @State private var historySnapshot = HistorySnapshot()
+    @State private var historyLimit = 100
     @FocusState private var searchFocused: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -312,6 +314,14 @@ struct OverviewView: View {
             .onAppear {
                 if let target = scrollTarget { proxy.scrollTo(target, anchor: .top); scrollTarget = nil }
             }
+        }
+        .onChange(of: store.ledger.entries, initial: true) { _, entries in
+            historySnapshot = HistorySnapshot(entries: entries, query: query)
+            historyLimit = 100
+        }
+        .onChange(of: query) { _, value in
+            historySnapshot.filter(value)
+            historyLimit = 100
         }
         .confirmationDialog("Delete “\(pendingDelete?.label ?? "")”?", isPresented: Binding(
             get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), presenting: pendingDelete) { e in
@@ -386,12 +396,10 @@ struct OverviewView: View {
     }
 
     private var history: some View {
-        let all = store.ledger.sortedEntries
-        var after: [UUID: Cents] = [:]
-        var run: Cents = 0
-        for e in all.reversed() { run += e.cents; after[e.id] = run }
-        let shown = query.isEmpty ? all : all.filter(query.matches)
-        let groups = Dictionary(grouping: shown, by: \.day).sorted { $0.key > $1.key }
+        let all = historySnapshot.entries
+        let after = historySnapshot.balanceAfter
+        let shown = historySnapshot.matching
+        let groups = Dictionary(grouping: Array(shown.prefix(historyLimit)), by: \.day).sorted { $0.key > $1.key }
 
         return VStack(alignment: .leading, spacing: 10) {
             SectionTitle(title: "History", meta: query.isEmpty ? nil : resultsMeta(shown)).padding(.top, 6)
@@ -418,7 +426,7 @@ struct OverviewView: View {
                              : day.localDate.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
                             .font(.callout.weight(.semibold)).foregroundStyle(.secondary)
                         Spacer()
-                        let net = entries.reduce(0) { $0 + $1.cents }
+                        let net = historySnapshot.netByDay[day] ?? 0
                         Text(store.money.string(net, signed: true))
                             .font(.callout).monospacedDigit()
                             .foregroundStyle(net > 0 ? Palette.accent : Color.secondary)
@@ -448,6 +456,12 @@ struct OverviewView: View {
                         }
                     }
                 }
+            }
+            if shown.count > historyLimit {
+                Button("Show \(min(100, shown.count - historyLimit)) more") { historyLimit += 100 }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
             }
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: store.ledger.entries.count)
