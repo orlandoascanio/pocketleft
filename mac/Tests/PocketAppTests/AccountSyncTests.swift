@@ -70,11 +70,20 @@ final class MockAccount: URLProtocol, @unchecked Sendable {
             let id = UUID().uuidString
             Self.rules.append(["id": id, "amount": args["p_amount"]!, "label": args["p_label"]!, "cadence": args["p_cadence"]!,
                                "active": true, "auto": args["p_auto"] ?? true, "category": args["p_category"] ?? NSNull(),
-                               "next_on": args["p_start"]!, "remaining": args["p_times"] ?? NSNull()])
+                               "next_on": args["p_start"]!, "remaining": args["p_times"] ?? NSNull(),
+                               "once": (args["p_times"] as? Int) == 1])
             Self.rules[Self.rules.count - 1]["subscription"] = args["p_subscription"]
             respond(200, ["id": id])
+        case "pocket_recurring_update":
+            if let i = Self.rules.firstIndex(where: { $0["id"] as? String == args["p_id"] as? String }) {
+                Self.rules[i]["subscription"] = args["p_subscription"]
+            }
+            respond(204, nil)
         case "pocket_subscription_set":
             if let i = Self.rules.firstIndex(where: { $0["id"] as? String == args["p_id"] as? String }) {
+                if Self.rules[i]["once"] as? Bool == true {
+                    return respond(400, ["message": "This repeating expense is no longer available"])
+                }
                 Self.rules[i]["subscription"] = args["p_subscription"]
             }
             respond(204, nil)
@@ -318,6 +327,30 @@ final class AccountSyncTests: XCTestCase {
 }
 
 extension AccountSyncTests {
+    func testSingleRenewalKeepsExplicitSubscriptionMembershipOnSync() async throws {
+        MockAccount.reset(balance: 100)
+        let store = try makeStore()
+        try await store.connect(key: MockAccount.key)
+        let editor = EditorState()
+        editor.store = store
+        editor.startSubscription()
+        editor.label = "Cloud"
+        editor.amount = "9.99"
+        editor.times = "1"
+        editor.date = Day.today.adding(days: 2).localDate
+        XCTAssertTrue(editor.save())
+        await store.syncNow()
+
+        let synced = try XCTUnwrap(store.ledger.rules.first)
+        XCTAssertTrue(synced.isSubscription)
+        XCTAssertEqual(synced.remaining, 1)
+        XCTAssertTrue(store.setSubscription(synced.id, false))
+        await store.syncNow()
+        XCTAssertTrue(MockAccount.calls.contains("pocket_recurring_update"))
+        XCTAssertEqual(store.ledger.rules.count, 1)
+        XCTAssertFalse(try XCTUnwrap(store.ledger.rules.first).isSubscription)
+    }
+
     func testOlderServerRejectsMembershipChangesBeforeWritingOrQueuing() async throws {
         MockAccount.reset(balance: 100)
         MockAccount.subscriptionTracking = false
