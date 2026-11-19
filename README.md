@@ -6,8 +6,8 @@ How much money is left, everywhere.
 
 ## Pocket for Mac
 
-Version 1.5.2 puts the next renewal on each subscription row and lets you schedule multiple reminders.
-See the [changelog](https://pocketleft.app/changelog/#v1-5-2) for the release details.
+Version 1.5.3 makes it easier to check category totals, review uncategorized entries and return to the month you were viewing.
+See the [changelog](https://pocketleft.app/changelog/#v1-5-3) for the release details.
 
 `mac/` is the Mac app. By default your money stays on your Mac in one JSON file
 (`~/Library/Application Support/Pocket/ledger.json`, with 7 daily backups), with no account and no server.

@@ -14,6 +14,26 @@ export type Release = {
 // and update VERSION in site.ts. Dates are publication dates, not commit dates.
 export const RELEASES: Release[] = [
   {
+    version: "1.5.3",
+    date: "2026-11-19",
+    title: "See where your money went.",
+    summary: "Pocket for Mac makes it easier to check spending by category, review uncategorized entries, and get back to the month you were viewing.",
+    theme: "update",
+    highlights: [
+      { title: "A clearer breakdown", description: "Each bar shows its share of spending or money in. The summary puts spending first and shows how much your balance changed over the selected period." },
+      { title: "Compare completed months", description: "See how spending changed from the previous full month. The current month shows totals to date." },
+      { title: "Review uncategorized entries", description: "Purchases and payments without a category have their own Review rows. Entries assigned to Other stay in Other." },
+      { title: "Open the entries behind each total", description: "Select a category to open its History, then go back to the same month or All time view." },
+    ],
+    detailsTitle: "Also in this release",
+    details: [
+      "Click the month name to jump to another month.",
+      "History highlights active filters and labels the CSV export.",
+      "Use Back to Categories or ⌘[ to return from category History.",
+    ],
+    source: "https://github.com/orlandoascanio/pocketleft/releases/tag/v1.5.3",
+  },
+  {
     version: "1.5.2",
     date: "2026-11-18",
     title: "Know when each subscription renews.",

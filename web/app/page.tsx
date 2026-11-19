@@ -111,7 +111,7 @@ export default function Home() {
               <a className="announce" href={"/changelog/#" + releaseId(VERSION)}>
                 <span className="announce-tag">New</span>
                 <b>Pocket {VERSION.replace(/\.0$/, "")}</b>
-                <span className="announce-text">Clearer subscription totals and reminders.</span>
+                <span className="announce-text">A clearer view of your spending.</span>
                 <span className="announce-arrow" aria-hidden="true">
                   ↗
                 </span>
@@ -256,25 +256,22 @@ export default function Home() {
             <div className="copy">
               <h2>See where each month went.</h2>
               <p>
-                Pocket totals your spending by category and shows where your income came from. Switch between
-                Month and All time, or click a category to see every entry in it. Search History by name or amount,
-                and export what you find as a CSV spreadsheet.
+                See what you spent, what came in and how much your balance changed. Jump to any month in your
+                history and compare completed months. Select a category to see its entries, or use Review to find
+                purchases and payments without a category.
               </p>
             </div>
             <figure className="categories-recording">
-              <video
-                controls
-                muted
-                playsInline
-                preload="none"
-                width={1540}
-                height={1200}
-                poster="/media/categories-2026-10-12.webp"
-                aria-label="Pocket Categories: monthly spending, all-time totals, and purchases by category"
-              >
-                <source src="/media/categories-2026-10-12.mp4" type="video/mp4" />
-                <a href="/media/categories-2026-10-12.mp4">Watch the Categories demonstration</a>
-              </video>
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcSet="/media/categories-1-5-3-dark.webp" />
+                <img
+                  src="/media/categories-1-5-3-light.webp"
+                  width={1640}
+                  height={910}
+                  loading="lazy"
+                  alt="Pocket for Mac Categories showing month-to-date spending, money in, balance change and spending by category. Example data."
+                />
+              </picture>
             </figure>
           </div>
         </section>

@@ -87,10 +87,9 @@
 #plan .quick-add-feature, #plan .categories-feature { grid-template-columns: .7fr 1.3fr; gap: 40px; }
 .quick-add-feature > *, .categories-feature > * { min-width: 0; }
 .quick-add-recording, .categories-recording { margin: 0; }
-.quick-add-recording video, .categories-recording video { display: block; width: 100%; height: auto; background: var(--surface-2); border-radius: 16px; }
+.quick-add-recording video, .categories-recording img { display: block; width: 100%; height: auto; background: var(--surface-2); border-radius: 16px; }
 .quick-add-recording video { aspect-ratio: 83 / 54; }
-.categories-recording video { aspect-ratio: 77 / 60; }
-.quick-add-recording video:focus-visible, .categories-recording video:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.quick-add-recording video:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 #private .two-tone span { color: var(--muted); }
 #private .plan { border-radius: 16px; }
 .local-default { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 36px; }
