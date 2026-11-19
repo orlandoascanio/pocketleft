@@ -6,8 +6,8 @@ How much money is left, everywhere.
 
 ## Pocket for Mac
 
-Version 1.5.1 reduces background sync activity, reuses currency formatters, and shows History in
-pages of 100 entries. Search and CSV export still cover the full history. See [the performance notes](mac/PERFORMANCE.md).
+Version 1.5.2 puts the next renewal on each subscription row and lets you schedule multiple reminders.
+See the [changelog](https://pocketleft.app/changelog/#v1-5-2) for the release details.
 
 `mac/` is the Mac app. By default your money stays on your Mac in one JSON file
 (`~/Library/Application Support/Pocket/ledger.json`, with 7 daily backups), with no account and no server.
@@ -18,14 +18,18 @@ While connected, the server is the main copy. The Mac keeps a full copy (`accoun
 and sends changes in order once it's back online (`account-sync.json` holds the outbox). Requests that time out
 wait for review instead of being sent again, so nothing posts twice. The access key lives in the Keychain.
 
-- Menubar balance, plus a window with Overview (history you can search and filter, ⌘F), Plan (forecast chart), Insights and Settings.
+- Menu bar balance and a window with Overview (searchable History, ⌘F), Plan (forecast chart),
+  Subscriptions, Categories and Settings.
 - Check for Updates downloads the latest GitHub release, checks it is Pocket signed with the Developer ID at the offered
   version (`codesign` with a team and bundle ID requirement), replaces the app and relaunches. When the app can't be
   replaced in place (Downloads, the disk image), it opens the downloaded disk image instead.
 - Repeating money that can wait for confirmation, quick-add buttons (⌘1–⌘9), categories, reminders when money is due.
-- Subscriptions: active and paused services, monthly/annual cost equivalents, renewals in the next 7/30 days,
-  and optional 10 AM reminders the day before the next charge. Include existing repeating expenses without
-  changing their category or recording a second payment. Stopping tracking in Pocket does not cancel a provider.
+- Subscriptions shows each service once, sorted by next renewal. Select the renewal label for the
+  exact date and amount. Compare average monthly and yearly costs with charges due in the next 7 or 30 days.
+- Add a subscription with its price, billing cycle and next renewal. Pocket records its renewals in
+  History when due. Include existing repeating expenses with their current category and schedule.
+- Set optional Mac reminders for a specific date and time, or a number of days before each renewal.
+  The built-in default is two days before renewal at 10 AM. Cancel the service with its provider.
 - `swift test` (in `mac/`) runs the money-logic tests and the app tests, including sync against a mock server
   (`Tests/PocketAppTests/AccountSyncTests.swift`). Set `POCKET_SNAPSHOT_DIR` to also render screen previews.
 - `./mac/build.sh` builds a universal app signed with Developer ID; `NOTARY_PROFILE=<name> ./mac/build.sh --release`
@@ -59,12 +63,12 @@ Then, for each release:
 
    ```bash
    cp mac/dist/Pocket-1.0.1.dmg /tmp/Pocket.dmg
-   gh release create v1.0.1 /tmp/Pocket.dmg --repo orlandoascanio/pocket --title "Pocket for Mac 1.0.1" --notes "What changed…
-
-If Pocket helps you, a star on GitHub helps other people find it." --latest
+   gh release create v1.0.1 /tmp/Pocket.dmg --repo orlandoascanio/pocketleft \
+     --title "Pocket for Mac 1.0.1" --notes-file /path/to/release-notes.md --latest
    ```
 
-3. Check it: `https://github.com/orlandoascanio/pocket/releases/latest/download/Pocket.dmg` should download the new version.
+3. Verify the [latest disk image](https://github.com/orlandoascanio/pocketleft/releases/latest/download/Pocket.dmg).
+   Update the homepage, `web/lib/site.ts`, `web/lib/releases.ts` and the tour captures when the UI changes.
 
 ## Pocket for iPhone and Android
 
@@ -75,7 +79,8 @@ pairing code. Overview, Plan, Categories and Settings, with the same money logic
 
 ## Web app and server
 
-- `web/`: the website at [pocketleft.app](https://pocketleft.app), a Next.js site hosted on Vercel (project Root Directory: `web`).
+- `web/` contains the Next.js website at [pocketleft.app](https://pocketleft.app). Netlify deploys
+  the site from `main` with `web` as its base directory.
   `/` is the Pocket for Mac download page. `npm run dev` in `web/` runs it locally.
   See [web/SEO-SETUP.md](web/SEO-SETUP.md) for the SEO audit and Google Search Console, GA4, and Sentry setup.
 - `web/public/app/`: the web app, served as-is at [pocketleft.app/app](https://pocketleft.app/app/). Works on a phone and any
