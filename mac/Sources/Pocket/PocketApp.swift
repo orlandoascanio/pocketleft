@@ -52,6 +52,7 @@ struct PocketApp: App {
         }
         .defaultSize(width: 1000, height: 780)
         .commands {
+            NewEntryCommands()
             CommandGroup(replacing: .appInfo) {
                 Button("About Pocket") { AboutPanel.show() }
                 Button("Check for Updates…") { UpdateChecker.shared.checkAndReport() }
@@ -65,6 +66,18 @@ struct PocketApp: App {
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+    }
+}
+
+private struct NewEntryCommands: Commands {
+    @FocusedValue(\.newEntryAction) private var newEntryAction
+
+    var body: some Commands {
+        CommandGroup(after: .newItem) {
+            Button("New Entry") { newEntryAction?() }
+                .keyboardShortcut("n", modifiers: .command)
+                .disabled(newEntryAction == nil)
+        }
     }
 }
 
