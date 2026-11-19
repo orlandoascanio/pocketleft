@@ -94,6 +94,7 @@ final class Store: ObservableObject {
             scheduleReminders()
         }
     }
+    @Published private(set) var renewalReminders: RenewalReminderPreferences
     @Published private(set) var reminderMessage: String?
     /// The one-time "Know someone who'd like Pocket?" note: nil until it's earned, then "due", then "done" for good.
     @Published private(set) var sharePrompt: String? { didSet { defaults.set(sharePrompt, forKey: "sharePrompt") } }
@@ -206,6 +207,12 @@ final class Store: ObservableObject {
         includeEveryday = defaults.object(forKey: "includeEveryday") as? Bool ?? true
         reminders = defaults.object(forKey: "reminders") as? Bool ?? true
         subscriptionReminders = defaults.bool(forKey: "subscriptionReminders")
+        let previousTiming = defaults.data(forKey: "renewalReminderTiming")
+            .flatMap { try? JSONDecoder().decode(RenewalReminderTiming.self, from: $0) }
+            .flatMap { $0.isValid ? $0 : nil }
+        renewalReminders = defaults.data(forKey: "renewalReminders")
+            .flatMap { try? JSONDecoder().decode(RenewalReminderPreferences.self, from: $0) }
+            ?? RenewalReminderPreferences(defaults: [.relative(previousTiming ?? .init())])
         sharePrompt = defaults.string(forKey: "sharePrompt")
         loadError = initialLoadError
         saveError = initialLoadError
@@ -456,6 +463,11 @@ final class Store: ObservableObject {
     func setSubscription(_ id: UUID, _ included: Bool) -> Bool {
         guard canSaveSubscription(included) else { return false }
         guard let rule = ledger.rules.first(where: { $0.id == id }), rule.cents < 0, !rule.isOnce, !rule.finished else { return false }
+        if connected && !included && rule.remaining == 1 && rule.subscription == true {
+            // The membership RPC treats a single charge as one-time. Its normal schedule edit supports this change.
+            return updateRule(id, cents: rule.cents, label: rule.label, cadence: rule.cadence, next: rule.next,
+                              left: rule.remaining, category: rule.category, auto: rule.auto, subscription: false)
+        }
         guard mutate({ ledger in
             guard let index = ledger.rules.firstIndex(where: { $0.id == id }) else { return }
             ledger.rules[index].subscription = included
@@ -952,6 +964,19 @@ final class Store: ObservableObject {
 
     // MARK: reminders
 
+    func setRenewalReminders(_ reminders: [RenewalReminder]?, for subscription: UUID? = nil) {
+        var updated = renewalReminders
+        if let subscription {
+            updated.subscriptions[subscription] = reminders
+        } else if let reminders, !reminders.isEmpty {
+            updated.defaults = reminders
+        }
+        guard updated != renewalReminders, let data = try? JSONEncoder().encode(updated) else { return }
+        renewalReminders = updated
+        defaults.set(data, forKey: "renewalReminders")
+        scheduleReminders()
+    }
+
     private func requestNotificationPermission() {
         guard reminderClient != nil && (reminders || subscriptionReminders) else { return }
         Task { [weak self] in
@@ -1019,7 +1044,8 @@ final class Store: ObservableObject {
                 self.reminderRefreshNeeded = false
                 let now = self.reminderNow()
                 let plans = PaymentReminders.plans(for: self.ledger.liveRules, now: now,
-                                                  payments: self.reminders, subscriptions: self.subscriptionReminders)
+                                                  payments: self.reminders, subscriptions: self.subscriptionReminders,
+                                                  renewalPreferences: self.renewalReminders)
                 let enabled = (self.reminders || self.subscriptionReminders) && self.loadError == nil
                 let status = await client.authorization()
                 let pending = await client.pending()
