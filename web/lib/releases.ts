@@ -14,6 +14,25 @@ export type Release = {
 // and update VERSION in site.ts. Dates are publication dates, not commit dates.
 export const RELEASES: Release[] = [
   {
+    version: "1.5.2",
+    date: "2026-11-18",
+    title: "Know when each subscription renews.",
+    summary: "Pocket for Mac shows one row per subscription, with the next renewal date and controls for its reminders.",
+    theme: "subscriptions",
+    highlights: [
+      { title: "Renewal dates on every row", description: "See what renews soonest. Select a countdown or date to see the exact renewal date and charge." },
+      { title: "Reminders on your schedule", description: "Add more than one reminder. Choose a date and time for this renewal, or a time and number of days before every renewal." },
+      { title: "A form just for subscriptions", description: "Enter the name, price, billing cycle and next renewal. Pocket records new subscriptions in History as their charges come due." },
+    ],
+    detailsTitle: "Good to know",
+    details: [
+      "The built-in reminder is two days before renewal at 10:00 AM. Your saved custom timings still apply.",
+      "Pause or resume tracking from the subscription menu. Deleting a schedule removes future tracking and keeps past charges in History.",
+      "Renewal reminders are scheduled on this Mac. Synced subscriptions use the existing Pocket server support.",
+    ],
+    source: "https://github.com/orlandoascanio/pocketleft/releases/tag/v1.5.2",
+  },
+  {
     "version": "1.5.1",
     "date": "2026-11-15",
     "title": "Less work in the background.",
