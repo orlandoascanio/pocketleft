@@ -2,9 +2,20 @@ import AppKit
 import PocketCore
 import SwiftUI
 
+private struct NewEntryActionKey: FocusedValueKey {
+    typealias Value = () -> Void
+}
+
+extension FocusedValues {
+    var newEntryAction: (() -> Void)? {
+        get { self[NewEntryActionKey.self] }
+        set { self[NewEntryActionKey.self] = newValue }
+    }
+}
+
 struct EditTarget: Identifiable {
     /// An existing entry or plan, or a new entry (optionally carrying what was typed in the menu).
-    enum Kind { case entry(Entry), rule(Rule), new(EntryDraft?), subscription }
+    enum Kind { case entry(Entry), rule(Rule), new(EntryDraft?), subscription(Rule?) }
     let kind: Kind
     let id = UUID()
 }
@@ -127,11 +138,13 @@ struct MainWindow: View {
         .toolbarBackground(Palette.bg, for: .windowToolbar)
         .toolbarBackground(.visible, for: .windowToolbar)
         .toolbar {
-            Button { editTarget = EditTarget(kind: .new(nil)) } label: { Label("New Entry", systemImage: "plus") }
-                .keyboardShortcut("n", modifiers: .command)
-                .help("New entry with date, category and repeat · ⌘N")
-                .disabled(store.loadError != nil)
+            if section != .subscriptions {
+                Button(action: newEntry) { Label("New Entry", systemImage: "plus") }
+                    .help("New entry with date, category and repeat · ⌘N")
+                    .disabled(store.loadError != nil)
+            }
         }
+        .focusedSceneValue(\.newEntryAction, store.loadError == nil ? newEntry : nil)
         .sheet(item: $editTarget) { EditSheet(target: $0) }
         .onAppear {
             editor.store = store
@@ -147,6 +160,10 @@ struct MainWindow: View {
             if old == nil, let new, new != section { focusedSection = section }
         }
         .onChange(of: section) { _, s in if focusedSection != nil { focusedSection = s } }
+    }
+
+    private func newEntry() {
+        editTarget = EditTarget(kind: .new(nil))
     }
 
     private func sidebarRow(_ item: AppSection) -> some View {
@@ -231,6 +248,14 @@ struct EditSheet: View {
     @StateObject private var state = EditorState()
 
     var body: some View {
+        if case let .subscription(rule) = target.kind {
+            SubscriptionEditor(state: state, existing: rule)
+        } else {
+            entrySheet
+        }
+    }
+
+    private var entrySheet: some View {
         VStack(alignment: .leading, spacing: 0) {
             SaveFailureView().padding(.horizontal, 20).padding(.top, 16)
             EntryEditor(state: state, onClose: { dismiss() })
@@ -245,7 +270,7 @@ struct EditSheet: View {
                 case .rule(let r): state.load(r)
                 case .new(let draft?): state.load(draft)
                 case .new(nil): state.showDetails = true; state.focusAmount += 1
-                case .subscription: state.startSubscription()
+                case .subscription: break
                 }
             }
             .onChange(of: state.saved) { _, _ in dismiss() }
