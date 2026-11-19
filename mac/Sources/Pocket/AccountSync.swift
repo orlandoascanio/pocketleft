@@ -204,7 +204,7 @@ struct ServerState: Decodable {
             guard let cadence = Cadence(rawValue: r.cadence), let next = Day(iso: r.next_on) else { return nil }
             return Rule(id: r.id, cents: ServerState.cents(r.amount), label: r.label, cadence: cadence, anchor: next,
                         total: r.remaining, active: r.active ?? true, auto: r.auto ?? true, category: r.category,
-                        subscription: r.subscription, once: r.once)
+                        subscription: r.subscription, once: r.subscription == true ? false : r.once)
         }
         let buttons = (presets ?? []).map {
             Preset(id: $0.id, label: $0.label, cents: $0.amount.map(ServerState.cents), sign: $0.sign, category: $0.category)
