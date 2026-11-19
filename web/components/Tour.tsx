@@ -10,14 +10,14 @@ import overviewDark from "@/public/media/overview-dark-2026-10-14.png";
 import overview from "@/public/media/overview-2026-10-14.png";
 import planDark from "@/public/media/plan-dark-2026-10-14.png";
 import plan from "@/public/media/plan-2026-10-14.png";
-import subscriptions from "@/public/media/subscriptions-light-2026-11-09.png";
-import subscriptionsDark from "@/public/media/subscriptions-dark-2026-11-09.png";
+import subscriptions from "@/public/media/subscriptions-light-2026-11-18.png";
+import subscriptionsDark from "@/public/media/subscriptions-dark-2026-11-18.png";
 
 const VIEWS = [
   { id: "menu", label: "Menu bar", caption: "One click from anywhere, all day." },
   { id: "overview", label: "Overview", caption: "What came in, what went out." },
   { id: "plan", label: "Plan", caption: "Where your balance is heading." },
-  { id: "subscriptions", label: "Subscriptions", caption: "What renews, and what it adds up to." },
+  { id: "subscriptions", label: "Subscriptions", caption: "Next renewal dates and costs in one list." },
 ] as const;
 
 // A screenshot of the app in the visitor's appearance. CSS shows one of the two captures; the
@@ -137,7 +137,7 @@ export function Tour({ initialView = "menu" }: { initialView?: (typeof VIEWS)[nu
             light={subscriptions}
             dark={subscriptionsDark}
             sizes="(max-width: 1080px) 100vw, 1000px"
-            alt="Pocket for Mac's Subscriptions tab: monthly and annual costs, active services with their prices, and upcoming renewal dates. Example data."
+            alt="Pocket for Mac’s Subscriptions tab with monthly and annual costs, one row per service, and its next renewal. Example data."
           />
         )}
       </div>
