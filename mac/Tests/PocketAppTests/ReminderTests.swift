@@ -49,8 +49,8 @@ final class ReminderTests: XCTestCase {
         XCTAssertTrue(PaymentReminders.plans(for: [rule], now: now, calendar: calendar).isEmpty)
         let plans = PaymentReminders.plans(for: [rule], now: now, calendar: calendar, payments: false, subscriptions: true)
         XCTAssertEqual(plans.count, 1)
-        XCTAssertEqual(plans.first?.date, date("2026-10-12T10:00:00Z"))
-        XCTAssertEqual(plans.first?.title, "Music renews tomorrow")
+        XCTAssertEqual(plans.first?.date, date("2026-10-11T10:00:00Z"))
+        XCTAssertTrue(plans.first?.title.hasPrefix("Music renews on ") == true)
         XCTAssertEqual(plans.first?.content.userInfo["subscriptions"] as? Bool, true)
         XCTAssertFalse(plans.first?.catchUp ?? true)
         var paused = rule; paused.active = false
@@ -59,7 +59,7 @@ final class ReminderTests: XCTestCase {
 
     func testSubscriptionWarningRetainsDueDayRequestWithoutLateCatchUp() async throws {
         let backend = FakeReminderClient()
-        let clock = ReminderClock(localDate(hour: 9, on: dueDay.adding(days: -1)))
+        let clock = ReminderClock(localDate(hour: 9, on: dueDay.adding(days: -2)))
         let (store, _, _) = try fixture(backend, clock: clock)
         store.reminders = false
         store.subscriptionReminders = true
@@ -68,7 +68,7 @@ final class ReminderTests: XCTestCase {
         await store.refreshReminders()
         XCTAssertEqual(backend.requests.count, 1)
         let id = try XCTUnwrap(backend.requests.keys.first)
-        clock.now = localDate(hour: 11, on: dueDay.adding(days: -1))
+        clock.now = localDate(hour: 11, on: dueDay.adding(days: -2))
         await store.refreshReminders()
         XCTAssertNotNil(backend.requests[id])
         backend.requests.removeAll()
@@ -77,6 +77,106 @@ final class ReminderTests: XCTestCase {
         store.subscriptionReminders = false
         await store.refreshReminders()
         XCTAssertTrue(backend.requests.isEmpty)
+    }
+
+    func testCustomRenewalTimingUsesCalendarDaysOrElapsedHoursAcrossDaylightSaving() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/New_York")!
+        let rule = Rule(cents: -1500, label: "Music", cadence: .monthly, anchor: Day(iso: "2026-03-09")!,
+                        auto: true, subscription: true)
+        let now = date("2026-03-05T12:00:00Z")
+        let days = RenewalReminderTiming(amount: 2, minuteOfDay: 18 * 60 + 45)
+        let dayPlans = PaymentReminders.plans(for: [rule], now: now, calendar: calendar,
+                                              subscriptions: true, renewalPreferences: .init(defaults: [.relative(days)]))
+        XCTAssertEqual(dayPlans.map(\.date), [date("2026-03-07T23:45:00Z")])
+        let hours = RenewalReminderTiming(amount: 24, unit: .hours)
+        let hourPlans = PaymentReminders.plans(for: [rule], now: now, calendar: calendar,
+                                               subscriptions: true, renewalPreferences: .init(defaults: [.relative(hours)]))
+        XCTAssertEqual(hourPlans.map(\.date), [date("2026-03-08T04:00:00Z")])
+    }
+
+    func testLongLeadCanWarnForFollowingChargeBeforeTheFirstChargeOccurs() {
+        let rule = Rule(cents: -1500, label: "Music", cadence: .weekly, anchor: dueDay,
+                        auto: true, subscription: true)
+        let timing = RenewalReminderPreferences(defaults: [.relative(.init(amount: 10))])
+        let plans = PaymentReminders.plans(for: [rule], now: date("2026-10-04T12:00:00Z"), calendar: calendar,
+                                           subscriptions: true, renewalPreferences: timing)
+        XCTAssertEqual(plans.map(\.date), [date("2026-10-10T10:00:00Z")])
+        var unconfirmed = rule
+        unconfirmed.auto = false
+        let dueToday = PaymentReminders.plans(for: [unconfirmed], now: date("2026-10-13T09:00:00Z"), calendar: calendar,
+                                              payments: false, subscriptions: true,
+                                              renewalPreferences: .init(defaults: [.relative(.init(amount: 7))]))
+        XCTAssertEqual(dueToday.map(\.date), [date("2026-10-13T10:00:00Z")])
+        var finalCharge = rule
+        finalCharge.total = 2
+        finalCharge.posted = 1
+        XCTAssertTrue(PaymentReminders.plans(for: [finalCharge], now: date("2026-10-11T12:00:00Z"), calendar: calendar,
+                                             subscriptions: true, renewalPreferences: timing).isEmpty)
+    }
+
+    func testChangingReminderTimingCancelsOldRequestAndPersistsForNextLaunch() async throws {
+        let backend = FakeReminderClient()
+        let dayBefore = dueDay.adding(days: -1)
+        let clock = ReminderClock(localDate(hour: 9, on: dayBefore))
+        let (store, directory, defaults) = try fixture(backend, clock: clock)
+        store.reminders = false
+        store.setRenewalReminders([.relative(.init(amount: 1))])
+        store.subscriptionReminders = true
+        XCTAssertTrue(store.addRule(Rule(cents: -1500, label: "Music", cadence: .monthly, anchor: dueDay,
+                                         auto: false, subscription: true)))
+        await store.refreshReminders()
+        let original = try XCTUnwrap(backend.requests.values.first)
+        XCTAssertEqual((original.trigger as? UNCalendarNotificationTrigger)?.dateComponents.hour, 10)
+
+        store.setRenewalReminders([.relative(.init(amount: 16, unit: .hours))])
+        await store.refreshReminders()
+        XCTAssertTrue(backend.requests.isEmpty, "Cancel the old 10 AM request without catching up on the new 8 AM time.")
+
+        let saved: [RenewalReminder] = [.relative(.init(amount: 3, unit: .hours))]
+        store.setRenewalReminders(saved)
+        await store.refreshReminders()
+        let replacement = try XCTUnwrap(backend.requests.values.first)
+        XCTAssertEqual(backend.requests.count, 1)
+        XCTAssertEqual((replacement.trigger as? UNCalendarNotificationTrigger)?.dateComponents.hour, 21)
+        XCTAssertTrue(backend.removed.contains(original.identifier))
+        let reopened = Store(directory: directory, defaults: defaults, servicesEnabled: false,
+                             reminderClient: backend.client, reminderNow: { clock.now })
+        XCTAssertEqual(reopened.renewalReminders.defaults, saved)
+    }
+
+    func testExactAndRecurringRemindersQueueTogetherAndExactDateExpiresWithTheRenewal() async throws {
+        let backend = FakeReminderClient()
+        let clock = ReminderClock(localDate(hour: 9, on: dueDay.adding(days: -4)))
+        let (store, directory, defaults) = try fixture(backend, clock: clock)
+        store.reminders = false
+        store.subscriptionReminders = true
+        let rule = Rule(cents: -1500, label: "Music", cadence: .monthly, anchor: dueDay, auto: false, subscription: true)
+        XCTAssertTrue(store.addRule(rule))
+        let exact = RenewalReminder.exact(day: dueDay.adding(days: -2), minuteOfDay: 19 * 60 + 30, renewal: dueDay)
+        let recurring = RenewalReminder.relative(.init(amount: 3, minuteOfDay: 8 * 60))
+        store.setRenewalReminders([recurring, exact], for: rule.id)
+        await store.refreshReminders()
+        let queued = backend.requests.values.compactMap { ($0.trigger as? UNCalendarNotificationTrigger)?.dateComponents }
+        XCTAssertEqual(Set(queued.compactMap(\.hour)), [8, 19])
+        XCTAssertEqual(queued.first { $0.hour == 19 }?.minute, 30)
+        XCTAssertEqual(backend.requests.count, 2)
+
+        let reopened = Store(directory: directory, defaults: defaults, servicesEnabled: false,
+                             reminderClient: backend.client, reminderNow: { clock.now })
+        XCTAssertEqual(reopened.renewalReminders.reminders(for: rule.id), [recurring, exact])
+        var advanced = rule
+        advanced.posted = 1
+        let next = PaymentReminders.plans(for: [advanced], now: localDate(hour: 11), payments: false, subscriptions: true,
+                                          renewalPreferences: reopened.renewalReminders)
+        XCTAssertEqual(next.map(\.day), [advanced.next.adding(days: -3)])
+        reopened.setRenewalReminders(nil, for: rule.id)
+        await reopened.refreshReminders()
+        XCTAssertEqual(backend.requests.count, 1)
+        XCTAssertEqual(reopened.renewalReminders.reminders(for: rule.id), reopened.renewalReminders.defaults)
+        let reset = PaymentReminders.plans(for: [rule], now: clock.now, payments: false, subscriptions: true,
+                                           renewalPreferences: reopened.renewalReminders)
+        XCTAssertEqual(reset.map(\.day), [dueDay.adding(days: -2)])
     }
 
     func testTenAMUsesLocalTimeAcrossDaylightSavingTransition() {
