@@ -11,7 +11,8 @@ extension Ledger {
     }
 
     /// The month of the oldest entry (where Insights starts).
-    public var firstMonth: YearMonth { entries.map(\.day).min()?.yearMonth ?? Day.today.yearMonth }
+    private var firstDay: Day? { entries.lazy.map(\.day).min() }
+    public var firstMonth: YearMonth { firstDay?.yearMonth ?? Day.today.yearMonth }
 
     // MARK: entries
 
@@ -220,12 +221,16 @@ extension Ledger {
 
     /// Spending and money in for a month (or all time when nil). The starting balance isn't income.
     public func summary(_ month: YearMonth?) -> Summary {
+        summary(in: month.map { $0.first...$0.last })
+    }
+
+    public func summary(in range: ClosedRange<Day>?) -> Summary {
         var spent: Cents = 0
         var income: Cents = 0
         var out: [String: (Cents, Int)] = [:]
         var into: [String: (Cents, Int)] = [:]
-        for e in entries where e.category != Categories.start && (month?.contains(e.day) ?? true) {
-            let c = Categories.key(e.category, cents: e.cents)
+        for e in entries where e.category != Categories.start && (range?.contains(e.day) ?? true) {
+            let c = Categories.key(e.category)
             if e.cents > 0 {
                 income += e.cents
                 let cur = into[c] ?? (0, 0)
@@ -241,6 +246,14 @@ extension Ledger {
                 .sorted { ($0.cents, $1.category) > ($1.cents, $0.category) }
         }
         return Summary(spent: spent, income: income, byCategory: rows(out), incomeByCategory: rows(into))
+    }
+
+    /// Compare completed months when the ledger covers the full previous month.
+    public func previousSpendingPeriod(for month: YearMonth, today: Day) -> ClosedRange<Day>? {
+        guard month < today.yearMonth, let firstDay, month > firstDay.yearMonth else { return nil }
+        let previous = month.adding(-1)
+        guard firstDay <= previous.first else { return nil }
+        return previous.first...previous.last
     }
 
     /// The category most often used with labels starting like `prefix` (so "valo" picks Games).

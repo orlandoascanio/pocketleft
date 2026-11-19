@@ -93,6 +93,7 @@ public struct YearMonth: Hashable, Comparable, Sendable {
     }
 
     public var first: Day { Day(year: year, month: month, day: 1) }
+    public var last: Day { adding(1).first.adding(days: -1) }
     public func adding(_ n: Int) -> YearMonth { first.adding(months: n).yearMonth }
     public func contains(_ d: Day) -> Bool { d.year == year && d.month == month }
 

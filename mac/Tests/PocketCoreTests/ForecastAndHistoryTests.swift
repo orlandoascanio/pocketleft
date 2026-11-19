@@ -86,7 +86,8 @@ final class ForecastAndHistoryTests: XCTestCase {
         XCTAssertEqual(labels(EntryQuery(text: "12.34")), ["Thing"])
         XCTAssertEqual(labels(EntryQuery(kind: .income)), ["Paycheck"], "the starting balance isn't income")
         XCTAssertEqual(labels(EntryQuery(kind: .spending)), ["Coffee", "Thing", "Valorant points", "Café Olé"])
-        XCTAssertEqual(labels(EntryQuery(category: "other")), ["Thing"], "uncategorized spending is Other")
+        XCTAssertTrue(labels(EntryQuery(category: "other")).isEmpty)
+        XCTAssertEqual(labels(EntryQuery(category: Categories.uncategorized)), ["Thing"])
         XCTAssertEqual(labels(EntryQuery(category: nil, month: YearMonth(year: 2026, month: 10))).count, 4)
         XCTAssertTrue(EntryQuery(text: "  ").isEmpty)
     }

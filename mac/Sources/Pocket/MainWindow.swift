@@ -122,10 +122,7 @@ struct MainWindow: View {
                 case .overview: OverviewView(editor: editor, query: $query, waitingExpanded: $waitingExpanded, scrollTarget: $scrollTarget, onEdit: { editTarget = $0 })
                 case .plan: PlanView(onEdit: { editTarget = $0 })
                 case .subscriptions: SubscriptionsView(onEdit: { editTarget = $0 })
-                case .insights: InsightsView(onShow: { cat, month in
-                        query = EntryQuery(category: cat, month: month)
-                        withAnimation(reduceMotion ? nil : .snappy) { section = .overview }
-                    })
+                case .insights: InsightsView(onEdit: { editTarget = $0 })
                 case .settings: SettingsView()
                 }
                 }
@@ -286,12 +283,6 @@ struct OverviewView: View {
     @Binding var waitingExpanded: Bool
     @Binding var scrollTarget: String?
     var onEdit: (EditTarget) -> Void
-    @State private var pendingDelete: Entry?
-    @State private var exportMessage: String?
-    @State private var choosingDates = false
-    @State private var historySnapshot = HistorySnapshot()
-    @State private var historyLimit = 100
-    @FocusState private var searchFocused: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -325,7 +316,7 @@ struct OverviewView: View {
                     .id("entry")
                     if store.showSharePrompt { SharePromptView().frame(maxWidth: 520, alignment: .leading) }
                     if !store.waiting.isEmpty { waiting.id("waiting") }
-                    history.id("history")
+                    HistoryView(query: $query, onEdit: onEdit).id("history")
                 }
                 .frame(maxWidth: 700)
                 .padding(.horizontal, 32).padding(.vertical, 24)
@@ -340,20 +331,7 @@ struct OverviewView: View {
                 if let target = scrollTarget { proxy.scrollTo(target, anchor: .top); scrollTarget = nil }
             }
         }
-        .onChange(of: store.ledger.entries, initial: true) { _, entries in
-            historySnapshot = HistorySnapshot(entries: entries, query: query)
-            historyLimit = 100
-        }
-        .onChange(of: query) { _, value in
-            historySnapshot.filter(value)
-            historyLimit = 100
-        }
-        .confirmationDialog("Delete “\(pendingDelete?.label ?? "")”?", isPresented: Binding(
-            get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), presenting: pendingDelete) { e in
-            Button("Delete", role: .destructive) { store.deleteEntry(e.id) }
-        } message: { e in
-            Text("\(store.money.string(e.cents, signed: true)) on \(e.day.localDate.formatted(date: .abbreviated, time: .omitted)). This can't be undone.")
-        }
+
     }
 
     private var hero: some View {
@@ -418,174 +396,6 @@ struct OverviewView: View {
             }
         }
         .padding(.top, 6)
-    }
-
-    private var history: some View {
-        let all = historySnapshot.entries
-        let after = historySnapshot.balanceAfter
-        let shown = historySnapshot.matching
-        let groups = Dictionary(grouping: Array(shown.prefix(historyLimit)), by: \.day).sorted { $0.key > $1.key }
-
-        return VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(title: "History", meta: query.isEmpty ? nil : resultsMeta(shown)).padding(.top, 6)
-            if !all.isEmpty {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) { searchField; filterMenus(shown) }
-                    VStack(alignment: .leading, spacing: 8) { searchField; HStack(spacing: 8) { filterMenus(shown) } }
-                }
-                .background {
-                    Button("Search History") { searchFocused = true }
-                        .keyboardShortcut("f", modifiers: .command)
-                        .opacity(0).frame(width: 0, height: 0).accessibilityHidden(true)
-                }
-            }
-            if let exportMessage { Text(exportMessage).font(.callout).foregroundStyle(.secondary).padding(.horizontal, 4) }
-            if groups.isEmpty {
-                Text(all.isEmpty ? "Nothing here yet. Add your first entry above." : "Nothing matches. Try other words or clear the filters.")
-                    .foregroundStyle(.secondary).padding(.vertical, 20).frame(maxWidth: .infinity)
-            }
-            ForEach(groups, id: \.key) { day, entries in
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(day == store.today ? "Today" : day == store.today.adding(days: -1) ? "Yesterday"
-                             : day.localDate.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
-                            .font(.callout.weight(.semibold)).foregroundStyle(.secondary)
-                        Spacer()
-                        let net = historySnapshot.netByDay[day] ?? 0
-                        Text(store.money.string(net, signed: true))
-                            .font(.callout).monospacedDigit()
-                            .foregroundStyle(net > 0 ? Palette.accent : Color.secondary)
-                    }
-                    .padding(.horizontal, 6)
-                    Card {
-                        ForEach(entries) { e in
-                            let left = after[e.id] ?? 0
-                            Button { onEdit(EditTarget(kind: .entry(e))) } label: {
-                            MoneyRow(category: e.category, title: e.label,
-                                     note: [e.category.map(Categories.name), e.ruleID != nil ? "Scheduled payment" : nil]
-                                        .compactMap { $0 }.joined(separator: " · "),
-                                     cents: e.cents, rightNote: "left \(store.money.string(left))", rightNegative: left < 0)
-                            }
-                                .buttonStyle(.plain)
-                                .help("Edit \(e.label)")
-                                .accessibilityHint("Open to edit this entry")
-                                .contextMenu {
-                                    Button("Edit…") { onEdit(EditTarget(kind: .entry(e))) }
-                                    if store.canSaveAsPreset(e) {
-                                        Button("Save as Quick-Add Button") { store.saveAsPreset(e.id) }
-                                    }
-                                    Divider()
-                                    Button("Delete…", role: .destructive) { pendingDelete = e }
-                                }
-                                .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
-                        }
-                    }
-                }
-            }
-            if shown.count > historyLimit {
-                Button("Show \(min(100, shown.count - historyLimit)) more") { historyLimit += 100 }
-                    .buttonStyle(.bordered)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 8)
-            }
-        }
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: store.ledger.entries.count)
-        .onChange(of: query) { _, _ in exportMessage = nil }
-    }
-
-    private func resultsMeta(_ shown: [Entry]) -> String {
-        let net = shown.reduce(0) { $0 + $1.cents }
-        return "\(shown.count) \(shown.count == 1 ? "entry" : "entries") · \(store.money.string(net, signed: true))"
-    }
-
-    private var searchField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField("Search history", text: $query.text, prompt: Text("Search history"))
-                .textFieldStyle(.plain)
-                .focused($searchFocused)
-                .onExitCommand { query.text = ""; searchFocused = false }
-            if !query.text.isEmpty {
-                Button { query.text = "" } label: { Image(systemName: "xmark.circle.fill") }
-                    .buttonStyle(.plain).foregroundStyle(.tertiary)
-                    .accessibilityLabel("Clear search")
-            }
-        }
-        .padding(.horizontal, 10).padding(.vertical, 6)
-        .frame(minWidth: 200)
-        .background(Palette.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(searchFocused ? Palette.accent : Palette.line))
-        .help("Search labels, categories and amounts · ⌘F")
-    }
-
-    private var periodTitle: String {
-        if query.from == nil && query.to == nil { return "Any time" }
-        if let p = query.period(today: store.today) { return p.name }
-        if let m = query.month { return m.first.localDate.formatted(.dateTime.month(.wide).year()) }
-        let d = { (day: Day?) in day?.localDate.formatted(.dateTime.month(.abbreviated).day()) ?? "…" }
-        return "\(d(query.from)) – \(d(query.to))"
-    }
-
-    @ViewBuilder
-    private func filterMenus(_ shown: [Entry]) -> some View {
-        Menu {
-            Picker("Show", selection: $query.kind) {
-                ForEach(EntryQuery.Kind.allCases) { Text($0.name).tag($0) }
-            }
-            .pickerStyle(.inline).labelsHidden()
-        } label: { Text(query.kind.name) }
-            .menuStyle(.button).fixedSize()
-            .help("Show spending, money in, or both")
-        Menu {
-            Picker("Category", selection: $query.category) {
-                Text("Any category").tag(String?.none)
-                Section("Spending") { ForEach(Categories.spending) { Label($0.name, systemImage: $0.symbol).tag(Optional($0.id)) } }
-                Section("Money in") { ForEach(Categories.income) { Label($0.name, systemImage: $0.symbol).tag(Optional($0.id)) } }
-            }
-            .pickerStyle(.inline).labelsHidden()
-        } label: { Text(query.category.map(Categories.name) ?? "Any category") }
-            .menuStyle(.button).fixedSize()
-            .help("Show one category")
-        Menu {
-            Button("Any time") { query.from = nil; query.to = nil }
-            Divider()
-            ForEach(EntryQuery.Period.allCases) { p in
-                Button(p.name) { (query.from, query.to) = p.range(today: store.today) }
-            }
-            Divider()
-            Button("Choose Dates…") { choosingDates = true }
-        } label: { Text(periodTitle) }
-            .menuStyle(.button).fixedSize()
-            .help("Show a date range")
-            .popover(isPresented: $choosingDates, arrowEdge: .bottom) { datesPopover }
-        if !query.isEmpty {
-            Button("Clear") { withAnimation(reduceMotion ? nil : .snappy) { query = EntryQuery() } }
-                .help("Show everything")
-        }
-        Spacer(minLength: 0)
-        Button { exportMessage = saveCSV(store, entries: shown, name: "Pocket \(query.isEmpty ? "" : "search ")\(store.today.iso)") } label: {
-            Image(systemName: "square.and.arrow.up")
-        }
-        .help(query.isEmpty ? "Export history as a CSV spreadsheet" : "Export these \(shown.count) entries as a CSV spreadsheet")
-        .accessibilityLabel("Export as CSV")
-        .disabled(shown.isEmpty)
-    }
-
-    private var datesPopover: some View {
-        let from = Binding(get: { (query.from ?? store.today.yearMonth.first).localDate },
-                           set: { query.from = Day($0); if let to = query.to, to < query.from! { query.to = query.from } })
-        let to = Binding(get: { (query.to ?? store.today).localDate },
-                         set: { query.to = Day($0); if let f = query.from, f > query.to! { query.from = query.to } })
-        return Form {
-            DatePicker("From", selection: from, displayedComponents: .date)
-            DatePicker("To", selection: to, displayedComponents: .date)
-        }
-        .padding(16)
-        .frame(width: 260)
-        .onAppear {
-            if query.from == nil { query.from = store.today.yearMonth.first }
-            if query.to == nil { query.to = store.today }
-        }
     }
 }
 

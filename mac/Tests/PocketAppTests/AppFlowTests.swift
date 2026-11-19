@@ -211,7 +211,7 @@ final class AppFlowTests: XCTestCase {
             try capture(MenuPanel().environmentObject(store), size: NSSize(width: 380, height: 640), path: output + "/menu-\(name).png")
             try capture(PlanView(onEdit: { _ in }).environmentObject(store), size: NSSize(width: 820, height: 900), path: output + "/plan-\(name).png")
             try capture(PlanView(onEdit: { _ in }).environmentObject(store), size: NSSize(width: 580, height: 560), path: output + "/plan-minimum-\(name).png")
-            try capture(InsightsView(onShow: { _, _ in }).environmentObject(store), size: NSSize(width: 820, height: 640), path: output + "/insights-\(name).png")
+            try capture(InsightsView(onEdit: { _ in }).environmentObject(store), size: NSSize(width: 820, height: 640), path: output + "/insights-\(name).png")
             try capture(SettingsView().environmentObject(store), size: NSSize(width: 820, height: 760), path: output + "/settings-\(name).png")
             try capture(SettingsView().environmentObject(store), size: NSSize(width: 580, height: 560), path: output + "/settings-minimum-\(name).png")
             try capture(EditSheet(target: EditTarget(kind: .new(nil))).environmentObject(store), size: NSSize(width: 460, height: 460), path: output + "/new-entry-\(name).png")

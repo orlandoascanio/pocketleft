@@ -39,7 +39,7 @@ public struct EntryQuery: Equatable, Sendable {
 
     public var text: String
     public var kind: Kind
-    /// A category key (see `Categories.key`), so uncategorized money matches Other.
+    /// A category key, including `Categories.uncategorized` for entries with no category.
     public var category: String?
     public var from: Day?
     public var to: Day?
@@ -54,7 +54,7 @@ public struct EntryQuery: Equatable, Sendable {
 
     /// Everything in one month (what Insights links to).
     public init(category: String?, month: YearMonth?) {
-        self.init(category: category, from: month?.first, to: month.map { $0.adding(1).first.adding(days: -1) })
+        self.init(category: category, from: month?.first, to: month?.last)
     }
 
     public var isEmpty: Bool { words.isEmpty && kind == .all && category == nil && from == nil && to == nil }
@@ -82,10 +82,10 @@ public struct EntryQuery: Equatable, Sendable {
         if let to, e.day > to { return false }
         switch kind {
         case .all: break
-        case .spending: if e.cents >= 0 || e.category == Categories.start { return false }
+        case .spending: if e.cents > 0 || e.category == Categories.start { return false }
         case .income: if e.cents <= 0 || e.category == Categories.start { return false }
         }
-        if let category, Categories.key(e.category, cents: e.cents) != category { return false }
+        if let category, Categories.key(e.category) != category { return false }
         let words = words
         guard !words.isEmpty else { return true }
         let haystack = Self.fold([e.label, e.category == nil ? "" : Categories.name(e.category), Money.edit(e.cents)].joined(separator: " "))

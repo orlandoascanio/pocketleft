@@ -137,6 +137,33 @@ final class EngineTests: XCTestCase {
         XCTAssertEqual(l.firstMonth, YearMonth(year: 2026, month: 9))
     }
 
+    func testSpendingComparisonRequiresCompletedMonths() {
+        let ledger = Ledger(entries: [Entry(cents: 1_000, label: "Start", day: day("2026-02-01"), category: Categories.start)])
+        let today = day("2026-04-19")
+        XCTAssertNil(ledger.previousSpendingPeriod(for: today.yearMonth, today: today))
+        XCTAssertEqual(ledger.previousSpendingPeriod(for: day("2026-03-01").yearMonth, today: today), day("2026-02-01")...day("2026-02-28"))
+        let midMonthStart = Ledger(entries: [Entry(cents: 1_000, label: "Start", day: day("2026-03-05"), category: Categories.start)])
+        XCTAssertNil(midMonthStart.previousSpendingPeriod(for: today.yearMonth, today: day("2026-05-01")))
+    }
+
+    func testUncategorizedSummaryAndHistoryAgreeWithinTheSelectedDates() {
+        let ledger = Ledger(entries: [
+            Entry(cents: -9_584, label: "Other", day: day("2026-11-01"), category: "other"),
+            Entry(cents: -907, label: "Missing expense category", day: day("2026-11-02")),
+            Entry(cents: 30_000, label: "Missing income category", day: day("2026-11-03")),
+            Entry(cents: -400, label: "Upcoming expense", day: day("2026-11-25")),
+        ])
+        let period = day("2026-11-01")...day("2026-11-19")
+        let summary = ledger.summary(in: period)
+        XCTAssertEqual(summary.spent, 10_491)
+        XCTAssertEqual(summary.byCategory.map(\.category), ["other", Categories.uncategorized])
+        XCTAssertEqual(summary.incomeByCategory.map(\.category), [Categories.uncategorized])
+        for kind in [EntryQuery.Kind.spending, .income] {
+            let query = EntryQuery(kind: kind, category: Categories.uncategorized, from: period.lowerBound, to: period.upperBound)
+            XCTAssertEqual(ledger.search(query).map(\.label), [kind == .spending ? "Missing expense category" : "Missing income category"])
+        }
+    }
+
     func testGuessCategory() {
         var l = Ledger()
         l.add(Entry(cents: -999, label: "Valorant", day: day("2026-10-03"), category: "games"))

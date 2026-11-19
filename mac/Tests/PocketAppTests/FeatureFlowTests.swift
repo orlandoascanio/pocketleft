@@ -124,9 +124,9 @@ final class FeatureFlowTests: XCTestCase {
         l.add(Entry(cents: 1_000, label: "Found", day: day))
         l.add(Entry(cents: -500, label: "Snack", day: day))
         let s = l.summary(day.yearMonth)
-        XCTAssertEqual(s.incomeByCategory.map(\.category), ["pay", "refund", "otherin"])
+        XCTAssertEqual(s.incomeByCategory.map(\.category), ["pay", "refund", Categories.uncategorized])
         XCTAssertEqual(s.incomeByCategory.map(\.cents).reduce(0, +), s.income)
-        XCTAssertEqual(s.byCategory.map(\.category), ["other"])
+        XCTAssertEqual(s.byCategory.map(\.category), [Categories.uncategorized])
     }
 
     func testDailyBackupCanBeRestored() throws {
