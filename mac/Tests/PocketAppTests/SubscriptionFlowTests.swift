@@ -40,22 +40,48 @@ final class SubscriptionFlowTests: XCTestCase {
         state.startSubscription()
         state.label = "Cloud"
         state.category = "apps"
-        state.amount = "9.99"
+        state.amount = "+9.99"
+        state.times = "1"
         state.date = Day.today.adding(days: 2).localDate
         XCTAssertTrue(state.save())
         XCTAssertEqual(store.ledger.rules.count, 1)
         XCTAssertEqual(store.ledger.entries.count, 0)
         let rule = try XCTUnwrap(store.ledger.rules.first)
         XCTAssertTrue(rule.isSubscription)
+        XCTAssertFalse(rule.isOnce)
+        XCTAssertTrue(rule.auto)
+        XCTAssertEqual(rule.cents, -999)
+        XCTAssertEqual(rule.remaining, 1)
         XCTAssertEqual(rule.category, "apps")
         let reopened = Store(directory: store.fileURL.deletingLastPathComponent(), servicesEnabled: false)
         XCTAssertTrue(try XCTUnwrap(reopened.ledger.rules.first).isSubscription)
-        state.load(rule)
+        state.startSubscription(rule)
         state.amount = "12.99"
         XCTAssertTrue(state.save())
         XCTAssertEqual(store.ledger.rules.count, 1)
         XCTAssertTrue(store.ledger.rules[0].isSubscription)
         XCTAssertEqual(store.ledger.rules[0].category, "apps")
+
+        var ledger = store.ledger
+        XCTAssertTrue(ledger.postDue(today: rule.next.adding(days: -1)).isEmpty)
+        XCTAssertEqual(ledger.postDue(today: rule.next).map(\.cents), [-1299])
+        XCTAssertTrue(ledger.postDue(today: rule.next).isEmpty)
+        XCTAssertEqual(ledger.sortedEntries.map(\.ruleID), [rule.id])
+    }
+
+    func testEditingAnExistingManualSubscriptionLeavesItsDueChargeWaiting() throws {
+        let store = try store()
+        let rule = Rule(cents: -999, label: "Cloud", cadence: .monthly, anchor: store.today,
+                        auto: false, subscription: true)
+        XCTAssertTrue(store.addRule(rule))
+        let state = EditorState()
+        state.store = store
+        state.startSubscription(rule)
+        state.label = "Cloud Plus"
+        XCTAssertTrue(state.save())
+        XCTAssertFalse(try XCTUnwrap(store.ledger.rules.first).auto)
+        XCTAssertTrue(store.ledger.entries.isEmpty)
+        XCTAssertEqual(store.waiting.map(\.label), ["Cloud Plus"])
     }
 
     func testPausedSubscriptionsLeaveTotalsAndForecastAndCanResume() throws {
@@ -81,6 +107,16 @@ final class SubscriptionFlowTests: XCTestCase {
         XCTAssertFalse(store.setSubscription(rule.id, true))
         XCTAssertFalse(store.ledger.rules[0].isSubscription)
         XCTAssertNotNil(store.saveError)
+    }
+
+    func testRenewalCountdownCountsCalendarDaysAndUpdatesAsTheDateApproaches() throws {
+        let november18 = try XCTUnwrap(Day(iso: "2026-11-18"))
+        let renewal = try XCTUnwrap(Day(iso: "2026-11-24"))
+        XCTAssertEqual(SubscriptionRow.renewalLabel(renewal, today: november18), "Renews in 6 days")
+        XCTAssertEqual(SubscriptionRow.renewalLabel(renewal, today: renewal.adding(days: -7)), "Renews in 7 days")
+        XCTAssertEqual(SubscriptionRow.renewalLabel(renewal, today: renewal.adding(days: -1)), "Renews tomorrow")
+        XCTAssertEqual(SubscriptionRow.renewalLabel(renewal, today: renewal), "Renews today")
+        XCTAssertTrue(SubscriptionRow.renewalLabel(renewal, today: renewal.adding(days: 1)).hasPrefix("Overdue since "))
     }
 
     func testRenderSubscriptions() throws {
