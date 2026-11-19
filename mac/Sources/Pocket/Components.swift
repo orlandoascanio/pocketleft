@@ -59,6 +59,7 @@ struct MoneyRow: View {
     var rightNegative = false
     var selected = false
     var dimmed = false
+    var noteDisclosure = false
     @EnvironmentObject var store: Store
     @State private var hovering = false
 
@@ -75,7 +76,17 @@ struct MoneyRow: View {
                             .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Palette.line))
                     }
                 }
-                if !note.isEmpty { Text(note).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
+                if !note.isEmpty {
+                    HStack(spacing: 4) {
+                        Text(note).lineLimit(1)
+                        if noteDisclosure {
+                            Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(noteDisclosure ? Palette.accent : Color.secondary)
+                }
             }
             .opacity(dimmed ? 0.55 : 1)
             Spacer(minLength: 8)
