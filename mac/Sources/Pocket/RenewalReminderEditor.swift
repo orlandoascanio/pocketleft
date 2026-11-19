@@ -188,7 +188,9 @@ struct RenewalReminderEditor: View {
 
     private func reminderRow(_ draft: Binding<Draft>) -> some View {
         let showMethod = canUseExactDate || draft.wrappedValue.savedHours != nil || draft.wrappedValue.method == .date
-        let time = draft.wrappedValue.reminder(for: rule?.next, now: .now)
+        let renewal = rule?.next
+        let now = Date()
+        let time = draft.wrappedValue.reminder(for: renewal, now: now)
         return VStack(alignment: .leading, spacing: 6) {
             if showMethod || canRemove {
                 HStack {
@@ -245,11 +247,18 @@ struct RenewalReminderEditor: View {
                     Text("\(timing.amount) hours before renewal")
                 }
             }
-            if draft.wrappedValue.method != .date, let rule,
-               let date = time?.date(for: rule.next), date > Date() {
-                Label(date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()),
-                      systemImage: "bell")
-                    .font(.caption).foregroundStyle(.secondary)
+            if let time, case .relative = time, let renewal, let date = time.date(for: renewal) {
+                let upcoming = date > now
+                Label {
+                    if upcoming {
+                        Text(date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
+                    } else {
+                        Text("The reminder time for this renewal has passed.")
+                    }
+                } icon: {
+                    Image(systemName: upcoming ? "bell" : "clock")
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)

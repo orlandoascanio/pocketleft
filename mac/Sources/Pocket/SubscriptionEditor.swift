@@ -66,6 +66,7 @@ struct SubscriptionEditor: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Divider()
+            savingNotice
             HStack(spacing: 8) {
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }
@@ -89,6 +90,27 @@ struct SubscriptionEditor: View {
             state.startSubscription(existing)
             showOptions = !state.times.isEmpty || (existing != nil && state.category != "subscriptions")
             nameFocused = existing == nil
+        }
+    }
+
+    @ViewBuilder private var savingNotice: some View {
+        let charges = state.subscriptionChargesOnSave
+        if let first = charges.first {
+            let price = store.money.string(abs(first.cents))
+            Label {
+                if charges.count > 1 {
+                    Text("Saving will record \(charges.count) payments of \(price) each in History.")
+                } else if first.day == store.today {
+                    Text("Saving will record \(price) in History today.")
+                } else {
+                    Text("Saving will record \(price) in History for \(first.day.localDate.formatted(.dateTime.month(.abbreviated).day().year())).")
+                }
+            } icon: {
+                Image(systemName: "info.circle").foregroundStyle(Palette.accent)
+            }
+            .font(.callout)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

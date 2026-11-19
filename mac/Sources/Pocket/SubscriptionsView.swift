@@ -104,9 +104,9 @@ struct SubscriptionsView: View {
     }
 
     @ViewBuilder private func totals(_ summary: SubscriptionSummary) -> some View {
-        stat(cents: summary.monthly) { Text("Per month").foregroundStyle(.secondary) }
+        stat(cents: summary.monthly) { Text("Monthly equivalent").foregroundStyle(.secondary) }
         stat(cents: summary.annual) { Text("Per year").foregroundStyle(.secondary) }
-        stat(cents: summary.upcomingTotal) {
+        stat(cents: summary.upcomingTotal, emphasized: true) {
             Menu {
                 ForEach([7, 30], id: \.self) { period in
                     Button { days = period } label: {
@@ -127,11 +127,12 @@ struct SubscriptionsView: View {
         }
     }
 
-    private func stat<Title: View>(cents: Cents, @ViewBuilder title: () -> Title) -> some View {
+    private func stat<Title: View>(cents: Cents, emphasized: Bool = false, @ViewBuilder title: () -> Title) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 7) {
                 title().font(.callout).frame(height: 18, alignment: .leading)
-                Text(store.money.string(cents)).font(.display(24, .semibold)).monospacedDigit()
+                Text(store.money.string(cents)).font(.display(24, emphasized ? .bold : .semibold)).monospacedDigit()
+                    .foregroundStyle(emphasized ? Palette.accent : Color.primary)
                     .lineLimit(1).minimumScaleFactor(0.6)
             }.padding(12).frame(minWidth: 130, maxWidth: .infinity, alignment: .leading)
         }

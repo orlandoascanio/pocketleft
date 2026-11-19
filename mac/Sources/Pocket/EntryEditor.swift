@@ -84,6 +84,31 @@ final class EditorState: ObservableObject {
     var isPlanned: Bool { frequency != .once || isFuture || waitsNow }
     var editingEntry: Bool { if case .entry = mode { return true } else { return false } }
     var editingRule: Rule? { if case .rule(let r) = mode { return r } else { return nil } }
+    private var renewalCount: Int? { Int(times.trimmed) }
+    private var hasValidRenewalCount: Bool {
+        frequency == .once || times.trimmed.isEmpty || (1...1_000_000).contains(renewalCount ?? 0)
+    }
+
+    /// Preview just this schedule using the same posting rules as a save.
+    var subscriptionChargesOnSave: [Entry] {
+        guard subscriptionOnly, let store, day <= store.today, let cadence = frequency.cadence,
+              !label.trimmed.isEmpty, let cents = Money.parse(amount), hasValidRenewalCount else { return [] }
+
+        var preview = Ledger()
+        if let original = editingRule {
+            guard original.auto,
+                  let current = store.ledger.rules.first(where: { $0.id == original.id }), current.active else { return [] }
+            preview.rules.append(current)
+            preview.updateRule(current.id, cents: -cents, label: label, cadence: cadence, next: day,
+                               left: renewalCount, category: category, auto: original.auto, today: store.today)
+        } else {
+            preview.addRule(Rule(cents: -cents, label: label, cadence: cadence, anchor: day, total: renewalCount,
+                                 category: category, subscription: true, once: false), today: store.today)
+        }
+        // Store also processes due charges after the rule mutation.
+        preview.postDue(today: store.today)
+        return preview.entries
+    }
 
     func reset() {
         subscriptionOnly = false
@@ -182,9 +207,8 @@ final class EditorState: ObservableObject {
             error = subscriptionOnly ? "Enter the subscription name." : "Say what it was"
             return false
         }
-        let t = times.trimmed
-        let count = t.isEmpty ? nil : Int(t)
-        if frequency != .once && !t.isEmpty && !(1...1_000_000).contains(count ?? 0) {
+        let count = renewalCount
+        if !hasValidRenewalCount {
             error = "Enter between 1 and 1,000,000 payments, or leave it empty."
             return false
         }

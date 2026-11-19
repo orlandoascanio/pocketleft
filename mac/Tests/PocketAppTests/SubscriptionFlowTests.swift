@@ -43,6 +43,7 @@ final class SubscriptionFlowTests: XCTestCase {
         state.amount = "+9.99"
         state.times = "1"
         state.date = Day.today.adding(days: 2).localDate
+        XCTAssertTrue(state.subscriptionChargesOnSave.isEmpty)
         XCTAssertTrue(state.save())
         XCTAssertEqual(store.ledger.rules.count, 1)
         XCTAssertEqual(store.ledger.entries.count, 0)
@@ -69,6 +70,33 @@ final class SubscriptionFlowTests: XCTestCase {
         XCTAssertEqual(ledger.sortedEntries.map(\.ruleID), [rule.id])
     }
 
+    func testSubscriptionHistoryPreviewMatchesImmediatePostingOnAddAndEdit() throws {
+        let store = try store()
+        let state = EditorState()
+        state.store = store
+        state.startSubscription()
+        state.label = "Cloud"
+        state.amount = "9.99"
+        state.date = store.today.localDate
+        XCTAssertEqual(state.subscriptionChargesOnSave.map(\.day), [store.today])
+        XCTAssertEqual(state.subscriptionChargesOnSave.map(\.cents), [-999])
+        XCTAssertTrue(store.ledger.entries.isEmpty)
+        XCTAssertTrue(state.save())
+        XCTAssertEqual(store.ledger.entries.map(\.cents), [-999])
+
+        let rule = try XCTUnwrap(store.ledger.rules.first)
+        state.startSubscription(rule)
+        state.frequency = .weekly
+        state.date = store.today.adding(days: -14).localDate
+        state.times = "2"
+        let preview = state.subscriptionChargesOnSave
+        XCTAssertEqual(preview.map(\.day), [store.today.adding(days: -14), store.today.adding(days: -7)])
+        XCTAssertTrue(state.save())
+        let posted = store.ledger.entries.dropFirst()
+        XCTAssertEqual(posted.map(\.day), preview.map(\.day))
+        XCTAssertEqual(posted.map(\.cents), preview.map(\.cents))
+    }
+
     func testEditingAnExistingManualSubscriptionLeavesItsDueChargeWaiting() throws {
         let store = try store()
         let rule = Rule(cents: -999, label: "Cloud", cadence: .monthly, anchor: store.today,
@@ -78,6 +106,7 @@ final class SubscriptionFlowTests: XCTestCase {
         state.store = store
         state.startSubscription(rule)
         state.label = "Cloud Plus"
+        XCTAssertTrue(state.subscriptionChargesOnSave.isEmpty)
         XCTAssertTrue(state.save())
         XCTAssertFalse(try XCTUnwrap(store.ledger.rules.first).auto)
         XCTAssertTrue(store.ledger.entries.isEmpty)
