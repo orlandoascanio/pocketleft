@@ -10,7 +10,7 @@
 set -euo pipefail
 cd "${0:A:h}"
 
-VERSION=${VERSION:-1.5.1}
+VERSION=${VERSION:-1.5.2}
 BUILD_NUMBER=${BUILD_NUMBER:-1}
 IDENTITY=${IDENTITY:-"Developer ID Application: Manuel Cabeza (VW98Z8698B)"}
 BUNDLE_ID=${BUNDLE_ID:-com.orlandoascanio.pocket.mac}
