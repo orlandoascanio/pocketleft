@@ -47,7 +47,7 @@ final class EditorState: ObservableObject {
                 let rest = String(amount.dropFirst())
                 if !rest.hasPrefix("+") && !rest.hasPrefix("-") {
                     amount = rest
-                    spent = sign == "-"
+                    if !subscriptionOnly { spent = sign == "-" }
                 }
             }
             if error != nil { error = nil }
@@ -75,6 +75,7 @@ final class EditorState: ObservableObject {
     @Published var showDetails = false
 
     weak var store: Store?
+    private var subscriptionOnly = false
 
     var day: Day { Day(date) }
     var isFuture: Bool { day > Day.today }
@@ -85,6 +86,7 @@ final class EditorState: ObservableObject {
     var editingRule: Rule? { if case .rule(let r) = mode { return r } else { return nil } }
 
     func reset() {
+        subscriptionOnly = false
         mode = .new
         spent = true
         frequency = .once
@@ -132,11 +134,16 @@ final class EditorState: ObservableObject {
         subscription = r.subscription
     }
 
-    func startSubscription() {
-        reset()
-        frequency = .monthly
-        subscription = true
-        category = "subscriptions"
+    func startSubscription(_ existing: Rule? = nil) {
+        if let existing {
+            load(existing)
+        } else {
+            reset()
+            frequency = .monthly
+            category = "subscriptions"
+            subscription = true
+        }
+        subscriptionOnly = true
         categoryTouched = true
         showDetails = true
         focusAmount += 1
@@ -171,7 +178,10 @@ final class EditorState: ObservableObject {
         let startingBalance = editingEntry && category == Categories.start
         guard let cents = Money.parse(amount, allowZero: startingBalance) else { error = "Enter an amount, like 9.99"; return false }
         let l = label.trimmed
-        guard !l.isEmpty else { error = "Say what it was"; return false }
+        guard !l.isEmpty else {
+            error = subscriptionOnly ? "Enter the subscription name." : "Say what it was"
+            return false
+        }
         let t = times.trimmed
         let count = t.isEmpty ? nil : Int(t)
         if frequency != .once && !t.isEmpty && !(1...1_000_000).contains(count ?? 0) {
@@ -188,16 +198,19 @@ final class EditorState: ObservableObject {
             e.category = category
             success = store.updateEntry(e)
         case .rule(let r):
+            let membership = subscriptionOnly && category != r.category ? true : subscription
             success = store.updateRule(r.id, cents: signed, label: l, cadence: frequency.cadence ?? .monthly, next: day,
-                             left: frequency == .once ? 1 : count, category: category, auto: !confirm,
-                             subscription: spent && frequency != .once ? subscription : (r.subscription == nil ? nil : false),
+                             left: frequency == .once ? 1 : count, category: category, auto: subscriptionOnly ? r.auto : !confirm,
+                             subscription: spent && frequency != .once ? membership : (r.subscription == nil ? nil : false),
                              once: frequency == .once)
         case .new:
             if isPlanned {
                 // A one-time entry in the future is a rule with a single payment, so it counts on its day.
                 success = store.addRule(Rule(cents: signed, label: l, cadence: frequency.cadence ?? .monthly, anchor: day,
-                                   total: frequency == .once ? 1 : count, auto: waitsNow ? false : !confirm, category: category,
-                                   subscription: spent && frequency != .once ? subscription : nil))
+                                   total: frequency == .once ? 1 : count, auto: subscriptionOnly || (!waitsNow && !confirm),
+                                   category: category,
+                                   subscription: spent && frequency != .once ? subscription : nil,
+                                   once: subscriptionOnly ? false : nil))
             } else {
                 let preset = savePreset ? Preset(label: l, cents: cents, sign: spent ? -1 : 1, category: category) : nil
                 success = store.addEntry(cents: signed, label: l, day: day, category: category, preset: preset) != nil
