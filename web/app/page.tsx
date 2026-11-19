@@ -14,7 +14,7 @@ import { FAQ } from "@/lib/faq";
 import { ALTERNATE_NAMES, AUTHOR, DISAMBIGUATION, PROFILES, PUBLISHER } from "@/lib/schema";
 import "./home.css";
 import "./guides/guides.css";
-import { RELEASES } from "@/lib/releases";
+import { RELEASES, releaseId } from "@/lib/releases";
 import {
   DESCRIPTION,
   DMG_SIZE,
@@ -50,6 +50,7 @@ const jsonLd = [
       "Manual spending and income entries with categories",
       "Quick-add buttons with Command-1 through Command-9",
       "Weekly, every-two-weeks, monthly, quarterly and yearly repeating payments",
+      "Subscription renewal countdowns and custom macOS reminders",
       "Expected payments that wait for confirmation",
       "Balance forecast for the next 1, 3, 6 or 12 months, including usual everyday spending",
       "History search and filters by name, category, amount and date",
@@ -107,10 +108,10 @@ export default function Home() {
         <section className="hero hero-dimensional wrap">
           <div className="hero-copy">
             <HeroAnnounce>
-              <a className="announce" href="/changelog/">
+              <a className="announce" href={"/changelog/#" + releaseId(VERSION)}>
                 <span className="announce-tag">New</span>
                 <b>Pocket {VERSION.replace(/\.0$/, "")}</b>
-                <span className="announce-text">Quieter background sync and a lighter History view.</span>
+                <span className="announce-text">Renewal countdowns and custom reminders.</span>
                 <span className="announce-arrow" aria-hidden="true">
                   ↗
                 </span>
@@ -158,8 +159,8 @@ export default function Home() {
 
         <section className="section wrap" id="subscriptions">
           <h2>Know what you're subscribed to.</h2>
-          <p className="section-lead">See active and paused subscriptions, monthly and annual cost equivalents, and the charges coming in the next 7 or 30 days. Include payments you already track without logging them twice.</p>
-          <p className="section-lead subscriptions-local">Works locally in Pocket for Mac, with no account or server. Turn on optional reminders before the next renewal. The browser app has a Subscriptions tab too, for your connected Pocket.</p>
+          <p className="section-lead">See each subscription once, with the next renewal beside the price. Compare your average monthly and yearly costs with the charges due in the next 7 or 30 days.</p>
+          <p className="section-lead subscriptions-local">Set one or more reminders per renewal on your Mac, each with its own time. Pocket for Mac works without an account. The browser app also shows subscriptions from your connected Pocket.</p>
           <div className="cta subscriptions-cta">
             <DownloadButton />
             <a className="pill pill-soft" href={WEB_APP_URL}>Open the browser app</a>
