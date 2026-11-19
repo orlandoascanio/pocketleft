@@ -111,7 +111,7 @@ export default function Home() {
               <a className="announce" href={"/changelog/#" + releaseId(VERSION)}>
                 <span className="announce-tag">New</span>
                 <b>Pocket {VERSION.replace(/\.0$/, "")}</b>
-                <span className="announce-text">Renewal countdowns and custom reminders.</span>
+                <span className="announce-text">Clearer subscription totals and reminders.</span>
                 <span className="announce-arrow" aria-hidden="true">
                   ↗
                 </span>
@@ -159,8 +159,8 @@ export default function Home() {
 
         <section className="section wrap" id="subscriptions">
           <h2>Know what you're subscribed to.</h2>
-          <p className="section-lead">See each subscription once, with the next renewal beside the price. Compare your average monthly and yearly costs with the charges due in the next 7 or 30 days.</p>
-          <p className="section-lead subscriptions-local">Set one or more reminders per renewal on your Mac, each with its own time. Pocket for Mac works without an account. The browser app also shows subscriptions from your connected Pocket.</p>
+          <p className="section-lead">See each subscription once, with the next renewal beside the price. The highlighted total shows what’s due in the next 7 or 30 days, alongside your monthly equivalent and yearly cost.</p>
+          <p className="section-lead subscriptions-local">Set reminders on your Mac and see when a reminder time has already passed. If saving a subscription will record a payment in History right away, Pocket tells you before you save. Pocket for Mac works without an account. The browser app also shows subscriptions from your connected Pocket.</p>
           <div className="cta subscriptions-cta">
             <DownloadButton />
             <a className="pill pill-soft" href={WEB_APP_URL}>Open the browser app</a>
