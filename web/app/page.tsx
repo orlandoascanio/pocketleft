@@ -24,6 +24,8 @@ import {
   SELF_HOSTING_GUIDE_URL,
   SITE_URL,
   VERSION,
+  WINDOWS_ARM64_URL,
+  WINDOWS_X64_URL,
 } from "@/lib/site";
 
 const jsonLd = [
@@ -137,8 +139,24 @@ export default function Home() {
                 </a>
               </li>
             </ul>
+            <a className="hero-windows-link" href="#windows">Windows preview <span aria-hidden="true">↓</span></a>
           </div>
           <HeroScene />
+        </section>
+
+        <section className="wrap windows-download" id="windows" aria-labelledby="windows-heading">
+          <div>
+            <h2 id="windows-heading">Pocket for Windows</h2>
+            <p>Check your balance and log expenses or income from the tray beside the clock.</p>
+          </div>
+          <div>
+            <div className="cta">
+              <a className="pill pill-dark" href={WINDOWS_X64_URL}><DownloadIcon />Download x64</a>
+              <a className="pill pill-line" href={WINDOWS_ARM64_URL}><DownloadIcon />Download ARM64</a>
+            </div>
+            <p className="windows-download-note">Choose x64 for Intel or AMD PCs and ARM64 for Windows on Arm.</p>
+          </div>
+          <p className="windows-download-note windows-install">Windows 11 · Unsigned preview. Extract the ZIP, open <code>Pocket.exe</code>, and choose <strong>Start local ledger</strong> to get started offline.</p>
         </section>
 
         <section className="section wrap" id="tour">

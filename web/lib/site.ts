@@ -1,6 +1,9 @@
 export const SITE_URL = "https://pocketleft.app";
 export const REPO_URL = "https://github.com/orlandoascanio/pocketleft";
 export const DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/Pocket.dmg`;
+const WINDOWS_PREVIEW_DOWNLOAD = `${REPO_URL}/releases/download/windows-preview-1`;
+export const WINDOWS_X64_URL = `${WINDOWS_PREVIEW_DOWNLOAD}/Pocket-Windows-x64-Preview.zip`;
+export const WINDOWS_ARM64_URL = `${WINDOWS_PREVIEW_DOWNLOAD}/Pocket-Windows-arm64-Preview.zip`;
 export const DESCRIPTION =
   "Free Mac menu bar app that shows how much money you have left. Log spending and income, plan upcoming bills, and keep your data on your Mac.";
 

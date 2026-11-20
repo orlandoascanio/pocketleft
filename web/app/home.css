@@ -21,6 +21,40 @@
 .hero-dimensional .announce-tag { font-size: 11px; padding: 3px 8px; }
 .hero-dimensional .announce-arrow { width: 23px; height: 23px; }
 .hero-copy { position: relative; z-index: 2; }
+.hero-windows-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: 6px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.wrap.windows-download {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 20px 32px;
+  padding-block: 30px;
+  border-block: 1px solid var(--line);
+  scroll-margin-top: 96px;
+}
+.windows-download h2 {
+  margin: 0;
+  font-size: clamp(27px, 4vw, 38px);
+  line-height: 1.1;
+  letter-spacing: -.035em;
+}
+.windows-download p { margin: 10px 0 0; color: var(--muted); }
+.windows-download .cta { justify-content: flex-start; }
+.windows-download .windows-download-note { font-size: 13px; }
+.windows-download .windows-install { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 740px) {
+  .windows-download { grid-template-columns: 1fr; }
+}
 
 /* Paint the hero immediately; the slow float starts after its first render. */
 .pocket-scene { position: relative; height: 590px; min-width: 0; perspective: 1100px; isolation: isolate; --rx: 0deg; --ry: 0deg; }
