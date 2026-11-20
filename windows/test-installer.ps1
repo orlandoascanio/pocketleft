@@ -75,7 +75,7 @@ Run-Setup $uninstaller
 if ((Test-Path $app) -or (Test-Path $uninstaller) -or (Test-Path $shortcut) -or (Test-Path $uninstallKey) -or !(Test-Path $marker)) {
     throw "Uninstall left app files or removed the ledger profile."
 }
-if (Get-ItemPropertyValue $runKey PocketLeft -ErrorAction SilentlyContinue) {
+if ((Get-Item $runKey).GetValueNames() -contains "PocketLeft") {
     throw "Uninstall left a sign-in command for the removed app."
 }
 Write-Host "Verified $Architecture setup, native payload, running app lock, reinstall and uninstall."
