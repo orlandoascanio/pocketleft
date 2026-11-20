@@ -24,8 +24,7 @@ import {
   SELF_HOSTING_GUIDE_URL,
   SITE_URL,
   VERSION,
-  WINDOWS_ARM64_URL,
-  WINDOWS_X64_URL,
+  WINDOWS_SETUP_URL,
 } from "@/lib/site";
 
 const jsonLd = [
@@ -151,12 +150,11 @@ export default function Home() {
           </div>
           <div>
             <div className="cta">
-              <a className="pill pill-dark" href={WINDOWS_X64_URL}><DownloadIcon />Download x64</a>
-              <a className="pill pill-line" href={WINDOWS_ARM64_URL}><DownloadIcon />Download ARM64</a>
+              <a className="pill pill-dark" href={WINDOWS_SETUP_URL}><DownloadIcon />Download for Windows</a>
             </div>
-            <p className="windows-download-note">Choose x64 for Intel or AMD PCs and ARM64 for Windows on Arm.</p>
+            <p className="windows-download-note">Windows 11 · Intel, AMD, and ARM</p>
           </div>
-          <p className="windows-download-note windows-install">Windows 11 · Unsigned preview. Extract the ZIP, open <code>Pocket.exe</code>, and choose <strong>Start local ledger</strong> to get started offline.</p>
+          <p className="windows-download-note windows-install">Run Pocket Setup, then choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
         </section>
 
         <section className="section wrap" id="tour">
