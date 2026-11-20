@@ -51,7 +51,11 @@ $instance = Start-Process -FilePath $app -ArgumentList "--background" -PassThru
 try {
     if ($instance.WaitForExit(2500)) { throw "The installed app did not stay running." }
     Run-Setup $Setup 1
-    Run-Setup $uninstaller 1
+    # The NSIS uninstaller relaunches from a temporary copy, so check the installed files.
+    Run-Setup $uninstaller
+    if (!(Test-Path $app) -or !(Test-Path $uninstallKey)) {
+        throw "Uninstall changed the installation while Pocket was running."
+    }
 } finally {
     Stop-Process -Id $instance.Id -ErrorAction SilentlyContinue
     $instance.WaitForExit()
@@ -68,7 +72,7 @@ if (!(Test-Path $app) -or !(Test-Path $marker) -or (Get-ItemPropertyValue $runKe
 }
 
 Run-Setup $uninstaller
-if ((Test-Path $app) -or (Test-Path $shortcut) -or (Test-Path $uninstallKey) -or !(Test-Path $marker)) {
+if ((Test-Path $app) -or (Test-Path $uninstaller) -or (Test-Path $shortcut) -or (Test-Path $uninstallKey) -or !(Test-Path $marker)) {
     throw "Uninstall left app files or removed the ledger profile."
 }
 if (Get-ItemPropertyValue $runKey PocketLeft -ErrorAction SilentlyContinue) {
