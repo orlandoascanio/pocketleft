@@ -70,6 +70,13 @@ Then, for each release:
 3. Verify the [latest disk image](https://github.com/orlandoascanio/pocketleft/releases/latest/download/Pocket.dmg).
    Update the homepage, `web/lib/site.ts`, `web/lib/releases.ts` and the tour captures when the UI changes.
 
+## Pocket for Windows
+
+`windows/` builds a Windows tray app. Click Pocket beside the clock to see your balance and add an expense
+or income. Open the full window for History, Plan, Subscriptions, and Insights. Keep a local ledger on your PC
+or pair with a Pocket Sync server.
+See [Windows setup and build instructions](windows/README.md).
+
 ## Pocket for iPhone and Android
 
 `mobile/` is the phone app, built with React Native and Expo. Like the Mac, it keeps your money in one JSON file

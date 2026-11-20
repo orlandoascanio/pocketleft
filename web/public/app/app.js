@@ -8,6 +8,8 @@ const QUEUE_STORE = "pocket.queue";
 const RANGE_STORE = "pocket.range";
 const TAB_STORE = "pocket.tab";
 const GREET_STORE = "pocket.greeted";
+const desktop = window.PocketDesktop;
+const localLedger = desktop?.ledgerMode === "local";
 
 const CADENCE = {
   weekly:   { name: "Weekly",        perMonth: 52 / 12, unit: "week" },
@@ -439,6 +441,7 @@ function setServer(next) {
 
 // ---------- network ----------
 async function rpc(fn, args = {}, { noKey = false } = {}) {
+  if (localLedger) return desktop.localRpc(fn, args);
   const res = await fetch(`${server.url}/rest/v1/rpc/${fn}`, {
     method: "POST",
     headers: { apikey: server.key, "Content-Type": "application/json" },
@@ -459,6 +462,7 @@ function saveQueue(q) { if (q.length) ls.set(QUEUE_STORE, JSON.stringify(q)); el
 
 // New entries survive being offline: they wait here and go out on the next sync.
 async function rpcAdd(fn, args) {
+  if (localLedger) return rpc(fn, args);
   try { return await rpc(fn, args); }
   catch (e) {
     if (!isNetErr(e)) throw e;
@@ -489,9 +493,9 @@ function setSync(state, text) {
 
 async function load({ quiet = false } = {}) {
   if (!key) return;
-  if (!quiet) setSync("busy", "Syncing…");
+  if (!quiet) setSync("busy", localLedger ? "Opening ledger…" : "Syncing…");
   try {
-    await flushQueue();
+    if (!localLedger) await flushQueue();
     const s = await rpc("pocket_state", { p_today: todayISO(), p_days: range });
     subscriptionTracking = s.subscription_tracking === true;
     const sig = JSON.stringify(s);
@@ -511,10 +515,12 @@ async function load({ quiet = false } = {}) {
       setBalance(txs.reduce((sum, t) => sum + Number(t.amount), 0), newest);
     }
     if (pendingFlight) landScheduled();
+    if (localLedger) { setSync("", "Saved on this PC"); return; }
     const waiting = readQueue().length;
     const t = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     setSync(waiting ? "off" : "", waiting ? `${waiting} waiting to sync` : `Synced ${t}`);
   } catch (e) {
+    if (localLedger) { setSync("off", "Local ledger unavailable"); return; }
     if (e.badKey) return lock("This device was removed or its access changed. Pair it again.");
     const waiting = readQueue().length;
     setSync("off", waiting ? `Offline · ${waiting} waiting` : "Offline, retrying");
@@ -1449,7 +1455,8 @@ async function onSubmit(e) {
   } catch (err) {
     pendingFlight = null;
     if (err.badKey) return lock("This device was removed or its access changed. Pair it again.");
-    formError(err.message?.includes("Subscriptions update") ? err.message : "Couldn't save. Check your connection and try again.");
+    formError(err.message?.includes("Subscriptions update") ? err.message : localLedger ?
+      "Couldn't save to this PC. Check the amount and try again." : "Couldn't save. Check your connection and try again.");
   } finally {
     btn.disabled = false;
   }
@@ -1531,7 +1538,7 @@ async function usePreset(p, chip) {
     });
   } catch (e) {
     if (e.badKey) return lock("This device was removed or its access changed. Pair it again.");
-    toast("Couldn't add that. Check your connection.");
+    toast(localLedger ? "Couldn't save to this PC." : "Couldn't add that. Check your connection.");
   } finally {
     chip.disabled = false;
   }
@@ -1760,7 +1767,7 @@ function openSettings() {
   $("pairStart").disabled = false;
   $("pairStart").textContent = "Pair a new device";
   renderPresetList();
-  loadDevices();
+  if (!localLedger) loadDevices();
   $("settings").showModal();
 }
 
@@ -1784,7 +1791,7 @@ function shake(el) { el.classList.remove("shake"); void el.offsetWidth; el.class
 function lock(msg = "") {
   key = null;
   loaded = false; lastSig = ""; shownBalance = null; knownTx = null; knownRules = null;
-  ls.del(KEY_STORE);
+  if (!localLedger && desktop?.ledgerMode !== "setup") ls.del(KEY_STORE);
   clearInterval(pollTimer);
   $("home").hidden = true;
   $("lock").hidden = false;
@@ -1812,7 +1819,10 @@ async function unlock(k) {
   resetForm();
   if (!loaded) renderSkeleton();
   await load();
-  if (key) { ls.set(KEY_STORE, key); startPolling(); }
+  if (key) {
+    if (!localLedger) ls.set(KEY_STORE, key);
+    startPolling();
+  }
 }
 
 async function onPair(e) {
@@ -2003,7 +2013,7 @@ scheduleBlink();
 
 // Browsers sometimes keep an old copy of this page. Ask for the current version (never cached)
 // and reload into it when it changed, so nobody gets stuck on an old release.
-const APP_VERSION = "10";
+const APP_VERSION = "11";
 async function checkForUpdate() {
   try {
     const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
@@ -2027,8 +2037,9 @@ if (linked.has("server") || linked.has("code")) {
   history.replaceState(null, "", location.pathname + location.search);
 }
 
-const saved = ls.get(KEY_STORE);
-if (saved && !linkedCode) unlock(saved);
+const saved = desktop?.ledgerMode === "setup" ? null : ls.get(KEY_STORE);
+if (localLedger) unlock("local");
+else if (saved && !linkedCode) unlock(saved);
 else {
   lock();
   if (linkedCode) { $("pairCode").value = `${linkedCode.slice(0, 3)} ${linkedCode.slice(3)}`; $("pairForm").querySelector("button").focus(); }

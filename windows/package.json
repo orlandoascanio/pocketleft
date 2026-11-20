@@ -1,0 +1,7 @@
+{
+  "name": "pocket-windows-client",
+  "private": true,
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.17"
+  }
+}

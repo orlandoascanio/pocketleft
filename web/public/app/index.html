@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=10">
+<link rel="stylesheet" href="app.css?v=11">
 </head>
 <body>
 <main>
@@ -256,19 +256,21 @@
       <h2 id="settingsTitle">Settings</h2>
       <button class="icon-btn close-sheet" type="button" aria-label="Close"></button>
     </div>
-    <h3>Devices</h3>
-    <p class="lead">Each phone or computer gets its own access. Remove one and it's locked out right away.</p>
-    <div id="devices" class="rows"></div>
-    <div id="pairBox" class="rows" style="margin-top:10px" hidden>
-      <div class="code num" id="pairShow"></div>
-      <p class="code-note" id="pairNote"></p>
+    <div id="deviceSettings">
+      <h3>Devices</h3>
+      <p class="lead">Each phone or computer gets its own access. Remove one and it's locked out right away.</p>
+      <div id="devices" class="rows"></div>
+      <div id="pairBox" class="rows" style="margin-top:10px" hidden>
+        <div class="code num" id="pairShow"></div>
+        <p class="code-note" id="pairNote"></p>
+      </div>
+      <button id="pairStart" class="btn wide subtle" type="button" style="margin-top:10px">Pair a new device</button>
     </div>
-    <button id="pairStart" class="btn wide subtle" type="button" style="margin-top:10px">Pair a new device</button>
     <h3>Quick-add buttons</h3>
     <p class="lead">Leave the amount empty for things that cost something different each time.</p>
     <div id="presetList" class="rows"></div>
     <h3>This device</h3>
-    <p class="lead">Server: <b id="serverName"></b></p>
+    <p id="serverDetails" class="lead">Server: <b id="serverName"></b></p>
     <button id="forget" class="btn wide ghost" type="button">Lock this device</button>
   </div>
 </dialog>
@@ -294,7 +296,7 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn" type="button"></button></div>
 
-<script src="subscriptions.js?v=10"></script>
-<script src="app.js?v=10"></script>
+<script src="subscriptions.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

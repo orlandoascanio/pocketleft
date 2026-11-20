@@ -1,0 +1,21 @@
+:root[data-pocket-view="quick"] main {
+  max-width: 440px;
+  padding: 14px 14px 20px;
+}
+
+:root[data-pocket-view="quick"] #home { display: block; }
+:root[data-pocket-view="quick"] #home > :is(.tabs, .panel, .foot-hint) { display: none; }
+:root[data-pocket-view="quick"] .top { gap: 8px; }
+:root[data-pocket-view="quick"] .top-right { gap: 8px; }
+:root[data-pocket-view="quick"] .sync { font-size: 11px; }
+:root[data-pocket-view="quick"] .pocket-expand { font-size: 12px; white-space: nowrap; }
+:root[data-pocket-view="quick"] .hero { padding: 16px 0 12px; }
+:root[data-pocket-view="quick"] .balance { font-size: clamp(32px, 10vw, 46px); }
+:root[data-pocket-view="quick"] .hero-foot { display: block; margin-top: 4px; }
+:root[data-pocket-view="quick"] .hero-foot .pk-btn { display: none; }
+:root[data-pocket-view="quick"] .runway { display: none; }
+
+.pocket-local-form { padding: 16px; margin: 14px 0 28px; text-align: left; }
+.pocket-local-form h2, .pocket-local-form p { margin: 0 0 10px; }
+.pocket-local-form > input { width: 100%; margin-bottom: 10px; }
+.pocket-local-form .form-msg { margin: 4px 0 0; }

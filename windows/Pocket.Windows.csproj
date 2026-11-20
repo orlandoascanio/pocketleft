@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>Pocket.ico</ApplicationIcon>
+    <AssemblyName>Pocket</AssemblyName>
+    <RootNamespace>Pocket.Windows</RootNamespace>
+    <Product>Pocket</Product>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PgliteRoot>node_modules/@electric-sql/pglite</PgliteRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+    <Content Include="../web/public/app/*" Link="Client/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Client/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../supabase/migrations/*.sql" Link="Client/migrations/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(PgliteRoot)/dist/*.js;$(PgliteRoot)/dist/*.wasm;$(PgliteRoot)/dist/pglite.data;$(PgliteRoot)/dist/pgcrypto.tar.gz;$(PgliteRoot)/LICENSE"
+             Link="Client/vendor/pglite/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(PgliteRoot)/dist/contrib/pgcrypto.js" Link="Client/vendor/pglite/contrib/pgcrypto.js"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="CheckLocalLedgerDependencies" BeforeTargets="PrepareForBuild" Condition="!Exists('$(PgliteRoot)/dist/pglite.wasm')">
+    <Error Text="Run npm --prefix windows ci --ignore-scripts from the Pocket repository root before building." />
+  </Target>
+  <Target Name="RemoveUnusedWebViewWpfReference" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="$(NugetRoot)\lib_manual\net5.0-windows10.0.17763.0\Microsoft.Web.WebView2.Wpf.dll" />
+    </ItemGroup>
+  </Target>
+</Project>
