@@ -1,21 +1,19 @@
 # Pocket for Windows preview
 
-1. On Windows 11, extract the ZIP for your processor into a folder you plan to keep, then open `Pocket.exe`.
+1. On Windows 11, run `Pocket-Setup.exe`. Setup picks the correct build and adds Pocket to your Start menu.
 2. Choose **Start local ledger** to use Pocket offline. To open an existing synced ledger, choose **Use your own server**, enter the HTTPS server details, and enter a six-digit pairing code from a connected device.
 3. Click the Pocket icon near the Windows clock for your balance, quick-add buttons, and the entry form. Select **Open Pocket** for History, Plan, Subscriptions, and Insights.
 
 If Pocket is under **Show hidden icons**, drag it into the visible tray or enable it under **Settings → Personalization → Taskbar → Other system tray icons**. Right-click the tray icon to enable **Start at sign-in** or choose **Quit Pocket**. Closing the window keeps Pocket in the tray.
 
-Switch between the local ledger and Pocket Sync in Pocket's Settings. Each ledger keeps its own entries. The Windows preview displays amounts in USD and uses the same History, Plan, Subscriptions, and Insights screens as the web app. The WebView2 profile, including the local database and pairing, is stored under `%LOCALAPPDATA%\PocketLeft\WebView2`. Keep that directory when moving or replacing the app files.
+Switch between the local ledger and Pocket Sync in Pocket's Settings. Each ledger keeps its own entries. The Windows preview displays amounts in USD and uses the same History, Plan, Subscriptions, and Insights screens as the web app. Windows Settings → Apps → Installed apps can remove Pocket. The local database and pairing stay in `%LOCALAPPDATA%\PocketLeft\WebView2` after reinstalling or uninstalling.
 
-## Build a portable copy
+## Build the installer
 
-Use Node.js, npm, and the .NET 10 SDK. Run from the repository root.
+Use Node.js, npm, the .NET 10 SDK, and NSIS. Run from the repository root on macOS or Linux.
 
 ```sh
-npm --prefix windows ci --ignore-scripts
-dotnet publish windows/Pocket.Windows.csproj -c Release -r win-x64 --self-contained -o windows/bin/publish/win-x64
-dotnet publish windows/Pocket.Windows.csproj -c Release -r win-arm64 --self-contained -o windows/bin/publish/win-arm64
+windows/build-installer.sh
 ```
 
-Keep the entire publish directory together. The build bundles .NET, the shared web client, and the local database engine. Windows also needs the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/). The preview binaries are unsigned.
+Setup is written to `windows/bin/installer/Pocket-Setup.exe` and bundles both x64 and ARM64 builds, .NET, the shared web client, and the local database engine. Pocket uses the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) available on Windows 11. The preview installer is unsigned.
