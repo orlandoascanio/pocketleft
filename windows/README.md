@@ -1,12 +1,14 @@
 # Pocket for Windows preview
 
-1. On Windows 11, run `Pocket-Setup.exe`. Setup picks the correct build and adds Pocket to your Start menu.
+1. On Windows 11, run `Pocket-Setup.exe`. On **Choose Install Location**, select a folder on your SSD or HDD, such as `D:\Apps\PocketLeft`. You can also add a desktop shortcut and start Pocket at sign-in. Setup adds a Start menu shortcut by default.
 2. Choose **Start local ledger** to use Pocket offline. To open an existing synced ledger, choose **Use your own server**, enter the HTTPS server details, and enter a six-digit pairing code from a connected device.
 3. Click the Pocket icon near the Windows clock for your balance, quick-add buttons, and the entry form. Select **Open Pocket** for History, Plan, Subscriptions, and Insights.
 
 If Pocket is under **Show hidden icons**, drag it into the visible tray or enable it under **Settings → Personalization → Taskbar → Other system tray icons**. Right-click the tray icon to enable **Start at sign-in** or choose **Quit Pocket**. Closing the window keeps Pocket in the tray.
 
 Switch between the local ledger and Pocket Sync in Pocket's Settings. Each ledger keeps its own entries. The Windows preview displays amounts in USD and uses the same History, Plan, Subscriptions, and Insights screens as the web app. Windows Settings → Apps → Installed apps can remove Pocket. The local database and pairing stay in `%LOCALAPPDATA%\PocketLeft\WebView2` after reinstalling or uninstalling.
+
+If Setup stops, it shows the destination and which step failed. The same details are saved to `%TEMP%\Pocket-Setup.log`.
 
 ## Build the installer
 

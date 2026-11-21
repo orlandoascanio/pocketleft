@@ -12,7 +12,10 @@ for target in win-x64 win-arm64; do
   dotnet publish Pocket.Windows.csproj -c Release -r "$target" --self-contained -o "$stage/$target" -warnaserror
 done
 
-makensis -WX -V2 "-DPOCKET_PAYLOAD=$stage" "-DPOCKET_SETUP=$stage/Pocket-Setup.exe" PocketSetup.nsi
+x64_kib="$(du -sk "$stage/win-x64" | awk '{print $1 + 1024}')"
+arm64_kib="$(du -sk "$stage/win-arm64" | awk '{print $1 + 1024}')"
+makensis -WX -V2 "-DPOCKET_PAYLOAD=$stage" "-DPOCKET_SETUP=$stage/Pocket-Setup.exe" \
+  "-DPOCKET_X64_SIZE=$x64_kib" "-DPOCKET_ARM64_SIZE=$arm64_kib" PocketSetup.nsi
 mkdir -p bin/installer
 mv -- "$stage/Pocket-Setup.exe" bin/installer/Pocket-Setup.exe
 echo "Built $(pwd)/bin/installer/Pocket-Setup.exe"
