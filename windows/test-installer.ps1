@@ -15,6 +15,17 @@ $profile = Join-Path $env:LOCALAPPDATA "PocketLeft\WebView2"
 $marker = Join-Path $profile "installer-smoke-marker.txt"
 $startupCommand = '"{0}" --background' -f $app
 
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class PocketTestWindows {
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    public static extern IntPtr FindWindowW(IntPtr className, string title);
+    [DllImport("user32.dll", ExactSpelling = true)]
+    public static extern bool IsWindowVisible(IntPtr window);
+}
+'@
+
 if ((Test-Path $root) -or (Test-Path $profile) -or (Test-Path $uninstallKey) -or
     (Test-Path $shortcut) -or (Test-Path $desktopShortcut)) {
     throw "Run this test in a fresh Windows account."
@@ -38,6 +49,17 @@ function Get-PeMachine([string]$Path) {
     }
 }
 
+function Wait-ForClockBalance([Diagnostics.Process]$Process, [string]$Amount) {
+    $deadline = [DateTime]::UtcNow.AddSeconds(45)
+    while ([DateTime]::UtcNow -lt $deadline) {
+        if ($Process.HasExited) { throw "Pocket exited while opening its ledger in the background." }
+        $window = [PocketTestWindows]::FindWindowW([IntPtr]::Zero, "Pocket balance $Amount")
+        if ($window -ne [IntPtr]::Zero -and [PocketTestWindows]::IsWindowVisible($window)) { return }
+        Start-Sleep -Milliseconds 300
+    }
+    throw "Pocket did not show the amount above the clock while its main window was closed."
+}
+
 Run-Setup $Setup
 $machine = if ($Architecture -eq "x64") { 0x8664 } else { 0xaa64 }
 if ((Get-PeMachine $app) -ne $machine -or (Get-PeMachine "$root\app\WebView2Loader.dll") -ne $machine) {
@@ -49,9 +71,22 @@ if (!(Test-Path "$root\app\Client\vendor\pglite\pglite.wasm") -or (Get-ItemPrope
 $link = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut)
 if ($link.TargetPath -ne $app) { throw "Missing or incorrect Start menu shortcut." }
 
+$clientScript = "$root\app\Client\windows.js"
+$originalClient = Get-Content $clientScript -Raw
+Add-Content $clientScript -Value @'
+
+document.addEventListener("DOMContentLoaded", async () => {
+  if (localStorage.getItem("pocket.windows.ledgerMode")) return;
+  const ledger = await import("./local-ledger.js");
+  await ledger.initializeLedger(1024.50, todayISO());
+  localStorage.setItem("pocket.windows.localReady", "yes");
+  localStorage.setItem("pocket.windows.ledgerMode", "local");
+  location.reload();
+});
+'@
 $instance = Start-Process -FilePath $app -ArgumentList "--background" -PassThru
 try {
-    if ($instance.WaitForExit(2500)) { throw "The installed app did not stay running." }
+    Wait-ForClockBalance $instance '$1,024.50'
     Run-Setup $Setup 1
     # The NSIS uninstaller relaunches from a temporary copy, so check the installed files.
     Run-Setup $uninstaller
@@ -61,6 +96,7 @@ try {
 } finally {
     Stop-Process -Id $instance.Id -ErrorAction SilentlyContinue
     $instance.WaitForExit()
+    Set-Content $clientScript $originalClient -NoNewline
 }
 
 New-Item $profile -ItemType Directory -Force | Out-Null

@@ -5,7 +5,7 @@ Unicode true
 !include "nsDialogs.nsh"
 !include "FileFunc.nsh"
 
-!define SETUP_VERSION "0.1.1"
+!define SETUP_VERSION "0.1.2"
 !define DEFAULT_INSTALL_ROOT "$LOCALAPPDATA\Programs\PocketLeft"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\PocketLeft"
 !define RUN_KEY "Software\Microsoft\Windows\CurrentVersion\Run"

@@ -92,6 +92,25 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     const root = document.documentElement;
+    const home = document.getElementById("home");
+    const balance = document.getElementById("balance");
+    const sync = document.getElementById("sync");
+    let lastBalance;
+    let refreshing = false;
+    function publishBalance() {
+      const amount = !home.hidden && Number.isFinite(shownBalance) ? fmt(shownBalance) : null;
+      const stale = amount !== null && sync.classList.contains("off");
+      const display = { type: "clock-balance", amount, stale };
+      const serialized = JSON.stringify(display);
+      if (serialized === lastBalance) return;
+      lastBalance = serialized;
+      host.postMessage(display);
+    }
+    const balanceChanges = new MutationObserver(publishBalance);
+    balanceChanges.observe(home, { attributes: true, attributeFilter: ["hidden"] });
+    balanceChanges.observe(balance, { attributes: true, attributeFilter: ["aria-label"] });
+    balanceChanges.observe(sync, { attributes: true, attributeFilter: ["class"] });
+    publishBalance();
     const stylesheet = document.createElement("link");
     stylesheet.rel = "stylesheet";
     stylesheet.href = "windows.css";
@@ -105,6 +124,14 @@
     document.querySelector("#home .top-right").prepend(expand);
 
     host.addEventListener("message", ({ data }) => {
+      if (data === "refresh-balance") {
+        // Leave queued writes to the visible window so a background read can't replay them.
+        if (document.hidden && !refreshing && (ledgerMode === "local" || readQueue().length === 0)) {
+          refreshing = true;
+          void load({ quiet: true }).finally(() => { refreshing = false; });
+        }
+        return;
+      }
       if (data !== "quick" && data !== "full") return;
       const changed = data !== root.dataset.pocketView;
       const focusExpand = document.activeElement === expand;

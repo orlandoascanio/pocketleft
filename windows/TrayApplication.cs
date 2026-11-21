@@ -6,18 +6,42 @@ internal sealed class TrayApplication : ApplicationContext
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string RunValue = "PocketLeft";
+    private const string PreferencesKey = @"Software\PocketLeft";
+    private const string ClockBalanceValue = "ShowClockBalance";
+    private const int RefreshIntervalMs = 60_000;
     private readonly Icon icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? (Icon)SystemIcons.Application.Clone();
     private readonly ContextMenuStrip menu = new();
     private readonly NotifyIcon tray;
     private readonly PocketWindow window;
+    private readonly ClockBalanceWindow clockWindow;
+    private readonly ToolStripMenuItem clockMenuItem = new("Show balance above clock");
+    private readonly System.Windows.Forms.Timer clockTimer = new() { Interval = 2_000 };
     private readonly RegisteredWaitHandle instanceRequests;
+    private ClockBalance? clockBalance;
+    private long nextRefresh;
 
     public TrayApplication(EventWaitHandle showRequest, bool background)
     {
         window = new PocketWindow(icon);
+        clockWindow = new ClockBalanceWindow(icon, () => window.Open(PocketView.Quick));
+        clockMenuItem.Checked = ReadClockPreference();
+        clockMenuItem.Click += (_, _) => ToggleClock();
+        window.BalanceChanged += balance =>
+        {
+            clockBalance = balance;
+            if (clockMenuItem.Checked) clockWindow.ShowBalance(balance);
+        };
+        clockTimer.Tick += (_, _) =>
+        {
+            clockWindow.UpdatePosition();
+            if (Environment.TickCount64 < nextRefresh) return;
+            nextRefresh = Environment.TickCount64 + RefreshIntervalMs;
+            window.RefreshHiddenBalance();
+        };
         menu.Items.Add("Quick entry", null, (_, _) => window.Open(PocketView.Quick));
         menu.Items.Add("Open Pocket", null, (_, _) => window.Open(PocketView.Full));
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(clockMenuItem);
         var launch = new ToolStripMenuItem("Start at sign-in");
         launch.Click += (_, _) => ToggleStartup(launch);
         menu.Opening += (_, _) => UpdateStartupMenu(launch);
@@ -38,6 +62,53 @@ internal sealed class TrayApplication : ApplicationContext
         }, null, Timeout.Infinite, executeOnlyOnce: false);
 
         if (!background) window.Open(PocketView.Quick);
+        if (clockMenuItem.Checked) window.BeginInvoke(ShowClock);
+    }
+
+    private static bool ReadClockPreference()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(PreferencesKey);
+            return key?.GetValue(ClockBalanceValue) is not 0;
+        }
+        catch (Exception error) when (error is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+        {
+            return true;
+        }
+    }
+
+    private void ShowClock()
+    {
+        clockWindow.ShowBalance(clockBalance);
+        window.StartBrowser();
+        window.RefreshHiddenBalance();
+        nextRefresh = Environment.TickCount64 + RefreshIntervalMs;
+        clockTimer.Start();
+    }
+
+    private void ToggleClock()
+    {
+        bool show = !clockMenuItem.Checked;
+        try
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(PreferencesKey);
+            key.SetValue(ClockBalanceValue, show ? 1 : 0);
+        }
+        catch (Exception error) when (error is UnauthorizedAccessException or IOException or System.Security.SecurityException)
+        {
+            MessageBox.Show(window, "Windows could not save the balance display setting.", "Pocket",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        clockMenuItem.Checked = show;
+        if (show) ShowClock();
+        else
+        {
+            clockTimer.Stop();
+            clockWindow.ShowBalance(null);
+        }
     }
 
     private static string StartupCommand => $"\"{Environment.ProcessPath}\" --background";
@@ -75,9 +146,11 @@ internal sealed class TrayApplication : ApplicationContext
         if (disposing)
         {
             instanceRequests.Unregister(null);
+            clockTimer.Dispose();
             tray.Dispose();
-            menu.Dispose();
             window.Dispose();
+            clockWindow.Dispose();
+            menu.Dispose();
             icon.Dispose();
         }
         base.Dispose(disposing);

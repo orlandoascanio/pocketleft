@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
@@ -27,6 +28,8 @@ internal sealed class PocketWindow : Form
     private bool initializing;
     private bool pageReady;
     private Rectangle? fullBounds;
+
+    public event Action<ClockBalance?>? BalanceChanged;
 
     public PocketWindow(Icon icon)
     {
@@ -61,7 +64,19 @@ internal sealed class PocketWindow : Form
             SendMode();
             browser.Focus();
         }
-        else if (browser.CoreWebView2 is null && !initializing) _ = InitializeBrowserAsync();
+        else StartBrowser();
+    }
+
+    public void StartBrowser()
+    {
+        if (browser.CoreWebView2 is null && !initializing) _ = InitializeBrowserAsync();
+    }
+
+    public void RefreshHiddenBalance()
+    {
+        var core = browser.CoreWebView2;
+        if (!Visible && pageReady && core is not null && IsClient(core.Source))
+            core.PostWebMessageAsJson("\"refresh-balance\"");
     }
 
     private void Place(PocketView view, Point anchor)
@@ -125,6 +140,7 @@ internal sealed class PocketWindow : Form
         {
             var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: profileDirectory);
             if (IsDisposed) return;
+            _ = browser.Handle;
             await browser.EnsureCoreWebView2Async(environment);
             if (IsDisposed) return;
             var core = browser.CoreWebView2;
@@ -137,6 +153,7 @@ internal sealed class PocketWindow : Form
                 if (IsClient(e.Uri))
                 {
                     pageReady = false;
+                    BalanceChanged?.Invoke(null);
                     browser.Hide();
                     status.Text = "Opening Pocket…";
                     loading.Show();
@@ -168,7 +185,7 @@ internal sealed class PocketWindow : Form
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException
             or System.Runtime.InteropServices.COMException)
         {
-            if (!IsDisposed) ShowError("Pocket could not open. Quit Pocket from the tray and try again, or extract a fresh copy of the ZIP.");
+            if (!IsDisposed) ShowError("Pocket could not open. Quit Pocket from the tray and try again, or reinstall using Pocket Setup.");
         }
         finally { initializing = false; }
     }
@@ -176,10 +193,11 @@ internal sealed class PocketWindow : Form
     private void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         if (!IsClient(e.Source)) return;
-        switch (e.WebMessageAsJson)
+        string message = e.WebMessageAsJson;
+        switch (message)
         {
             case "\"client-error\"":
-                ShowError("Pocket could not open its app files. Extract a fresh copy of the ZIP.");
+                ShowError("Pocket could not open its app files. Reinstall using Pocket Setup.");
                 break;
             case "\"ready\"":
                 pageReady = true;
@@ -196,7 +214,28 @@ internal sealed class PocketWindow : Form
             case "\"hide\"":
                 HideToTray();
                 break;
+            default:
+                ReadBalance(message);
+                break;
         }
+    }
+
+    private void ReadBalance(string message)
+    {
+        if (message.Length is 0 or > 200 || message[0] != '{') return;
+        using var json = JsonDocument.Parse(message);
+        JsonElement data = json.RootElement;
+        if (!data.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.String || !type.ValueEquals("clock-balance")
+            || !data.TryGetProperty("amount", out var amount)) return;
+        if (amount.ValueKind == JsonValueKind.Null)
+        {
+            BalanceChanged?.Invoke(null);
+            return;
+        }
+        if (amount.ValueKind != JsonValueKind.String || amount.GetString() is not { Length: > 0 and <= 48 } display
+            || display.Any(char.IsControl)) return;
+        bool stale = data.TryGetProperty("stale", out var flag) && flag.ValueKind == JsonValueKind.True;
+        BalanceChanged?.Invoke(new ClockBalance(display, stale));
     }
 
     private void SendMode()
@@ -213,6 +252,7 @@ internal sealed class PocketWindow : Form
     private void ShowError(string message, Action? retry = null, string? link = null)
     {
         pageReady = false;
+        BalanceChanged?.Invoke(null);
         browser.Hide();
         loading.Show();
         status.Text = message;
