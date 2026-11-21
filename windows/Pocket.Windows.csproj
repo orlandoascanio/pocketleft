@@ -9,12 +9,12 @@
     <AssemblyName>Pocket</AssemblyName>
     <RootNamespace>Pocket.Windows</RootNamespace>
     <Product>Pocket</Product>
+    <Version>0.1.4</Version>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PgliteRoot>node_modules/@electric-sql/pglite</PgliteRoot>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="DisplayChecks/**/*.cs" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
     <Content Include="../web/public/app/*" Link="Client/%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

@@ -30,6 +30,8 @@ internal sealed class PocketWindow : Form
     private Rectangle? fullBounds;
 
     public event Action<ClockBalance?>? BalanceChanged;
+    public event Action<string, string>? ReminderRequested;
+    public event Action? QuitRequested;
 
     public PocketWindow(Icon icon)
     {
@@ -214,6 +216,22 @@ internal sealed class PocketWindow : Form
             case "\"hide\"":
                 HideToTray();
                 break;
+            case "\"check-updates\"":
+                _ = WindowsUpdates.CheckAsync(this, () => QuitRequested?.Invoke());
+                break;
+            case "\"about-pocket\"":
+                MessageBox.Show(this, $"Pocket for Windows {WindowsUpdates.VersionLabel}", "About Pocket");
+                break;
+            case "\"open-data-folder\"":
+                OpenLink(profileDirectory);
+                break;
+            case "\"share-pocket\"":
+                try { Clipboard.SetText("https://pocketleft.app/"); }
+                catch (System.Runtime.InteropServices.ExternalException)
+                {
+                    MessageBox.Show(this, "Windows could not copy the Pocket link.", "Pocket");
+                }
+                break;
             default:
                 ReadBalance(message);
                 break;
@@ -222,11 +240,18 @@ internal sealed class PocketWindow : Form
 
     private void ReadBalance(string message)
     {
-        if (message.Length is 0 or > 200 || message[0] != '{') return;
+        if (message.Length is 0 or > 1_024 || message[0] != '{') return;
         using var json = JsonDocument.Parse(message);
         JsonElement data = json.RootElement;
-        if (!data.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.String || !type.ValueEquals("clock-balance")
-            || !data.TryGetProperty("amount", out var amount)) return;
+        if (!data.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.String) return;
+        if (type.ValueEquals("pocket-reminder"))
+        {
+            string? title = ReadText("title", 150);
+            string? body = ReadText("body", 180);
+            if (title is not null && body is not null) ReminderRequested?.Invoke(title, body);
+            return;
+        }
+        if (!type.ValueEquals("clock-balance") || !data.TryGetProperty("amount", out var amount)) return;
         if (amount.ValueKind == JsonValueKind.Null)
         {
             BalanceChanged?.Invoke(null);
@@ -236,6 +261,10 @@ internal sealed class PocketWindow : Form
             || display.Any(char.IsControl)) return;
         bool stale = data.TryGetProperty("stale", out var flag) && flag.ValueKind == JsonValueKind.True;
         BalanceChanged?.Invoke(new ClockBalance(display, stale));
+
+        string? ReadText(string property, int maxLength) =>
+            data.TryGetProperty(property, out var field) && field.ValueKind == JsonValueKind.String &&
+            field.GetString() is { Length: > 0 } value && value.Length <= maxLength && !value.Any(char.IsControl) ? value : null;
     }
 
     private void SendMode()

@@ -21,8 +21,12 @@ const CADENCE = {
 const RANGE_NAME = { 30: "month", 91: "3 months", 182: "6 months", 365: "year" };
 
 const $ = (id) => document.getElementById(id);
-const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-const compactMoney = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
+let money, compactMoney;
+function setCurrency(currency) {
+  money = new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  compactMoney = new Intl.NumberFormat("en-US", { style: "currency", currency, notation: "compact", maximumFractionDigits: 1 });
+}
+setCurrency(desktop?.currency || "USD");
 const fmt = (n) => money.format(n);
 const signed = (n) => (n > 0 ? "+" : "") + fmt(n);
 const dayFmt = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -493,38 +497,52 @@ function setSync(state, text) {
 
 async function load({ quiet = false } = {}) {
   if (!key) return;
+  const accessKey = key;
+  const serverUrl = server.url;
   if (!quiet) setSync("busy", localLedger ? "Opening ledger…" : "Syncing…");
   try {
     if (!localLedger) await flushQueue();
     const s = await rpc("pocket_state", { p_today: todayISO(), p_days: range });
-    subscriptionTracking = s.subscription_tracking === true;
-    const sig = JSON.stringify(s);
-    if (sig !== lastSig) {
-      lastSig = sig;
-      txs = s.transactions; rules = s.recurring; upcoming = s.upcoming; presets = s.presets;
-      const txIds = txs.map((t) => t.id), ruleIds = rules.map((r) => r.id);
-      fresh = {
-        tx: new Set(knownTx ? txIds.filter((id) => !knownTx.has(id)) : []),
-        rules: new Set(knownRules ? ruleIds.filter((id) => !knownRules.has(id)) : []),
-      };
-      const newest = txs.find((t) => fresh.tx.has(t.id));
-      knownTx = new Set(txIds); knownRules = new Set(ruleIds);
-      loaded = true;
-      $("home").removeAttribute("aria-busy");
-      render();
-      setBalance(txs.reduce((sum, t) => sum + Number(t.amount), 0), newest);
-    }
+    if (key !== accessKey || server.url !== serverUrl) return;
+    if (applyState(s) && desktop && !localLedger) void desktop.saveSyncCopy(serverUrl, accessKey, s).catch(() => {});
     if (pendingFlight) landScheduled();
+    desktop?.onLoaded();
     if (localLedger) { setSync("", "Saved on this PC"); return; }
     const waiting = readQueue().length;
     const t = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     setSync(waiting ? "off" : "", waiting ? `${waiting} waiting to sync` : `Synced ${t}`);
   } catch (e) {
+    if (key !== accessKey || server.url !== serverUrl) return;
     if (localLedger) { setSync("off", "Local ledger unavailable"); return; }
     if (e.badKey) return lock("This device was removed or its access changed. Pair it again.");
+    if (desktop && !loaded) {
+      const cached = await desktop.readSyncCopy(serverUrl, accessKey).catch(() => null);
+      if (key !== accessKey || server.url !== serverUrl) return;
+      if (cached && !loaded) applyState(cached);
+    }
     const waiting = readQueue().length;
     setSync("off", waiting ? `Offline · ${waiting} waiting` : "Offline, retrying");
   }
+}
+
+function applyState(state) {
+  subscriptionTracking = state.subscription_tracking === true;
+  const signature = JSON.stringify(state);
+  if (signature === lastSig) return false;
+  lastSig = signature;
+  txs = state.transactions; rules = state.recurring; upcoming = state.upcoming; presets = state.presets;
+  const txIds = txs.map((t) => t.id), ruleIds = rules.map((r) => r.id);
+  fresh = {
+    tx: new Set(knownTx ? txIds.filter((id) => !knownTx.has(id)) : []),
+    rules: new Set(knownRules ? ruleIds.filter((id) => !knownRules.has(id)) : []),
+  };
+  const newest = txs.find((t) => fresh.tx.has(t.id));
+  knownTx = new Set(txIds); knownRules = new Set(ruleIds);
+  loaded = true;
+  $("home").removeAttribute("aria-busy");
+  render();
+  setBalance(txs.reduce((sum, t) => sum + Number(t.amount), 0), newest);
+  return true;
 }
 
 // ---------- balance + reactions ----------
@@ -596,29 +614,45 @@ function project(total) {
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   const start = Math.round(total * 100) / 100;
   let bal = start;
-  const pts = [{ date: today, bal, events: [] }];
+  const daily = desktop?.everyday && desktop.includeEveryday ? Math.round(desktop.everyday(txs, today) / 7) : 0;
+  const pts = [{ date: today, before: bal, bal, events: [] }];
   let hitZero = null, backAbove = null, backAboveBy = null, low = { date: today, bal };
+  let spentThrough = today;
+  function spendThrough(date) {
+    const days = Math.round((asDate(date) - asDate(spentThrough)) / 86400000);
+    if (daily && days > 0) {
+      const cents = Math.round(bal * 100);
+      if (cents >= 0 && cents - daily * days < 0 && !hitZero) hitZero = addDays(spentThrough, Math.floor(cents / daily) + 1);
+      bal = (cents - daily * days) / 100;
+      if (bal < low.bal) low = { date, bal };
+    }
+    spentThrough = date;
+  }
   for (const e of ev) {
+    spendThrough(e.date);
     const before = bal;
     bal = Math.round((bal + e.amount) * 100) / 100;
     e.after = bal;
     const last = pts[pts.length - 1];
     if (pts.length > 1 && last.date === e.date) { last.bal = bal; last.events.push(e); }
-    else pts.push({ date: e.date, bal, events: [e] });
+    else pts.push({ date: e.date, before, bal, events: [e] });
     if (before >= 0 && bal < 0 && !hitZero) hitZero = e.date;
     if (before < 0 && bal >= 0 && !backAbove) { backAbove = e.date; backAboveBy = e; }
     if (bal < low.bal) low = { date: e.date, bal };
   }
-  return { today, end, start, endBal: bal, pts, ev, hitZero, backAbove, backAboveBy, low };
+  spendThrough(end);
+  if (daily && pts.at(-1).date !== end) pts.push({ date: end, before: bal, bal, events: [] });
+  return { today, end, start, endBal: bal, pts, ev, hitZero, backAbove, backAboveBy, low, daily };
 }
 
 function runway(p) {
   const d = (iso) => shortFmt.format(asDate(iso));
+  const zero = fmt(0);
   if (p.start < 0) {
-    if (p.backAboveBy?.overdue) return { lead: "Back above $0 once", strong: `${p.backAboveBy.label} pays`, warn: false };
+    if (p.backAboveBy?.overdue) return { lead: `Back above ${zero} once`, strong: `${p.backAboveBy.label} pays`, warn: false };
     return p.backAbove
-      ? { lead: "Back above $0 on", strong: d(p.backAbove), warn: false }
-      : { lead: "Below $0 for the next", strong: RANGE_NAME[range], warn: true };
+      ? { lead: `Back above ${zero} on`, strong: d(p.backAbove), warn: false }
+      : { lead: `Below ${zero} for the next`, strong: RANGE_NAME[range], warn: true };
   }
   return p.hitZero
     ? { lead: "Runs out on", strong: d(p.hitZero), warn: true }
@@ -653,7 +687,7 @@ function renderChart({ animate = true } = {}) {
   const W = Math.max(260, box.clientWidth - 16), H = 176, m = { l: 50, r: 16, t: 16, b: 26 };
   const t0 = asDate(p.today).getTime(), t1 = asDate(p.end).getTime();
   const X = (iso) => m.l + ((asDate(iso).getTime() - t0) / (t1 - t0)) * (W - m.l - m.r);
-  const vals = p.pts.map((q) => q.bal).concat(0);
+  const vals = p.pts.flatMap((q) => [q.before, q.bal]).concat(0);
   const ticks = niceTicks(Math.min(...vals), Math.max(...vals), 4);
   const lo = ticks[0], hi = ticks[ticks.length - 1];
   const Y = (v) => m.t + ((hi - v) / (hi - lo)) * (H - m.t - m.b);
@@ -685,7 +719,10 @@ function renderChart({ animate = true } = {}) {
   }
 
   let d = `M${X(p.pts[0].date)},${Y(p.pts[0].bal)}`;
-  for (let i = 1; i < p.pts.length; i++) d += `H${X(p.pts[i].date)}V${Y(p.pts[i].bal)}`;
+  for (const point of p.pts.slice(1)) {
+    d += p.daily ? `L${X(point.date)},${Y(point.before)}` : `H${X(point.date)}`;
+    d += `V${Y(point.bal)}`;
+  }
   d += `H${X(p.end)}`;
   svgEl("path", { class: "wash", d: `${d}V${Y(0)}H${X(p.today)}Z` }, svg);
   const path = svgEl("path", { class: "line" + (animate && !calm() ? " draw" : ""), d }, svg);
@@ -773,6 +810,7 @@ function render() {
   renderPlan();
   renderSubscriptions();
   renderInsights();
+  desktop?.onRender(txs, rules, upcoming);
   fresh = { tx: new Set(), rules: new Set() }; // play each arrival once
 }
 
@@ -890,6 +928,12 @@ function renderWaiting() {
   if (overdue.length) tabBtn.append(mk("span", "count", String(overdue.length)));
 }
 
+function historyEntries() {
+  const shown = filter ? txs.filter((t) => (t.category || (desktop ? "uncategorized" : "other")) === filter.cat &&
+    (!filter.month || t.occurred_on.startsWith(filter.month)) && (!filter.kind || Math.sign(Number(t.amount)) === filter.kind)) : txs;
+  return desktop ? desktop.filterHistory(shown) : shown;
+}
+
 function renderHistory() {
   // txs arrive newest first; walk oldest -> newest to get the balance after each entry
   const after = new Map();
@@ -900,9 +944,8 @@ function renderHistory() {
   }
   const slot = $("filterSlot");
   slot.textContent = "";
-  let shown = txs;
+  const shown = historyEntries();
   if (filter) {
-    shown = txs.filter((t) => (t.category || "other") === filter.cat && (!filter.month || t.occurred_on.startsWith(filter.month)));
     const chip = mk("span", "filter", `${catName(filter.cat)} · ${filter.month ? monthOnly.format(monthDate(filter.month)) : "all time"}`);
     const x = mk("button");
     x.type = "button";
@@ -915,7 +958,7 @@ function renderHistory() {
   const list = $("list");
   list.textContent = "";
   if (!shown.length) {
-    list.append(mk("p", "empty", filter ? "Nothing here for that filter." : "Nothing here yet. Add your first entry above."));
+    list.append(mk("p", "empty", txs.length ? "Nothing here for that filter." : "Nothing here yet. Add your first entry above."));
     return;
   }
   const groups = new Map();
@@ -1055,6 +1098,7 @@ function renderSubscriptions() {
     remove.type = "button"; remove.setAttribute("aria-label", `Remove ${rule.label} from Subscriptions`);
     remove.addEventListener("click", () => changeSubscription(rule, false, remove));
     actions.append(pause, remove); item.append(actions);
+    desktop?.addRenewalControls(rule, item);
     (rule.active ? active : paused).append(item);
   }
   for (const rule of summary.other) {
@@ -1104,18 +1148,21 @@ function renderInsights() {
   const inScope = (t, ym) => t.category !== "start" && (ym ? t.occurred_on.startsWith(ym) : true);
   const sums = (ym) => {
     let spent = 0, inn = 0;
-    const by = new Map();
+    const by = new Map(), byIncome = new Map();
     for (const t of txs) {
       if (!inScope(t, ym)) continue;
       const a = Number(t.amount);
-      if (a > 0) { inn += a; continue; }
-      spent -= a;
-      const c = t.category || "other";
-      const cur = by.get(c) || { sum: 0, n: 0 };
-      cur.sum -= a; cur.n++;
-      by.set(c, cur);
+      if (a > 0) {
+        inn += a;
+        if (!desktop) continue;
+      } else spent -= a;
+      const c = t.category || (desktop ? "uncategorized" : "other");
+      const target = a > 0 ? byIncome : by;
+      const cur = target.get(c) || { sum: 0, n: 0 };
+      cur.sum += Math.abs(a); cur.n++;
+      target.set(c, cur);
     }
-    return { spent, inn, by };
+    return { spent, inn, by, byIncome };
   };
   const now = sums(all ? null : insight.month);
 
@@ -1137,7 +1184,10 @@ function renderInsights() {
   delta.textContent = "";
   if (!all) {
     const prevYm = shiftMonth(insight.month, -1);
-    if (prevYm >= first) {
+    const comparisonAvailable = desktop
+      ? txs.length > 0 && insight.month < last && txs.at(-1).occurred_on <= `${prevYm}-01`
+      : prevYm >= first;
+    if (comparisonAvailable) {
       const prev = sums(prevYm);
       const diff = Math.round((now.spent - prev.spent) * 100) / 100;
       const name = monthOnly.format(monthDate(prevYm));
@@ -1146,11 +1196,18 @@ function renderInsights() {
     }
   }
 
-  const bars = $("bars");
-  bars.textContent = "";
-  const rows = [...now.by.entries()].sort((a, b) => b[1].sum - a[1].sum);
+  renderCategoryBars($("bars"), now.by, now.spent, -1, all);
+  if (desktop) renderCategoryBars($("pocketIncomeBars"), now.byIncome, now.inn, 1, all);
+}
+
+function renderCategoryBars(bars, totals, total, direction, all) {
+  if (!bars) return;
+  bars.replaceChildren();
+  const income = direction > 0;
+  const metric = income ? "money in" : "spending";
+  const rows = [...totals.entries()].sort((a, b) => b[1].sum - a[1].sum);
   if (!rows.length) {
-    bars.append(mk("p", "empty", all ? "No spending yet." : `No spending in ${monthOnly.format(monthDate(insight.month))}.`));
+    bars.append(mk("p", "empty", all ? `No ${metric} yet.` : `No ${metric} in ${monthOnly.format(monthDate(insight.month))}.`));
     return;
   }
   const max = rows[0][1].sum;
@@ -1159,20 +1216,22 @@ function renderInsights() {
     b.type = "button";
     const name = mk("span", "bar-name");
     const ico = mk("span", "ico");
-    ico.dataset.hue = catHue(c, -1);
-    ico.innerHTML = icon(catIcon(c, -1));
+    ico.dataset.hue = catHue(c, direction);
+    ico.innerHTML = icon(catIcon(c, direction));
     name.append(ico, catName(c));
     const track = mk("span", "bar-track");
-    track.dataset.hue = catHue(c, -1);
+    track.dataset.hue = catHue(c, direction);
     const fill = mk("span", "bar-fill");
     fill.style.width = `${Math.max(1.5, (v.sum / max) * 100)}%`;
     fill.style.animationDelay = `${Math.min(i, 8) * 50}ms`;
     track.append(fill);
-    const pct = Math.round((v.sum / now.spent) * 100);
-    b.append(name, mk("span", "bar-val", fmt(v.sum)), track, mk("span", "bar-meta", `${pct}% of spending · ${v.n} ${v.n === 1 ? "purchase" : "purchases"}`));
-    b.setAttribute("aria-label", `${catName(c)}: ${fmt(v.sum)}, ${pct}% of spending. Show these purchases.`);
+    const pct = Math.round((v.sum / total) * 100);
+    const item = income ? "entry" : "purchase", items = income ? "entries" : "purchases";
+    b.append(name, mk("span", "bar-val", fmt(v.sum)), track, mk("span", "bar-meta", `${pct}% of ${metric} · ${v.n} ${v.n === 1 ? item : items}`));
+    b.setAttribute("aria-label", `${catName(c)}: ${fmt(v.sum)}, ${pct}% of ${metric}. Show these ${items}.`);
     b.addEventListener("click", () => {
-      filter = { cat: c, month: all ? null : insight.month };
+      if (desktop) desktop.clearHistoryFilters();
+      filter = { cat: c, month: all ? null : insight.month, kind: desktop ? direction : null };
       setTab("activity");
       renderHistory();
       $("panel-activity").scrollIntoView({ behavior: calm() ? "auto" : "smooth", block: "start" });
@@ -1744,10 +1803,14 @@ function renderPresetList() {
       const label = name.value.trim();
       if (!label) { name.value = p.label; return; }
       const a = amt.value.trim() === "" ? null : parseAmount(amt.value);
-      if (label === p.label && a === (p.amount != null ? Number(p.amount) : null)) return;
-      await rpc("pocket_preset_save", { p_id: p.id, p_label: label, p_sign: p.sign, p_amount: a, p_category: p.category || "" });
-      await load({ quiet: true });
-      renderPresetList();
+      const details = presetDetails();
+      if (label === p.label && a === (p.amount != null ? Number(p.amount) : null) &&
+          details.p_sign === p.sign && details.p_category === (p.category || "")) return;
+      try {
+        await rpc("pocket_preset_save", { p_id: p.id, p_label: label, p_amount: a, ...details });
+        await load({ quiet: true });
+        renderPresetList();
+      } catch { toast("Couldn't save the quick-add button."); }
     };
     name.addEventListener("change", save);
     amt.addEventListener("change", save);
@@ -1757,6 +1820,7 @@ function renderPresetList() {
       renderPresetList();
     });
     r.append(ic, name, amt, del);
+    const presetDetails = desktop?.presetOptions(p, r, save) || (() => ({ p_sign: p.sign, p_category: p.category || "" }));
     box.append(r);
   }
 }

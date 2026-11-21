@@ -33,5 +33,6 @@ internal static class Program
         {
             instance.ReleaseMutex();
         }
+        WindowsUpdates.LaunchPendingSetup();
     }
 }

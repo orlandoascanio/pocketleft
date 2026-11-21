@@ -11,6 +11,7 @@ $shortcut = Join-Path ([Environment]::GetFolderPath("Programs")) "Pocket.lnk"
 $desktopShortcut = Join-Path ([Environment]::GetFolderPath("DesktopDirectory")) "Pocket.lnk"
 $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\PocketLeft"
 $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+$preferencesKey = "HKCU:\Software\PocketLeft"
 $profile = Join-Path $env:LOCALAPPDATA "PocketLeft\WebView2"
 $marker = Join-Path $profile "installer-smoke-marker.txt"
 $startupCommand = '"{0}" --background' -f $app
@@ -79,6 +80,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (localStorage.getItem("pocket.windows.ledgerMode")) return;
   const ledger = await import("./local-ledger.js");
   await ledger.initializeLedger(1024.50, todayISO());
+  const original = await ledger.exportLedger();
+  if (original.entries.length !== 1 || original.entries[0].cents !== 102450) throw new Error("Ledger export mismatch");
+  await ledger.rpc("pocket_add", { p_amount: -25.75, p_label: "Backup test", p_on: todayISO(), p_category: "food" });
+  const [day] = await ledger.backupDays();
+  if (!day || (await ledger.readBackup(day)).entries[0].cents !== 102450) throw new Error("Daily backup mismatch");
+  await ledger.replaceLedger(original);
+  const restored = await ledger.exportLedger();
+  if (restored.entries.length !== 1 || restored.entries[0].id !== original.entries[0].id) throw new Error("Ledger restore mismatch");
   localStorage.setItem("pocket.windows.localReady", "yes");
   localStorage.setItem("pocket.windows.ledgerMode", "local");
   location.reload();
@@ -97,6 +106,20 @@ try {
     Stop-Process -Id $instance.Id -ErrorAction SilentlyContinue
     $instance.WaitForExit()
     Set-Content $clientScript $originalClient -NoNewline
+}
+
+New-Item $preferencesKey -Force | Out-Null
+Set-ItemProperty $preferencesKey BalanceDisplay "IconOnly"
+$hover = Start-Process -FilePath $app -ArgumentList "--background" -PassThru
+try {
+    Start-Sleep -Seconds 5
+    if ($hover.HasExited -or [PocketTestWindows]::IsWindowVisible([PocketTestWindows]::FindWindowW([IntPtr]::Zero, 'Pocket balance $1,024.50'))) {
+        throw "Pocket did not migrate Icon only to a tray-only display."
+    }
+} finally {
+    Stop-Process -Id $hover.Id -ErrorAction SilentlyContinue
+    $hover.WaitForExit()
+    Remove-ItemProperty $preferencesKey BalanceDisplay
 }
 
 New-Item $profile -ItemType Directory -Force | Out-Null

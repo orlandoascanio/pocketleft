@@ -9,7 +9,7 @@ internal sealed class TrayApplication : ApplicationContext
     private const string PreferencesKey = @"Software\PocketLeft";
     private const string BalanceModeValue = "BalanceDisplay";
     private const int RefreshIntervalMs = 60_000;
-    private enum BalanceDisplay { TrayNumber, Hover, Panel, IconOnly }
+    private enum BalanceDisplay { Hover, Panel }
 
     private readonly Icon icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? (Icon)SystemIcons.Application.Clone();
     private readonly ContextMenuStrip menu = new();
@@ -21,8 +21,6 @@ internal sealed class TrayApplication : ApplicationContext
     private readonly RegisteredWaitHandle instanceRequests;
     private ClockBalance? clockBalance;
     private BalanceDisplay balanceDisplay;
-    private Icon? balanceIcon;
-    private (string Label, bool Stale, Size Size, bool HighContrast)? renderedIcon;
     private long nextRefresh;
 
     public TrayApplication(EventWaitHandle showRequest, bool background)
@@ -34,10 +32,8 @@ internal sealed class TrayApplication : ApplicationContext
         menu.Items.Add("Open Pocket", null, (_, _) => window.Open(PocketView.Full));
         menu.Items.Add(new ToolStripSeparator());
         var displayMenu = new ToolStripMenuItem("Balance display");
-        AddMode(BalanceDisplay.TrayNumber, "Number in tray");
         AddMode(BalanceDisplay.Hover, "Balance on hover");
         AddMode(BalanceDisplay.Panel, "Floating panel");
-        AddMode(BalanceDisplay.IconOnly, "Icon only");
         menu.Items.Add(displayMenu);
         var launch = new ToolStripMenuItem("Start at sign-in");
         launch.Click += (_, _) => ToggleStartup(launch);
@@ -50,6 +46,9 @@ internal sealed class TrayApplication : ApplicationContext
         {
             if (e.Button == MouseButtons.Left) window.Open(PocketView.Quick);
         };
+        tray.BalloonTipClicked += (_, _) => window.Open(PocketView.Full);
+        window.ReminderRequested += (title, body) => tray.ShowBalloonTip(5_000, title, body, ToolTipIcon.None);
+        window.QuitRequested += ExitThread;
         window.BalanceChanged += balance =>
         {
             clockBalance = balance;
@@ -61,7 +60,6 @@ internal sealed class TrayApplication : ApplicationContext
             if (Environment.TickCount64 < nextRefresh) return;
             nextRefresh = Environment.TickCount64 + RefreshIntervalMs;
             window.RefreshHiddenBalance();
-            if (balanceDisplay == BalanceDisplay.TrayNumber) UpdateBalanceDisplay();
         };
 
         _ = window.Handle;
@@ -72,7 +70,7 @@ internal sealed class TrayApplication : ApplicationContext
         }, null, Timeout.Infinite, executeOnlyOnce: false);
 
         if (!background) window.Open(PocketView.Quick);
-        if (balanceDisplay != BalanceDisplay.IconOnly) window.BeginInvoke(ApplyBalanceDisplay);
+        window.BeginInvoke(ApplyBalanceDisplay);
 
         void AddMode(BalanceDisplay mode, string name)
         {
@@ -88,9 +86,12 @@ internal sealed class TrayApplication : ApplicationContext
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(PreferencesKey);
-            if (key?.GetValue(BalanceModeValue) is string saved &&
-                Enum.TryParse(saved, out BalanceDisplay mode) && Enum.IsDefined(mode)) return mode;
-            return key?.GetValue("ShowClockBalance") is 0 ? BalanceDisplay.IconOnly : BalanceDisplay.Panel;
+            return key?.GetValue(BalanceModeValue) switch
+            {
+                "Panel" => BalanceDisplay.Panel,
+                "Hover" or "TrayNumber" or "IconOnly" => BalanceDisplay.Hover,
+                _ => key?.GetValue("ShowClockBalance") is 0 ? BalanceDisplay.Hover : BalanceDisplay.Panel
+            };
         }
         catch (Exception error) when (error is UnauthorizedAccessException or IOException or System.Security.SecurityException)
         {
@@ -102,8 +103,6 @@ internal sealed class TrayApplication : ApplicationContext
     {
         UpdateBalanceDisplay();
         clockTimer.Stop();
-        if (balanceDisplay == BalanceDisplay.IconOnly) return;
-
         clockTimer.Interval = balanceDisplay == BalanceDisplay.Panel ? 2_000 : RefreshIntervalMs;
         window.StartBrowser();
         window.RefreshHiddenBalance();
@@ -134,31 +133,11 @@ internal sealed class TrayApplication : ApplicationContext
 
     private void UpdateBalanceDisplay()
     {
-        var balance = balanceDisplay == BalanceDisplay.IconOnly ? null : clockBalance;
+        var balance = clockBalance;
         string tooltip = balance is null ? "Pocket"
             : balance.Stale ? $"Pocket · {balance.Amount} · Last known" : $"Pocket · {balance.Amount}";
         if (tray.Text != tooltip) tray.Text = tooltip;
 
-        if (balanceDisplay == BalanceDisplay.TrayNumber && balance is not null && TrayBalanceIcon.Format(balance.Amount) is { } label)
-        {
-            var size = SystemInformation.SmallIconSize;
-            var next = (label, balance.Stale, size, SystemInformation.HighContrast);
-            if (renderedIcon != next)
-            {
-                var updated = TrayBalanceIcon.Create(label, balance.Stale, size);
-                tray.Icon = updated;
-                balanceIcon?.Dispose();
-                balanceIcon = updated;
-                renderedIcon = next;
-            }
-        }
-        else if (balanceIcon is not null)
-        {
-            tray.Icon = icon;
-            balanceIcon.Dispose();
-            balanceIcon = null;
-            renderedIcon = null;
-        }
         clockWindow.ShowBalance(balanceDisplay == BalanceDisplay.Panel ? balance : null);
     }
 
@@ -199,7 +178,6 @@ internal sealed class TrayApplication : ApplicationContext
             instanceRequests.Unregister(null);
             clockTimer.Dispose();
             tray.Dispose();
-            balanceIcon?.Dispose();
             window.Dispose();
             clockWindow.Dispose();
             menu.Dispose();
