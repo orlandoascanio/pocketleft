@@ -4,7 +4,7 @@
 2. Choose **Start local ledger** to use Pocket offline. To open an existing synced ledger, choose **Use your own server**, enter the HTTPS server details, and enter a six-digit pairing code from a connected device.
 3. Click the Pocket icon near the Windows clock for your balance, quick-add buttons, and the entry form. Select **Open Pocket** for History, Plan, Subscriptions, and Insights.
 
-Once your ledger opens, a small panel above the clock shows the same balance while Pocket is in the tray. Click it for Quick entry. Right-click the tray icon and uncheck **Show balance above clock** to hide it.
+Right-click the Pocket tray icon and open **Balance display** to switch between **Number in tray**, **Balance on hover**, **Floating panel**, and **Icon only**. The small tray number uses abbreviated amounts. Hover for dollars and cents. Click the icon or floating panel for Quick Entry.
 
 If Pocket is under **Show hidden icons**, drag it into the visible tray or enable it under **Settings → Personalization → Taskbar → Other system tray icons**. Right-click the tray icon to enable **Start at sign-in** or choose **Quit Pocket**. Closing the window keeps Pocket in the tray.
 

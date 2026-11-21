@@ -1,3 +1,4 @@
+using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 
 namespace Pocket.Windows;
@@ -8,6 +9,7 @@ internal sealed class ClockBalanceWindow : Form
 {
     private readonly Icon pocketIcon;
     private readonly Action openPocket;
+    private readonly Font balanceFont;
     private ClockBalance? balance;
 
     public ClockBalanceWindow(Icon pocketIcon, Action openPocket)
@@ -21,9 +23,9 @@ internal sealed class ClockBalanceWindow : Form
         ShowInTaskbar = false;
         TopMost = true;
         DoubleBuffered = true;
-        Font = SystemFonts.MessageBoxFont ?? Font;
-        BackColor = SystemColors.Window;
-        ForeColor = SystemColors.WindowText;
+        balanceFont = new Font(SystemFonts.MessageBoxFont ?? Font, FontStyle.Bold);
+        Font = balanceFont;
+        UpdateColors(hovered: false);
         Cursor = Cursors.Hand;
     }
 
@@ -64,11 +66,11 @@ internal sealed class ClockBalanceWindow : Form
 
         Rectangle area = screen.WorkingArea;
         int gap = LogicalToDeviceUnits(8);
-        int iconSize = LogicalToDeviceUnits(18);
+        int iconSize = LogicalToDeviceUnits(16);
         int inset = LogicalToDeviceUnits(10);
         int width = Math.Max(1, Math.Min(area.Width - gap * 2,
             TextRenderer.MeasureText(BalanceText(balance), Font).Width + iconSize + inset * 3));
-        int height = Math.Max(LogicalToDeviceUnits(34), Font.Height + inset);
+        int height = Math.Max(LogicalToDeviceUnits(30), Font.Height + inset);
         int x = area.Left > screen.Bounds.Left ? area.Left + gap : area.Right - width - gap;
         int y = area.Top > screen.Bounds.Top ? area.Top + gap : area.Bottom - height - gap;
         var bounds = new Rectangle(x, y, width, height);
@@ -80,20 +82,62 @@ internal sealed class ClockBalanceWindow : Form
     {
         base.OnPaint(e);
         if (balance is null) return;
-        ControlPaint.DrawBorder(e.Graphics, ClientRectangle, SystemColors.ActiveBorder, ButtonBorderStyle.Solid);
-        int iconSize = LogicalToDeviceUnits(18);
+        if (SystemInformation.HighContrast)
+            ControlPaint.DrawBorder(e.Graphics, ClientRectangle, SystemColors.WindowText, ButtonBorderStyle.Solid);
+        int iconSize = LogicalToDeviceUnits(16);
         int inset = LogicalToDeviceUnits(10);
         e.Graphics.DrawIcon(pocketIcon, new Rectangle(inset, (Height - iconSize) / 2, iconSize, iconSize));
-        int textLeft = iconSize + inset * 2;
+        int textLeft = iconSize + inset + LogicalToDeviceUnits(7);
         var textBounds = new Rectangle(textLeft, 0, Math.Max(0, Width - textLeft - inset), Height);
         TextRenderer.DrawText(e.Graphics, BalanceText(balance), Font, textBounds, ForeColor,
             TextFormatFlags.SingleLine | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+    }
+
+    protected override void OnSizeChanged(EventArgs e)
+    {
+        base.OnSizeChanged(e);
+        if (Width < 2 || Height < 2) return;
+        int radius = Math.Min(Width, Height) / 2;
+        using var outline = new GraphicsPath();
+        outline.AddRoundedRectangle(ClientRectangle, new Size(radius, radius));
+        Region = new Region(outline);
+    }
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        UpdateColors(hovered: true);
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        UpdateColors(hovered: false);
+    }
+
+    protected override void OnSystemColorsChanged(EventArgs e)
+    {
+        base.OnSystemColorsChanged(e);
+        UpdateColors(hovered: false);
+    }
+
+    private void UpdateColors(bool hovered)
+    {
+        BackColor = SystemInformation.HighContrast ? SystemColors.Window
+            : hovered ? Color.FromArgb(36, 81, 60) : Color.FromArgb(23, 58, 41);
+        ForeColor = SystemInformation.HighContrast ? SystemColors.WindowText : Color.White;
     }
 
     protected override void OnMouseUp(MouseEventArgs e)
     {
         base.OnMouseUp(e);
         if (e.Button == MouseButtons.Left) openPocket();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing) balanceFont.Dispose();
     }
 
     private static string BalanceText(ClockBalance value) => value.Stale ? $"{value.Amount} · Last known" : value.Amount;

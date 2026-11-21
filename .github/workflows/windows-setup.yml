@@ -52,9 +52,14 @@ jobs:
             architecture: arm64
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
       - uses: actions/download-artifact@v6
         with:
           name: Pocket-Setup
       - name: Check setup and removal
         shell: pwsh
         run: ./windows/test-installer.ps1 -Setup ./Pocket-Setup.exe -Architecture ${{ matrix.architecture }}
+      - name: Check tray balance rendering
+        run: dotnet run --project windows/DisplayChecks/Pocket.DisplayChecks.csproj -c Release
