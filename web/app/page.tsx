@@ -147,7 +147,7 @@ export default function Home() {
         <section className="wrap windows-download" id="windows" aria-labelledby="windows-heading">
           <div>
             <h2 id="windows-heading">Pocket for Windows</h2>
-            <p>Show a compact balance in the tray, see the exact amount on hover, or keep it above the clock. Right-click Pocket and choose <strong>Balance display</strong> to switch.</p>
+            <p>Hover over Pocket in the tray for your exact balance, or keep it visible above the clock. Right-click Pocket and choose <strong>Balance display</strong> to switch.</p>
           </div>
           <div>
             <div className="cta">
