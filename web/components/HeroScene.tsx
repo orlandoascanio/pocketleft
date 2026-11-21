@@ -83,7 +83,7 @@ export function HeroScene() {
             {platform === "mac" ? "On your Mac" : platform === "windows" ? "On your PC" : "On your device"}
           </span></div>
           <p className="scene-amount" key={amount}>${amount}<span>USD</span></p>
-          <div className="scene-balance-bottom"><span className="scene-check" aria-hidden="true">✓</span><span>Your day. At a glance.</span></div>
+          <div className="scene-balance-bottom">{spent && <span className="scene-check" aria-hidden="true">✓</span>}<span>{spent ? "After coffee" : "Before coffee"}</span></div>
         </div>
         <div className="scene-receipt" aria-hidden="true"><CoffeeIcon /><span>Coffee added</span><b>−$6.50</b></div>
       </div>

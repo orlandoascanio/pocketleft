@@ -14,9 +14,9 @@ import subscriptions from "@/public/media/subscriptions-light-2026-11-18.png";
 import subscriptionsDark from "@/public/media/subscriptions-dark-2026-11-18.png";
 
 const VIEWS = [
-  { id: "menu", label: "Menu bar", caption: "One click from anywhere, all day." },
+  { id: "menu", label: "Menu bar", caption: "Click your balance to log an entry." },
   { id: "overview", label: "Overview", caption: "What came in, what went out." },
-  { id: "plan", label: "Plan", caption: "Where your balance is heading." },
+  { id: "plan", label: "Plan", caption: "Your balance after upcoming payments." },
   { id: "subscriptions", label: "Subscriptions", caption: "See when each subscription renews and what’s due soon." },
 ] as const;
 

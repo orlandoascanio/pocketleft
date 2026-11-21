@@ -18,9 +18,7 @@ function Card({ label, href, dark, children }: { label: string; href: string; da
       </div>
       <div className="bento-foot">
         <span>{label}</span>
-        <span className="bento-more">
-          Explore <span aria-hidden="true">→</span>
-        </span>
+        <span className="bento-more" aria-hidden="true"><span>→</span></span>
       </div>
     </a>
   );

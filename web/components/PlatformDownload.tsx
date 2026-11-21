@@ -58,7 +58,7 @@ export function HeroPlatformHeadline() {
   const platform = useDownloadPlatform();
   return (
     <h1>How much money you have left,<br /><span>
-      {platform === "mac" ? "always in your menu bar." : platform === "windows" ? "right by your Windows clock." : "always within reach."}
+      {platform === "mac" ? "always in your menu bar." : platform === "windows" ? "right by your Windows clock." : "on your Mac or Windows PC."}
     </span></h1>
   );
 }

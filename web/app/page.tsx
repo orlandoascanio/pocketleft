@@ -112,14 +112,14 @@ export default function Home() {
               <a className="announce" href={"/changelog/#" + releaseId(VERSION)}>
                 <span className="announce-tag">New</span>
                 <b>Pocket {VERSION.replace(/\.0$/, "")}</b>
-                <span className="announce-text">A clearer view of your spending.</span>
+                <span className="announce-text">Compare full months in Categories.</span>
                 <span className="announce-arrow" aria-hidden="true">
                   ↗
                 </span>
               </a>
             </HeroAnnounce>
             <HeroPlatformHeadline />
-            <p className="lead">Type in what you have today, then log what you spend and what comes in. Pocket keeps your balance up to date.</p>
+            <p className="lead">Start with the money you have today, then add what you spend and what comes in.</p>
             <div className="cta" id="hero-cta">
               <DownloadButton />
               <a className="pill pill-soft" href="#tour">
@@ -132,14 +132,13 @@ export default function Home() {
         </section>
 
         <section className="section wrap" id="tour">
-          <h2>Everything happens in one small window.</h2>
+          <h2>Inside Pocket for Mac</h2>
           <p className="section-lead">
-            Your balance sits in the menu bar. Open the window to add entries, confirm payments, manage subscriptions and look ahead.
+            Click your balance in the menu bar to add an entry. In the main window, review your history, confirm payments and see what’s coming up.
           </p>
           <Tour initialView="overview" />
           <div className="tour-download">
             <DownloadButton />
-            <p>Free, and no account needed. Your money data stays on your device unless you set up sync.</p>
           </div>
         </section>
 
@@ -148,9 +147,9 @@ export default function Home() {
         </div>
 
         <section className="section wrap" id="subscriptions">
-          <h2>Know what you're subscribed to.</h2>
-          <p className="section-lead">See each subscription once, with the next renewal beside the price. The highlighted total shows what’s due in the next 7 or 30 days, alongside your monthly equivalent and yearly cost.</p>
-          <p className="section-lead subscriptions-local">Set reminders on your Mac and see when a reminder time has already passed. If saving a subscription will record a payment in History right away, Pocket tells you before you save. Pocket for Mac works without an account. The browser app also shows subscriptions from your connected Pocket.</p>
+          <h2>See what renews next</h2>
+          <p className="section-lead">See the next renewal date and price for each subscription. Check what’s due in the next 7 or 30 days and the estimated monthly and yearly totals.</p>
+          <p className="section-lead subscriptions-local">Set renewal reminders on your Mac. If saving a subscription would add a charge to History right away, Pocket tells you before you save. With sync, the same subscriptions appear in the web app.</p>
           <div className="cta subscriptions-cta">
             <DownloadButton />
             <a className="pill pill-soft" href={WEB_APP_URL}>Open the browser app</a>
@@ -162,14 +161,13 @@ export default function Home() {
             <div className="copy">
               <h2>See your balance after rent, before rent is due.</h2>
               <p>
-                Add your bills, subscriptions and expected pay once. Pocket shows what your balance will be after
-                each one, up to 12 months ahead, and takes out what you usually spend in between.
+                Add your bills, subscriptions and expected pay once. Pocket estimates what you’ll have left after
+                each payment, factoring in what you usually spend between bills.
               </p>
               <ul className="dots">
-                <li>A chart of where your balance is heading, 1 to 12 months out</li>
-                <li>Counts your usual everyday spending, learned from your recent weeks</li>
-                <li>Every upcoming payment, with your balance right after it</li>
-                <li>Weekly to yearly, including every 3 months. Pause, skip or stop any of it</li>
+                <li>Choose a forecast of 1, 3, 6 or 12 months</li>
+                <li>Schedule payments weekly, every two weeks, monthly, quarterly or yearly</li>
+                <li>Pause or stop a payment, or skip a single occurrence</li>
               </ul>
             </div>
             <div className="upcoming" aria-label="Example of payments coming up">
@@ -197,18 +195,14 @@ export default function Home() {
 
           <div className="feature flip" id="waiting">
             <div className="copy">
-              <h2>Made for money that doesn&apos;t arrive on schedule.</h2>
+              <h2>Count a payment when it arrives</h2>
               <p>
-                Freelance pay, a refund, the $40 a friend owes you. Mark it as waiting, and when it lands, click Got
-                it and enter what actually arrived, even if it came late or short.
+                Freelance pay, a refund, the $40 a friend owes you. Mark the payment as waiting. When it arrives,
+                click <strong>Got it</strong> and enter the amount you received, even if it came late or short.
               </p>
-              <ul className="dots">
-                <li>Waiting payments sit in Overview until you click Got it or Skip</li>
-                <li>Your balance moves only when you confirm</li>
-                <li>A reminder on the day it&apos;s due</li>
-              </ul>
+              <p>Waiting payments stay in Overview. Turn on reminders to get a prompt on the due date. Click <strong>Skip</strong> to leave a payment out.</p>
               <a className="feature-guide" href="/guides/expected-income/">
-                Guide: track expected income before it arrives <span aria-hidden="true">→</span>
+                Track expected income <span aria-hidden="true">→</span>
               </a>
             </div>
             <PocketCharacter id="waiting" mood="excited" bubble="Can't wait!" style={{ width: "min(280px, 64vw)" }} />
@@ -218,11 +212,11 @@ export default function Home() {
             <div className="copy">
               <h2>Log your usual coffee in one keystroke.</h2>
               <p>
-                Add a coffee once and choose Save as Button. After that it&apos;s one click, or ⌘1 to ⌘9 from the menu
-                bar panel or the Pocket window, and your balance updates right away.
+                Log a coffee and choose <strong>Save as Button</strong>. Next time, click the button or use ⌘1 through ⌘9 in
+                the Mac menu bar panel or the Pocket window.
               </p>
               <a className="feature-guide" href="/guides/quick-add-spending/">
-                Guide: set up quick-add buttons <span aria-hidden="true">→</span>
+                Set up quick-add buttons <span aria-hidden="true">→</span>
               </a>
             </div>
             <figure className="quick-add-recording">
@@ -244,11 +238,10 @@ export default function Home() {
 
           <div className="feature categories-feature" id="categories">
             <div className="copy">
-              <h2>See where each month went.</h2>
+              <h2>Compare spending by month</h2>
               <p>
-                See what you spent, what came in and how much your balance changed. Jump to any month in your
-                history and compare completed months. Select a category to see its entries, or use Review to find
-                purchases and payments without a category.
+                See what you spent, what came in and how much your balance changed. Compare completed months or
+                open a category to see its entries. Use <strong>Review</strong> to find purchases and payments without a category.
               </p>
             </div>
             <figure className="categories-recording">
@@ -267,15 +260,10 @@ export default function Home() {
         </section>
 
         <section className="section wrap" id="private">
-          <h2 className="two-tone">
-            Free, <span>with every feature.</span>
-            <br />
-            <span>Your data lives in</span> one file on your Mac.
-          </h2>
+          <h2 className="two-tone">Keep your ledger <span>on your device.</span></h2>
           <div className="local-default plan">
             <div className="local-copy">
-              <h3>On your Mac</h3>
-              <p>Download Pocket, type in today&apos;s balance, and add your first entry. Everything runs on your Mac.</p>
+              <h3>Local storage on Mac</h3>
               <ForDesktopPlatform platform="mac">
                 <a className="pill pill-dark" href={DOWNLOAD_URL} data-download><DownloadIcon />Download for Mac</a>
               </ForDesktopPlatform>
@@ -284,24 +272,19 @@ export default function Home() {
               </a>
             </div>
             <ul className="checks">
-              <Check>One file on your Mac holds all your money data</Check>
+                <Check>One file holds your ledger</Check>
               <Check>Works offline</Check>
               <Check>Seven daily backups you can restore</Check>
-              <Check>Export a backup or a CSV spreadsheet any time</Check>
+                <Check>Export a backup or a CSV spreadsheet</Check>
             </ul>
           </div>
           <details className="sync-details">
             <summary>
-              <span>Want your balance on your phone too?</span>
+              <span>Sync with your phone</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
             </summary>
             <div className="sync-content">
-              <p>Connect Pocket to your own free Supabase project, then pair your phone with a 6-digit code. Your Mac keeps a full copy and keeps working offline.</p>
-              <ul className="checks">
-                <Check>The Pocket web app on your phone or any computer</Check>
-                <Check>Pair a device with a 6-digit code</Check>
-                <Check>Your Mac keeps a full copy and works offline</Check>
-              </ul>
+              <p>Connect Pocket to your own free Supabase project, then pair your phone with a six-digit code. You’ll see the same ledger in the web app. Your Mac keeps a local copy you can use offline.</p>
               <a className="pill pill-line" href={SELF_HOSTING_GUIDE_URL}>
                 Read the self-hosting guide
               </a>
@@ -310,14 +293,13 @@ export default function Home() {
         </section>
 
         <section className="home-guides wrap" id="guides">
-          <h2>Learn Pocket in three short guides.</h2>
-          <p className="section-lead">Set your starting balance, turn your usual purchases into one-keystroke buttons, and track money you&apos;re still waiting for.</p>
+          <h2>Three guides to get started</h2>
           <GuideCards slugs={["getting-started", "quick-add-spending", "expected-income"]} />
           <a href="/guides/">All Pocket guides <span aria-hidden="true">↗</span></a>
         </section>
 
         <section className="section wrap" id="faq">
-          <h2>Straight answers.</h2>
+          <h2>Questions about Pocket</h2>
           <Faq items={FAQ} />
         </section>
 
@@ -326,7 +308,7 @@ export default function Home() {
             <section className="wrap desktop-download" aria-labelledby="mac-heading">
               <div>
                 <h2 id="mac-heading">Pocket for Mac</h2>
-                <p>See your balance and log spending right from the menu bar.</p>
+                <p>See your balance and log spending from the menu bar.</p>
               </div>
               <div>
                 <div className="cta">
@@ -340,7 +322,7 @@ export default function Home() {
             <section className="wrap desktop-download" id="windows" aria-labelledby="windows-heading">
               <div>
                 <h2 id="windows-heading">Pocket for Windows</h2>
-                <p>Hover over Pocket in the tray for your exact balance, or keep it visible above the clock. Right-click Pocket and choose <strong>Balance display</strong> to switch.</p>
+                <p>Hover over Pocket in the tray to see your balance. To keep it above the clock, right-click the tray icon and choose <strong>Floating panel</strong> under <strong>Balance display</strong>.</p>
               </div>
               <div>
                 <div className="cta">
@@ -348,15 +330,14 @@ export default function Home() {
                 </div>
                 <p className="desktop-download-note">v{WINDOWS_VERSION} preview · Windows 11 · Intel, AMD, and ARM</p>
               </div>
-              <p className="desktop-download-note desktop-install">Choose an install folder on your SSD or HDD in Pocket Setup. Open Pocket and choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
+              <p className="desktop-download-note desktop-install">Choose an install folder on your SSD or HDD in Pocket Setup. To start offline, choose <strong>Start local ledger</strong> when Pocket opens. This preview is unsigned.</p>
             </section>
           </ForDesktopPlatform>
         </div>
 
         <section className="closing wrap home-closing">
           <img className="closing-sculpture" src="/pocket-sculpture.webp" alt="" width={200} height={200} loading="lazy" />
-          <h2>Know what&apos;s left before you spend it.</h2>
-          <p>Free to download for Mac and Windows.</p>
+          <h2>Set your starting balance</h2>
           <div className="cta">
             <DownloadButton />
             <a className="pill pill-soft" href={REPO_URL}>
