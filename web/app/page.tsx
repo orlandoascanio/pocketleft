@@ -25,6 +25,7 @@ import {
   SITE_URL,
   VERSION,
   WINDOWS_SETUP_URL,
+  WINDOWS_VERSION,
 } from "@/lib/site";
 
 const jsonLd = [
@@ -146,13 +147,13 @@ export default function Home() {
         <section className="wrap windows-download" id="windows" aria-labelledby="windows-heading">
           <div>
             <h2 id="windows-heading">Pocket for Windows</h2>
-            <p>See your balance above the clock. Click it to log expenses or income.</p>
+            <p>Show a compact balance in the tray, see the exact amount on hover, or keep it above the clock. Right-click Pocket and choose <strong>Balance display</strong> to switch.</p>
           </div>
           <div>
             <div className="cta">
               <a className="pill pill-dark" href={WINDOWS_SETUP_URL}><DownloadIcon />Download for Windows</a>
             </div>
-            <p className="windows-download-note">Windows 11 · Intel, AMD, and ARM</p>
+            <p className="windows-download-note">v{WINDOWS_VERSION} preview · Windows 11 · Intel, AMD, and ARM</p>
           </div>
           <p className="windows-download-note windows-install">Choose an install folder on your SSD or HDD in Pocket Setup. Open Pocket and choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
         </section>
