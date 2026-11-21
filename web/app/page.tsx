@@ -154,7 +154,7 @@ export default function Home() {
             </div>
             <p className="windows-download-note">Windows 11 · Intel, AMD, and ARM</p>
           </div>
-          <p className="windows-download-note windows-install">Run Pocket Setup, then choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
+          <p className="windows-download-note windows-install">Choose an install folder on your SSD or HDD in Pocket Setup. Open Pocket and choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
         </section>
 
         <section className="section wrap" id="tour">
