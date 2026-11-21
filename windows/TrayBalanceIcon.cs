@@ -61,9 +61,10 @@ internal static class TrayBalanceIcon
         string whole = sign + decimal.Truncate(magnitude).ToString("0", CultureInfo.InvariantCulture) + suffix;
         if (TextWidth(whole) <= MaxTextWidth) return whole;
 
-        // Use the next unit if a minus sign and three digits exceed the icon width.
+        // Keep a pixel of breathing room on each side by using the next unit for wide labels.
         if (unit + 1 == Suffixes.Length) return sign + ">Q";
-        return sign + (decimal.Truncate(magnitude / 100) / 10).ToString(".0", CultureInfo.InvariantCulture) + Suffixes[unit + 1];
+        string precision = sign.Length == 0 ? "0.0" : ".0";
+        return sign + (decimal.Truncate(magnitude / 100) / 10).ToString(precision, CultureInfo.InvariantCulture) + Suffixes[unit + 1];
     }
 
     public static Icon Create(string label, bool stale, Size size)
