@@ -9,6 +9,7 @@ import { DownloadIcon, SiteNav } from "@/components/SiteNav";
 import { Tour } from "@/components/Tour";
 import { HeroAnnounce } from "@/components/HeroAnnounce";
 import { HeroScene } from "@/components/HeroScene";
+import { HeroDownloadDetails, HeroPlatformHeadline, PlatformDownloadLink } from "@/components/PlatformDownload";
 import { SiteFooter } from "@/components/SiteFooter";
 import { FAQ } from "@/lib/faq";
 import { ALTERNATE_NAMES, AUTHOR, DISAMBIGUATION, PROFILES, PUBLISHER } from "@/lib/schema";
@@ -17,7 +18,6 @@ import "./guides/guides.css";
 import { RELEASES, releaseId } from "@/lib/releases";
 import {
   DESCRIPTION,
-  DMG_SIZE,
   DOWNLOAD_URL,
   WEB_APP_URL,
   REPO_URL,
@@ -75,10 +75,9 @@ const jsonLd = [
 
 function DownloadButton() {
   return (
-    <a className="pill pill-dark" href={DOWNLOAD_URL} data-download>
+    <PlatformDownloadLink className="pill pill-dark">
       <DownloadIcon />
-      Download for Mac
-    </a>
+    </PlatformDownloadLink>
   );
 }
 
@@ -119,43 +118,17 @@ export default function Home() {
                 </span>
               </a>
             </HeroAnnounce>
-            <h1>How much money you have left,<br /><span>always in your menu bar.</span></h1>
-            <p className="lead">Type in what you have today, then log what you spend and what comes in. Pocket keeps the number up to date at the top of your screen.</p>
+            <HeroPlatformHeadline />
+            <p className="lead">Type in what you have today, then log what you spend and what comes in. Pocket keeps your balance up to date.</p>
             <div className="cta" id="hero-cta">
               <DownloadButton />
               <a className="pill pill-soft" href="#tour">
                 Take the tour
               </a>
             </div>
-            <ul className="meta">
-              <li>Free</li>
-              <li>No account</li>
-              <li>macOS 14+</li>
-              <li>Apple Silicon &amp; Intel</li>
-              <li>Developer signed · Apple notarized</li>
-              <li>
-                <a href="/changelog/">
-                  v{VERSION}
-                </a>
-              </li>
-            </ul>
-            <a className="hero-windows-link" href="#windows">Windows preview <span aria-hidden="true">↓</span></a>
+            <HeroDownloadDetails />
           </div>
           <HeroScene />
-        </section>
-
-        <section className="wrap windows-download" id="windows" aria-labelledby="windows-heading">
-          <div>
-            <h2 id="windows-heading">Pocket for Windows</h2>
-            <p>Hover over Pocket in the tray for your exact balance, or keep it visible above the clock. Right-click Pocket and choose <strong>Balance display</strong> to switch.</p>
-          </div>
-          <div>
-            <div className="cta">
-              <a className="pill pill-dark" href={WINDOWS_SETUP_URL}><DownloadIcon />Download for Windows</a>
-            </div>
-            <p className="windows-download-note">v{WINDOWS_VERSION} preview · Windows 11 · Intel, AMD, and ARM</p>
-          </div>
-          <p className="windows-download-note windows-install">Choose an install folder on your SSD or HDD in Pocket Setup. Open Pocket and choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
         </section>
 
         <section className="section wrap" id="tour">
@@ -166,7 +139,7 @@ export default function Home() {
           <Tour initialView="overview" />
           <div className="tour-download">
             <DownloadButton />
-            <p>Free, and no account needed. Your money data stays on your Mac unless you set up sync.</p>
+            <p>Free, and no account needed. Your money data stays on your device unless you set up sync.</p>
           </div>
         </section>
 
@@ -303,7 +276,7 @@ export default function Home() {
             <div className="local-copy">
               <h3>On your Mac</h3>
               <p>Download Pocket, type in today&apos;s balance, and add your first entry. Everything runs on your Mac.</p>
-              <DownloadButton />
+              <a className="pill pill-dark" href={DOWNLOAD_URL} data-download><DownloadIcon />Download for Mac</a>
               <a className="feature-guide plan-guide" href="/guides/back-up-your-data/">
                 Back up or move to a new Mac <span aria-hidden="true">→</span>
               </a>
@@ -346,10 +319,38 @@ export default function Home() {
           <Faq items={FAQ} />
         </section>
 
+        <div id="downloads" className="download-options">
+          <section className="wrap desktop-download" aria-labelledby="mac-heading">
+            <div>
+              <h2 id="mac-heading">Pocket for Mac</h2>
+              <p>See your balance and log spending right from the menu bar.</p>
+            </div>
+            <div>
+              <div className="cta">
+                <a className="pill pill-dark" href={DOWNLOAD_URL} data-download><DownloadIcon />Download for Mac</a>
+              </div>
+              <p className="desktop-download-note">v{VERSION} · macOS 14+ · Apple Silicon and Intel</p>
+            </div>
+          </section>
+          <section className="wrap desktop-download" id="windows" aria-labelledby="windows-heading">
+            <div>
+              <h2 id="windows-heading">Pocket for Windows</h2>
+              <p>Hover over Pocket in the tray for your exact balance, or keep it visible above the clock. Right-click Pocket and choose <strong>Balance display</strong> to switch.</p>
+            </div>
+            <div>
+              <div className="cta">
+                <a className="pill pill-dark" href={WINDOWS_SETUP_URL}><DownloadIcon />Download for Windows</a>
+              </div>
+              <p className="desktop-download-note">v{WINDOWS_VERSION} preview · Windows 11 · Intel, AMD, and ARM</p>
+            </div>
+            <p className="desktop-download-note desktop-install">Choose an install folder on your SSD or HDD in Pocket Setup. Open Pocket and choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
+          </section>
+        </div>
+
         <section className="closing wrap home-closing">
           <img className="closing-sculpture" src="/pocket-sculpture.webp" alt="" width={200} height={200} loading="lazy" />
           <h2>Know what&apos;s left before you spend it.</h2>
-          <p>Free for macOS 14 or later, on Apple Silicon and Intel. A {DMG_SIZE} download.</p>
+          <p>Free to download for Mac and Windows.</p>
           <div className="cta">
             <DownloadButton />
             <a className="pill pill-soft" href={REPO_URL}>

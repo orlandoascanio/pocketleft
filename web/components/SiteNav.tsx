@@ -4,7 +4,7 @@ import { gsap } from "gsap";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BalanceChip } from "@/components/BalanceChip";
-import { DOWNLOAD_URL } from "@/lib/site";
+import { PlatformDownloadLink, useDownloadPlatform } from "@/components/PlatformDownload";
 
 const LINKS = [
   { href: "#tour", label: "Features" },
@@ -24,6 +24,7 @@ const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 // and a green dot marks the section you're in; on narrow ones the links move into a menu.
 export function SiteNav() {
   const pathname = usePathname();
+  const platform = useDownloadPlatform();
   const home = pathname === "/";
   // Guide articles sit under the Guides link.
   const page = LINKS.find((l) => !l.href.startsWith("#") && pathname.startsWith(l.href))?.href ?? null;
@@ -210,7 +211,7 @@ export function SiteNav() {
             </span>
             <span className="brand-is">Pocket</span>
           </span>
-          <span className="brand-sub">Mac</span>
+          {platform && <span className="brand-sub">{platform === "mac" ? "Mac" : "Windows"}</span>}
         </a>
         <div className="nav-links" ref={links} onPointerLeave={() => setHover(null)}>
           <span className="nav-hl" ref={hl} aria-hidden="true" />
@@ -231,10 +232,9 @@ export function SiteNav() {
         </div>
         <div className="nav-end">
           <BalanceChip off={past} />
-          <a className="nav-cta" data-download data-shown={past || undefined} href={DOWNLOAD_URL}>
+          <PlatformDownloadLink className="nav-cta" compact shown={past}>
             <DownloadIcon />
-            Download
-          </a>
+          </PlatformDownloadLink>
         </div>
         <button
           className="nav-toggle"

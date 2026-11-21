@@ -21,7 +21,7 @@
 .hero-dimensional .announce-tag { font-size: 11px; padding: 3px 8px; }
 .hero-dimensional .announce-arrow { width: 23px; height: 23px; }
 .hero-copy { position: relative; z-index: 2; }
-.hero-windows-link {
+.hero-downloads-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -33,27 +33,29 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.wrap.windows-download {
+.download-options, .desktop-download { scroll-margin-top: 96px; }
+.download-options { margin-top: clamp(56px, 8vw, 90px); }
+.wrap.desktop-download {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: start;
   gap: 20px 32px;
   padding-block: 30px;
-  border-block: 1px solid var(--line);
-  scroll-margin-top: 96px;
+  border-top: 1px solid var(--line);
 }
-.windows-download h2 {
+.desktop-download:last-child { border-bottom: 1px solid var(--line); }
+.desktop-download h2 {
   margin: 0;
   font-size: clamp(27px, 4vw, 38px);
   line-height: 1.1;
   letter-spacing: -.035em;
 }
-.windows-download p { margin: 10px 0 0; color: var(--muted); }
-.windows-download .cta { justify-content: flex-start; }
-.windows-download .windows-download-note { font-size: 13px; }
-.windows-download .windows-install { grid-column: 1 / -1; margin: 0; }
+.desktop-download p { margin: 10px 0 0; color: var(--muted); }
+.desktop-download .cta { justify-content: flex-start; }
+.desktop-download .desktop-download-note { font-size: 13px; }
+.desktop-download .desktop-install { grid-column: 1 / -1; margin: 0; }
 @media (max-width: 740px) {
-  .windows-download { grid-template-columns: 1fr; }
+  .wrap.desktop-download { grid-template-columns: 1fr; }
 }
 
 /* Paint the hero immediately; the slow float starts after its first render. */

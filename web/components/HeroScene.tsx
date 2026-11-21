@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useDownloadPlatform } from "@/components/PlatformDownload";
 
 const INITIAL_CENTS = 33703;
 
@@ -11,6 +12,7 @@ function CoffeeIcon() {
 
 /** A small, local-only demo. The illustrated balance never reads or writes a ledger. */
 export function HeroScene() {
+  const platform = useDownloadPlatform();
   const [spent, setSpent] = useState(false);
   const [moving, setMoving] = useState(true);
   const scene = useRef<HTMLDivElement>(null);
@@ -77,7 +79,9 @@ export function HeroScene() {
           <Image src="/pocket-sculpture.webp" alt="" width={900} height={900} sizes="(max-width: 600px) 85vw, (max-width: 1000px) 500px, 560px" preload fetchPriority="high" />
         </div>
         <div className="scene-balance">
-          <div className="scene-balance-head"><span>Money left</span><span className="scene-status">On your Mac</span></div>
+          <div className="scene-balance-head"><span>Money left</span><span className="scene-status">
+            {platform === "mac" ? "On your Mac" : platform === "windows" ? "On your PC" : "On your device"}
+          </span></div>
           <p className="scene-amount" key={amount}>${amount}<span>USD</span></p>
           <div className="scene-balance-bottom"><span className="scene-check" aria-hidden="true">✓</span><span>Your day. At a glance.</span></div>
         </div>

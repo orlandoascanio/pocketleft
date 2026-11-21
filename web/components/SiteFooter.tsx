@@ -1,6 +1,6 @@
 import { AnalyticsPreferences } from "@/components/WebsiteAnalytics";
+import { PlatformDownloadLink } from "@/components/PlatformDownload";
 import {
-  DOWNLOAD_URL,
   ISSUES_URL,
   RELEASES_URL,
   REPO_URL,
@@ -28,14 +28,12 @@ export function SiteFooter() {
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="m3 8.5 3.2 3L13 4.5" />
             </svg>
-            Signed and notarized by Apple
+            Mac app signed and notarized by Apple
           </span>
         </div>
         <nav className="foot-col" aria-label="Product">
           <h3>Product</h3>
-          <a href={DOWNLOAD_URL} data-download>
-            Download
-          </a>
+          <PlatformDownloadLink compact />
           <a href="/#tour">Features</a>
           <a href="/#plan">Plan ahead</a>
           <a href="/#subscriptions">Subscriptions</a>
