@@ -146,7 +146,7 @@ export default function Home() {
         <section className="wrap windows-download" id="windows" aria-labelledby="windows-heading">
           <div>
             <h2 id="windows-heading">Pocket for Windows</h2>
-            <p>Check your balance and log expenses or income from the tray beside the clock.</p>
+            <p>See your balance above the clock. Click it to log expenses or income.</p>
           </div>
           <div>
             <div className="cta">
