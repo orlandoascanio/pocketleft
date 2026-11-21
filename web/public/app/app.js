@@ -413,7 +413,8 @@ let pendingReason = null;  // "delete" | "undo"
 let range = [30, 91, 182, 365].includes(Number(ls.get(RANGE_STORE))) ? Number(ls.get(RANGE_STORE)) : 91;
 let tab = TAB_NAMES.includes(ls.get(TAB_STORE)) ? ls.get(TAB_STORE) : "activity";
 let filter = null;        // { cat, month|null } narrowing History
-let insight = { scope: "month", month: todayISO().slice(0, 7) };
+const savedCategoryMonth = desktop?.lastMonth;
+let insight = { scope: "month", month: /^\d{4}-(?:0[1-9]|1[0-2])$/.test(savedCategoryMonth) ? savedCategoryMonth : todayISO().slice(0, 7) };
 let openOcc = new Set();  // expanded "Got it / Skip" rows, kept across re-renders
 let showAllUpcoming = false;
 let proj = null;
@@ -444,8 +445,9 @@ function setServer(next) {
 }
 
 // ---------- network ----------
-async function rpc(fn, args = {}, { noKey = false } = {}) {
+async function rpc(fn, args = {}, { noKey = false, fromQueue = false } = {}) {
   if (localLedger) return desktop.localRpc(fn, args);
+  if (desktop && key && !noKey && !fromQueue && desktop.isLedgerWrite(fn)) return desktop.queueWrite(fn, args);
   const res = await fetch(`${server.url}/rest/v1/rpc/${fn}`, {
     method: "POST",
     headers: { apikey: server.key, "Content-Type": "application/json" },
@@ -466,7 +468,7 @@ function saveQueue(q) { if (q.length) ls.set(QUEUE_STORE, JSON.stringify(q)); el
 
 // New entries survive being offline: they wait here and go out on the next sync.
 async function rpcAdd(fn, args) {
-  if (localLedger) return rpc(fn, args);
+  if (desktop) return rpc(fn, args);
   try { return await rpc(fn, args); }
   catch (e) {
     if (!isNetErr(e)) throw e;
@@ -477,6 +479,7 @@ async function rpcAdd(fn, args) {
   }
 }
 async function flushQueue() {
+  if (desktop) return desktop.flushWrites();
   const q = readQueue();
   if (!q.length) return;
   while (q.length) {
@@ -520,6 +523,7 @@ async function load({ quiet = false } = {}) {
       if (key !== accessKey || server.url !== serverUrl) return;
       if (cached && !loaded) applyState(cached);
     }
+    desktop?.onLoaded();
     const waiting = readQueue().length;
     setSync("off", waiting ? `Offline · ${waiting} waiting` : "Offline, retrying");
   }
@@ -1142,9 +1146,12 @@ function monthsWithData() {
 
 function renderInsights() {
   const { first, last } = monthsWithData();
-  if (insight.month < first) insight.month = first;
-  if (insight.month > last) insight.month = last;
+  if (loaded || !desktop) {
+    if (insight.month < first) insight.month = first;
+    if (insight.month > last) insight.month = last;
+  }
   const all = insight.scope === "all";
+  if (loaded) desktop?.showCategoryMonth(insight.month, first, last, all);
   const inScope = (t, ym) => t.category !== "start" && (ym ? t.occurred_on.startsWith(ym) : true);
   const sums = (ym) => {
     let spent = 0, inn = 0;
@@ -1481,12 +1488,12 @@ async function onSubmit(e) {
     const membership = PocketSubscriptions.membershipArgs(choice, subscriptionTracking);
     let res = null;
     if (editing?.kind === "rule") {
-      await rpc("pocket_recurring_update", {
+      res = await rpc("pocket_recurring_update", {
         p_id: editing.id, p_amount: sign * amount, p_label: label, p_cadence: once ? "monthly" : cadence, p_next: date,
         p_today: today, p_left: once ? 1 : times, p_category: cat || "", p_auto: auto, ...membership,
       });
     } else if (editing?.kind === "tx") {
-      await rpc("pocket_update", { p_id: editing.id, p_amount: sign * amount, p_label: label, p_on: date, p_category: cat || "" });
+      res = await rpc("pocket_update", { p_id: editing.id, p_amount: sign * amount, p_label: label, p_on: date, p_category: cat || "" });
     } else if (planned) {
       res = await rpcAdd("pocket_recurring_add", {
         p_amount: sign * amount, p_label: label, p_cadence: once ? "monthly" : cadence, p_start: date,

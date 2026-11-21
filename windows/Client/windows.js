@@ -10,10 +10,27 @@
   const savedCurrency = localStorage.getItem(currencyKey);
   const localModule = () => import("./local-ledger.js");
   const history = { text: "", direction: "", category: "", from: "", to: "" };
+  const ledgerWrites = new Set([
+    "pocket_add", "pocket_update", "pocket_delete", "pocket_recurring_add", "pocket_recurring_update",
+    "pocket_recurring_delete", "pocket_recurring_set_active", "pocket_recurring_settle", "pocket_recurring_skip",
+    "pocket_subscription_set", "pocket_preset_save", "pocket_preset_delete",
+  ]);
   let focusHistory = false;
+  let writeWork = Promise.resolve();
+  let journalAccount;
   window.PocketDesktop = {
     ledgerMode,
     currency: currencies.includes(savedCurrency) ? savedCurrency : "USD",
+    lastMonth: localStorage.getItem("pocket.windows.categoryMonth"),
+    showCategoryMonth(month, first, last, all) {
+      const input = document.getElementById("pocketCategoryMonth");
+      if (!input) return;
+      input.min = first;
+      input.max = last;
+      input.value = month;
+      input.disabled = all;
+      localStorage.setItem("pocket.windows.categoryMonth", month);
+    },
     filterHistory: (entries) => {
       const normalize = (text) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
       const words = normalize(history.text.trim()).split(/\s+/).filter(Boolean);
@@ -26,6 +43,8 @@
       });
     },
     clearHistoryFilters: () => {
+      const period = document.querySelector(".pocket-history-controls [data-period]");
+      if (period) period.value = "";
       for (const field of document.querySelectorAll(".pocket-history-controls [data-filter]")) {
         field.value = "";
         history[field.dataset.filter] = "";
@@ -56,12 +75,156 @@
     onLoaded: () => checkReminders(),
     async saveSyncCopy(url, token, state) { await (await localModule()).cacheSyncState(await cacheId(url, token), state); },
     async readSyncCopy(url, token) { return (await localModule()).cachedSyncState(await cacheId(url, token)); },
+    isLedgerWrite: (name) => ledgerWrites.has(name),
+    queueWrite,
+    flushWrites,
     localRpc: async (name, args) => (await localModule()).rpc(name, args),
   };
 
   async function cacheId(url, token) {
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${url}\n${token}`));
     return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  function serializeWrite(operation) {
+    const result = writeWork.then(operation);
+    writeWork = result.catch(() => {});
+    return result;
+  }
+
+  async function currentJournal() {
+    const access = key, url = server.url;
+    const account = await cacheId(url, access);
+    const current = () => access === key && url === server.url;
+    if (!current()) throw new Error("Pocket changed accounts.");
+    journalAccount = account;
+    const journal = readQueue().map((entry) => entry.id
+      ? { ...entry, state: entry.state === "sending" ? "review" : entry.state }
+      : { ...entry, account, id: crypto.randomUUID(), state: "review" });
+    return { journal, current, account };
+  }
+
+  function writeJournal(journal) {
+    saveQueue(journal);
+    renderSyncJournal(journal);
+  }
+
+  async function sendWrite(entry, context) {
+    const { journal, current } = context;
+    if (!current()) throw new Error("Pocket changed accounts.");
+    entry.state = "sending";
+    writeJournal(journal);
+    try {
+      if (entry.due) {
+        const state = await rpc("pocket_state", { p_today: todayISO(), p_days: 1 });
+        if (!current()) throw new Error("Pocket changed accounts.");
+        const rule = state.recurring.find((item) => item.id === entry.args.p_id);
+        if (rule?.next_on !== entry.due) throw new Error("The next payment changed. Review it in Plan.");
+      }
+      if (entry.dependsOn) throw new Error("The previous change needs review.");
+      const result = await rpc(entry.fn, entry.args, { fromQueue: true });
+      if (current()) {
+        for (const dependent of journal.filter((item) => item.dependsOn === entry.id)) {
+          if (typeof result?.id !== "string") {
+            dependent.state = "review";
+            continue;
+          }
+          dependent.args.p_id = result.id;
+          delete dependent.dependsOn;
+        }
+        writeJournal(journal.filter((item) => item.id !== entry.id));
+      }
+      return result;
+    } catch (error) {
+      if (current()) {
+        entry.state = "review";
+        writeJournal(journal);
+      }
+      if (error.badKey) throw error;
+      return { queued: true, review: true };
+    }
+  }
+
+  function queueWrite(fn, args) {
+    return serializeWrite(async () => {
+      const context = await currentJournal();
+      const { journal, account } = context;
+      const existing = journal.find((entry) => args.p_id && entry.account === account && entry.args.p_id === args.p_id);
+      if (existing) throw new Error("That item has a change waiting in Settings.");
+      const due = ["pocket_recurring_settle", "pocket_recurring_skip"].includes(fn)
+        ? rules.find((rule) => rule.id === args.p_id)?.next_on : undefined;
+      const entry = { id: crypto.randomUUID(), account, fn, args, state: "queued", due };
+      journal.push(entry);
+      writeJournal(journal);
+      if (!navigator.onLine || journal.some((item) => item !== entry && item.account === account)) {
+        setSync("off", `${journal.length} waiting to sync`);
+        toast("Change saved on this PC. It will sync when Pocket can connect.");
+        return { queued: true };
+      }
+      const result = await sendWrite(entry, context);
+      if (result?.review) {
+        setSync("off", "A change needs review");
+        toast("Check the pending change in Settings before retrying.");
+      }
+      return result;
+    });
+  }
+
+  function flushWrites() {
+    return serializeWrite(async () => {
+      if (!navigator.onLine || !readQueue().length || !key) return;
+      const context = await currentJournal();
+      const { current, journal, account } = context;
+      writeJournal(journal);
+      for (const entry of journal.filter((item) => item.account === account)) {
+        if (!current() || !navigator.onLine || entry.state !== "queued") break;
+        const result = await sendWrite(entry, context);
+        if (result?.review) break;
+        journal.splice(journal.indexOf(entry), 1);
+      }
+    });
+  }
+
+  function renderSyncJournal(journal = readQueue()) {
+    const box = document.getElementById("pocketSyncJournal");
+    if (!box) return;
+    journal = journal.filter((entry) => entry.account === journalAccount && entry.id);
+    box.replaceChildren();
+    box.hidden = !journal.length;
+    if (!journal.length) return;
+    box.append(mk("h3", null, "Pending sync changes"));
+    for (const entry of journal) {
+      const row = mk("div", "pocket-desktop-settings");
+      const name = entry.args.p_label || "Ledger change";
+      row.append(mk("p", "fine-print", `${name} · ${entry.state === "queued" ? "Waiting to sync" : "Review before retrying"}`));
+      const retry = mk("button", "btn ghost", "Retry");
+      const discard = mk("button", "btn ghost", "Discard");
+      retry.type = discard.type = "button";
+      retry.hidden = entry.state === "queued";
+      retry.disabled = discard.disabled = entry.state === "sending";
+      const modify = (keep) => {
+        if (keep && !confirm("Check your synced account for this change first. Retry could apply it twice if it already went through. Retry now?")) return;
+        if (!keep && !confirm("Discard this pending change?")) return;
+        void serializeWrite(async () => {
+          if (!key) return;
+          const { journal, account } = await currentJournal();
+          const index = journal.findIndex((item) => item.id === entry.id);
+          if (index < 0 || journal[index].account !== account) return;
+          if (keep) journal[index].state = "queued";
+          else {
+            const [removed] = journal.splice(index, 1);
+            for (const dependent of journal.filter((item) => item.dependsOn === removed.id)) {
+              journal.splice(journal.indexOf(dependent), 1);
+            }
+          }
+          writeJournal(journal);
+        }).then(() => load({ quiet: true })).catch(() => toast("Couldn't change the sync queue."));
+      };
+      retry.addEventListener("click", () => modify(true));
+      discard.addEventListener("click", () => modify(false));
+      row.append(retry, discard);
+      box.append(row);
+    }
   }
 
   function addHistoryControls() {
@@ -71,18 +234,38 @@
       <label>Search history<input type="search" placeholder="Description, category, amount" data-filter="text"></label>
       <label>Type<select data-filter="direction"><option value="">In and out</option><option value="-1">Spending</option><option value="1">Money in</option></select></label>
       <label>Category<select data-filter="category"><option value="">All categories</option></select></label>
+      <label>Period<select data-period><option value="">Any time</option><option value="this">This month</option>
+        <option value="previous">Last month</option><option value="three">Last 3 months</option><option value="year">This year</option></select></label>
       <label>From<input type="date" data-filter="from"></label>
       <label>To<input type="date" data-filter="to"></label>
-      <button type="button" class="btn ghost">Export visible CSV</button>`;
+      <button type="button" class="btn ghost" data-action="clear">Clear filters</button>
+      <button type="button" class="btn ghost" data-action="export">Export visible CSV</button>`;
     const category = box.querySelector('[data-filter="category"]');
     for (const code of ["uncategorized", ...Object.keys(CATS)]) category.add(new Option(catName(code), code));
     box.addEventListener("input", (event) => {
       const field = event.target.dataset.filter;
-      if (!field) return;
-      history[field] = event.target.value;
+      if (field) {
+        history[field] = event.target.value;
+        if (field === "from" || field === "to") box.querySelector("[data-period]").value = "";
+      } else if (event.target.hasAttribute("data-period")) {
+        const today = todayISO(), month = today.slice(0, 7);
+        const periods = {
+          "": ["", ""], this: [`${month}-01`, today],
+          previous: [`${shiftMonth(month, -1)}-01`, addDays(`${month}-01`, -1)],
+          three: [`${shiftMonth(month, -2)}-01`, today], year: [`${today.slice(0, 4)}-01-01`, today],
+        };
+        [history.from, history.to] = periods[event.target.value];
+        box.querySelector('[data-filter="from"]').value = history.from;
+        box.querySelector('[data-filter="to"]').value = history.to;
+      } else return;
       renderHistory();
     });
-    box.querySelector("button").addEventListener("click", () => exportCSV(historyEntries()));
+    box.querySelector('[data-action="export"]').addEventListener("click", () => exportCSV(historyEntries()));
+    box.querySelector('[data-action="clear"]').addEventListener("click", () => {
+      filter = null;
+      window.PocketDesktop.clearHistoryFilters();
+      renderHistory();
+    });
     document.getElementById("filterSlot").before(box);
     window.addEventListener("keydown", (event) => {
       if (!event.ctrlKey || event.key.toLowerCase() !== "f" || document.getElementById("home").hidden ||
@@ -228,6 +411,111 @@
         sign: preset.sign, category: preset.category,
       })),
     };
+  }
+
+  function addSyncActions(settings, isLocal) {
+    if (isLocal) {
+      const setup = document.createElement("details");
+      setup.className = "pocket-desktop-settings";
+      setup.innerHTML = `
+        <summary>Set up a new sync server</summary>
+        <form>
+          <p class="fine-print">Use an empty Supabase project with Pocket's SQL installed. Pocket copies this ledger to that server and keeps the original on this PC.</p>
+          <label>Server address<input name="address" required placeholder="https://your-project.supabase.co"></label>
+          <label>Publishable key<input name="publishable" required autocomplete="off" spellcheck="false"></label>
+          <button type="submit" class="btn ghost">Set up sync and copy ledger</button>
+          <p class="form-msg" role="status"></p>
+        </form>`;
+      const form = setup.querySelector("form");
+      const button = form.querySelector("button");
+      const status = form.querySelector("[role=status]");
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const fields = new FormData(form);
+        const target = cleanServer(fields.get("address"), fields.get("publishable"));
+        if (!target?.url.startsWith("https://") || target.url === DEFAULT_SERVER.url) {
+          status.textContent = "Enter your self-hosted server's HTTPS address and its publishable key.";
+          return;
+        }
+        if (!confirm("Copy this ledger to the new sync server?")) return;
+        button.disabled = true;
+        status.textContent = "Setting up Pocket Sync…";
+        try {
+          await setUpSync(target);
+        } catch (error) {
+          status.textContent = error instanceof TypeError ? "Pocket could not reach the server. Check the address and try again." : error.message;
+          button.disabled = false;
+        }
+      });
+      settings.querySelector(".sheet-in").append(setup);
+    } else {
+      const disconnect = mk("button", "btn ghost wide", "Stop syncing and keep a local copy");
+      disconnect.type = "button";
+      disconnect.addEventListener("click", async () => {
+        if (!loaded || !key) return;
+        if (!confirm("Copy the last synced ledger to this PC? This replaces your local ledger. Any changes still waiting to sync will stay in the sync queue.")) return;
+        disconnect.disabled = true;
+        try {
+          await (await localModule()).replaceLedger(syncedBackup());
+          localStorage.setItem(readyKey, "yes");
+          switchLedger("local");
+        } catch {
+          disconnect.disabled = false;
+          toast("Pocket could not save the local copy.");
+        }
+      });
+      document.getElementById("forget").after(disconnect);
+    }
+  }
+
+  async function setUpSync(target) {
+    const pendingKey = "pocket.windows.pendingSyncSetup";
+    let pending = readSettings(pendingKey, null);
+    if (pending?.url !== target.url || pending?.publishable !== target.key) {
+      if (readQueue().length) throw new Error("Review the pending changes on your current sync server first.");
+      const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      const account = await cacheId(target.url, token);
+      const local = await localModule();
+      const state = await local.rpc("pocket_state", { p_today: todayISO(), p_days: 1 });
+      const operations = [];
+      const queue = (fn, args, dependsOn) => {
+        const id = crypto.randomUUID();
+        operations.push({ id, account, fn, args, state: "queued", dependsOn });
+        return id;
+      };
+      for (const entry of [...state.transactions].reverse()) {
+        queue("pocket_add", { p_amount: Number(entry.amount), p_label: entry.label, p_on: entry.occurred_on, p_category: entry.category });
+      }
+      for (const rule of state.recurring) {
+        const id = queue("pocket_recurring_add", {
+          p_amount: Number(rule.amount), p_label: rule.label, p_cadence: rule.cadence, p_start: rule.next_on,
+          p_today: rule.active ? todayISO() : "0001-01-01", p_times: rule.remaining, p_category: rule.category,
+          p_auto: rule.auto, ...PocketSubscriptions.membershipArgs(rule.subscription, true),
+        });
+        if (!rule.active) queue("pocket_recurring_set_active", { p_active: false, p_today: todayISO() }, id);
+      }
+      for (const preset of state.presets) {
+        queue("pocket_preset_save", { p_label: preset.label, p_amount: preset.amount, p_sign: preset.sign, p_category: preset.category });
+      }
+      pending = { url: target.url, publishable: target.key, token, operations };
+      localStorage.setItem(pendingKey, JSON.stringify(pending));
+    }
+    const request = (name, args) => fetch(`${target.url}/rest/v1/rpc/${name}`, {
+      method: "POST", headers: { apikey: target.key, "Content-Type": "application/json" }, body: JSON.stringify(args),
+    });
+    const claim = await request("pocket_setup", { p_key: pending.token });
+    if (!claim.ok) throw new Error("Pocket could not set up this server. Confirm Pocket's SQL is installed.");
+    const result = await claim.json();
+    if (result?.ok !== true) {
+      if (result?.error !== "already_set_up") throw new Error("Pocket could not set up this server.");
+      const resume = await request("pocket_state", { k: pending.token, p_today: todayISO(), p_days: 1 });
+      if (!resume.ok) throw new Error("This server already has a Pocket. Join with a pairing code.");
+    }
+    setServer(target);
+    saveQueue(pending.operations);
+    ls.set(KEY_STORE, pending.token);
+    localStorage.removeItem(pendingKey);
+    switchLedger("sync");
   }
 
   const remindersKey = "pocket.windows.reminders";
@@ -516,9 +804,22 @@
     switchButton.textContent = isLocal ? "Open Pocket Sync" : exists ? "Open local ledger" : "Set up a local ledger";
     switchButton.addEventListener("click", () => switchLedger(isLocal ? "sync" : exists ? "local" : "setup"));
     settings.querySelector(".sheet-in").append(switchButton);
+    if (!isLocal) {
+      const journal = document.createElement("section");
+      journal.id = "pocketSyncJournal";
+      document.getElementById("deviceSettings").after(journal);
+      settings.addEventListener("beforetoggle", ({ newState }) => {
+        if (newState !== "open" || !key) return;
+        void serializeWrite(async () => {
+          const { journal } = await currentJournal();
+          writeJournal(journal);
+        }).catch(() => {});
+      });
+    }
     addMoneySettings(settings);
     addBackupSettings(settings, isLocal);
     addGeneralSettings(settings);
+    addSyncActions(settings, isLocal);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -586,6 +887,8 @@
     addLedgerControls();
     addHistoryControls();
     addPresetControls();
+    document.querySelector("#panel-subscriptions > .fine-print").textContent =
+      "Use Renewal reminders on a subscription to change when Pocket notifies you. To cancel a subscription, contact the provider.";
     const spending = document.createElement("div");
     spending.className = "pocket-desktop-settings";
     spending.innerHTML = '<label><span><input type="checkbox"> Include everyday spending in the forecast</span></label><p id="pocket-spending-note" class="fine-print"></p>';
@@ -602,6 +905,17 @@
     incomeCategories.innerHTML = '<div class="section-head"><h2>Where money came from</h2></div><div id="pocketIncomeBars" class="rows bars"></div>';
     document.getElementById("panel-insights").append(incomeCategories);
     document.getElementById("tab-insights").textContent = "Categories";
+    const monthPicker = document.createElement("input");
+    monthPicker.type = "month";
+    monthPicker.id = "pocketCategoryMonth";
+    monthPicker.setAttribute("aria-label", "Categories month");
+    monthPicker.addEventListener("change", () => {
+      if (monthPicker.validity.valid && monthPicker.value) {
+        insight.month = monthPicker.value;
+        renderInsights();
+      }
+    });
+    document.querySelector("#panel-insights .scope").after(monthPicker);
     renderInsights();
     stylesheet.addEventListener("load", () => host.postMessage("ready"), { once: true });
     stylesheet.addEventListener("error", () => host.postMessage("client-error"), { once: true });
