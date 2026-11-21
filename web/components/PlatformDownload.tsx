@@ -28,6 +28,14 @@ export function useDownloadPlatform(): Platform {
   return useSyncExternalStore(subscribe, browserPlatform, serverPlatform);
 }
 
+export function ForDesktopPlatform({ platform, children }: {
+  platform: NonNullable<Platform>;
+  children: ReactNode;
+}) {
+  const detected = useDownloadPlatform();
+  return detected === null || detected === platform ? children : null;
+}
+
 export function PlatformDownloadLink({ className, compact, shown, children }: {
   className?: string;
   compact?: boolean;
@@ -73,7 +81,7 @@ export function HeroDownloadDetails() {
           <li><a href="#windows">v{WINDOWS_VERSION} preview</a></li>
         </> : <li>Mac and Windows</li>}
       </ul>
-      {platform && <a className="hero-downloads-link" href="#downloads">All downloads <span aria-hidden="true">↓</span></a>}
+      {platform && <a className="hero-downloads-link" href="#downloads">Download details <span aria-hidden="true">↓</span></a>}
     </>
   );
 }

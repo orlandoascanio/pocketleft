@@ -9,7 +9,7 @@ import { DownloadIcon, SiteNav } from "@/components/SiteNav";
 import { Tour } from "@/components/Tour";
 import { HeroAnnounce } from "@/components/HeroAnnounce";
 import { HeroScene } from "@/components/HeroScene";
-import { HeroDownloadDetails, HeroPlatformHeadline, PlatformDownloadLink } from "@/components/PlatformDownload";
+import { ForDesktopPlatform, HeroDownloadDetails, HeroPlatformHeadline, PlatformDownloadLink } from "@/components/PlatformDownload";
 import { SiteFooter } from "@/components/SiteFooter";
 import { FAQ } from "@/lib/faq";
 import { ALTERNATE_NAMES, AUTHOR, DISAMBIGUATION, PROFILES, PUBLISHER } from "@/lib/schema";
@@ -276,7 +276,9 @@ export default function Home() {
             <div className="local-copy">
               <h3>On your Mac</h3>
               <p>Download Pocket, type in today&apos;s balance, and add your first entry. Everything runs on your Mac.</p>
-              <a className="pill pill-dark" href={DOWNLOAD_URL} data-download><DownloadIcon />Download for Mac</a>
+              <ForDesktopPlatform platform="mac">
+                <a className="pill pill-dark" href={DOWNLOAD_URL} data-download><DownloadIcon />Download for Mac</a>
+              </ForDesktopPlatform>
               <a className="feature-guide plan-guide" href="/guides/back-up-your-data/">
                 Back up or move to a new Mac <span aria-hidden="true">→</span>
               </a>
@@ -320,31 +322,35 @@ export default function Home() {
         </section>
 
         <div id="downloads" className="download-options">
-          <section className="wrap desktop-download" aria-labelledby="mac-heading">
-            <div>
-              <h2 id="mac-heading">Pocket for Mac</h2>
-              <p>See your balance and log spending right from the menu bar.</p>
-            </div>
-            <div>
-              <div className="cta">
-                <a className="pill pill-dark" href={DOWNLOAD_URL} data-download><DownloadIcon />Download for Mac</a>
+          <ForDesktopPlatform platform="mac">
+            <section className="wrap desktop-download" aria-labelledby="mac-heading">
+              <div>
+                <h2 id="mac-heading">Pocket for Mac</h2>
+                <p>See your balance and log spending right from the menu bar.</p>
               </div>
-              <p className="desktop-download-note">v{VERSION} · macOS 14+ · Apple Silicon and Intel</p>
-            </div>
-          </section>
-          <section className="wrap desktop-download" id="windows" aria-labelledby="windows-heading">
-            <div>
-              <h2 id="windows-heading">Pocket for Windows</h2>
-              <p>Hover over Pocket in the tray for your exact balance, or keep it visible above the clock. Right-click Pocket and choose <strong>Balance display</strong> to switch.</p>
-            </div>
-            <div>
-              <div className="cta">
-                <a className="pill pill-dark" href={WINDOWS_SETUP_URL}><DownloadIcon />Download for Windows</a>
+              <div>
+                <div className="cta">
+                  <a className="pill pill-dark" href={DOWNLOAD_URL} data-download><DownloadIcon />Download for Mac</a>
+                </div>
+                <p className="desktop-download-note">v{VERSION} · macOS 14+ · Apple Silicon and Intel</p>
               </div>
-              <p className="desktop-download-note">v{WINDOWS_VERSION} preview · Windows 11 · Intel, AMD, and ARM</p>
-            </div>
-            <p className="desktop-download-note desktop-install">Choose an install folder on your SSD or HDD in Pocket Setup. Open Pocket and choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
-          </section>
+            </section>
+          </ForDesktopPlatform>
+          <ForDesktopPlatform platform="windows">
+            <section className="wrap desktop-download" id="windows" aria-labelledby="windows-heading">
+              <div>
+                <h2 id="windows-heading">Pocket for Windows</h2>
+                <p>Hover over Pocket in the tray for your exact balance, or keep it visible above the clock. Right-click Pocket and choose <strong>Balance display</strong> to switch.</p>
+              </div>
+              <div>
+                <div className="cta">
+                  <a className="pill pill-dark" href={WINDOWS_SETUP_URL}><DownloadIcon />Download for Windows</a>
+                </div>
+                <p className="desktop-download-note">v{WINDOWS_VERSION} preview · Windows 11 · Intel, AMD, and ARM</p>
+              </div>
+              <p className="desktop-download-note desktop-install">Choose an install folder on your SSD or HDD in Pocket Setup. Open Pocket and choose <strong>Start local ledger</strong> to get started offline. This preview is unsigned.</p>
+            </section>
+          </ForDesktopPlatform>
         </div>
 
         <section className="closing wrap home-closing">
@@ -362,7 +368,7 @@ export default function Home() {
 
       <SiteFooter />
 
-      <DownloadDialog />
+      <ForDesktopPlatform platform="mac"><DownloadDialog /></ForDesktopPlatform>
       <ButtonFx />
     </>
   );
