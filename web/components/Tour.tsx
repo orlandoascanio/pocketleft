@@ -14,10 +14,10 @@ import subscriptions from "@/public/media/subscriptions-light-2026-11-18.png";
 import subscriptionsDark from "@/public/media/subscriptions-dark-2026-11-18.png";
 
 const VIEWS = [
-  { id: "menu", label: "Menu bar", caption: "Click your balance to log an entry." },
-  { id: "overview", label: "Overview", caption: "What came in, what went out." },
-  { id: "plan", label: "Plan", caption: "Your balance after upcoming payments." },
-  { id: "subscriptions", label: "Subscriptions", caption: "See when each subscription renews and what’s due soon." },
+  { id: "menu", label: "Menu bar", caption: "Click your balance to log an entry.", light: menuBar, dark: menuBarDark, alt: "Pocket’s menu bar panel shows the balance, quick-add buttons, an entry form and recent activity." },
+  { id: "overview", label: "Overview", caption: "What came in, what went out.", light: overview, dark: overviewDark, alt: "Pocket’s main window shows the balance, spending and income entries, and payments waiting for confirmation." },
+  { id: "plan", label: "Plan", caption: "Your balance after upcoming payments.", light: plan, dark: planDark, alt: "The Plan chart shows the projected balance after each scheduled payment." },
+  { id: "subscriptions", label: "Subscriptions", caption: "See when each subscription renews and what’s due soon.", light: subscriptions, dark: subscriptionsDark, alt: "Example subscription renewals with monthly and yearly costs and charges due in the next 30 days." },
 ] as const;
 
 // A screenshot of the app in the visitor's appearance. CSS shows one of the two captures; the
@@ -50,6 +50,9 @@ export function Tour({ initialView = "menu" }: { initialView?: (typeof VIEWS)[nu
     setViewState(next);
   }
   const current = VIEWS.find((v) => v.id === view)!;
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [inspecting, setInspecting] = useState(false);
+  const [fullSize, setFullSize] = useState(true);
   const tabs = useRef<HTMLDivElement>(null);
   const ind = useRef<HTMLSpanElement>(null);
   const moved = useRef(false);
@@ -93,63 +96,13 @@ export function Tour({ initialView = "menu" }: { initialView?: (typeof VIEWS)[nu
 
   return (
     <div className="tour">
-      <div
-        className="tour-stage"
-        id="tour-panel"
-        role="tabpanel"
-        aria-label={current.label}
-        style={{ "--dir": dir } as React.CSSProperties}
-      >
-        {view === "menu" && (
-          <div className="tour-menu">
-            <Shot className="tour-behind" light={overview} dark={overviewDark} sizes="(max-width: 720px) 0px, 620px" alt="" />
-            <MenuBarStrip amount="$2,431.08" />
-            <Shot
-              className="tour-panel"
-              light={menuBar}
-              dark={menuBarDark}
-              sizes="(max-width: 720px) 100vw, 390px"
-              alt="Pocket's menu bar panel: the balance, quick-add buttons, a form to add an entry, a payment waiting to be confirmed, and recent entries."
-            />
-          </div>
-        )}
-        {view === "overview" && (
-          <Shot
-            className="tour-shot"
-            light={overview}
-            dark={overviewDark}
-            sizes="(max-width: 1080px) 100vw, 1000px"
-            alt="Pocket's main window: the balance, quick-add buttons, a form to add an entry, a payment waiting to be confirmed, and history."
-          />
-        )}
-        {view === "plan" && (
-          <Shot
-            className="tour-shot"
-            light={plan}
-            dark={planDark}
-            sizes="(max-width: 1080px) 100vw, 1000px"
-            alt="The Plan view: a step chart of the projected balance and the list of payments coming up."
-          />
-        )}
-        {view === "subscriptions" && (
-          <Shot
-            className="tour-shot"
-            light={subscriptions}
-            dark={subscriptionsDark}
-            sizes="(max-width: 1080px) 100vw, 1000px"
-            alt="Pocket for Mac’s Subscriptions tab showing the monthly equivalent, yearly cost, and highlighted charges due in the next 30 days. Example data."
-          />
-        )}
-      </div>
       <div className="tour-bar">
-        <p className="tour-caption">
-          <b>{current.label}</b> <i>{current.caption}</i>
-        </p>
         <div className="tour-tabs" role="tablist" aria-label="Views" ref={tabs} onKeyDown={onKey}>
           <span className="tour-tabs-fill" ref={ind} aria-hidden="true" />
           {VIEWS.map((v) => (
             <button
               key={v.id}
+              id={`tour-tab-${v.id}`}
               type="button"
               role="tab"
               aria-selected={v.id === view}
@@ -161,7 +114,52 @@ export function Tour({ initialView = "menu" }: { initialView?: (typeof VIEWS)[nu
             </button>
           ))}
         </div>
+        <button className="tour-expand" type="button" aria-haspopup="dialog" onClick={() => {
+          setFullSize(true);
+          setInspecting(true);
+          dialog.current?.showModal();
+        }}>
+          <span aria-hidden="true">⤢</span> Enlarge view
+        </button>
       </div>
+      <div
+        className="tour-stage"
+        id="tour-panel"
+        role="tabpanel"
+        aria-labelledby={`tour-tab-${current.id}`}
+        style={{ "--dir": dir } as React.CSSProperties}
+      >
+        {view === "menu" && (
+          <div className="tour-menu">
+            <Shot className="tour-behind" light={overview} dark={overviewDark} sizes="(max-width: 720px) 0px, 620px" alt="" />
+            <MenuBarStrip amount="$2,431.08" />
+            <Shot className="tour-panel" light={current.light} dark={current.dark} alt={current.alt} sizes="(max-width: 720px) 100vw, 390px" />
+          </div>
+        )}
+        {view !== "menu" && (
+          <Shot key={view} className="tour-shot" light={current.light} dark={current.dark} alt={current.alt} sizes="(max-width: 1080px) 100vw, 1000px" />
+        )}
+      </div>
+      <p className="tour-caption">{current.caption}</p>
+      <dialog ref={dialog} className="tour-dialog" aria-labelledby="tour-dialog-title"
+        onClose={() => setInspecting(false)}
+        onClick={(event) => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
+        {inspecting && (
+          <div className="tour-viewer">
+            <div className="tour-viewer-tools">
+              <h3 id="tour-dialog-title">{current.label}</h3>
+              <button type="button" onClick={() => setFullSize(!fullSize)}>{fullSize ? "Fit to screen" : "Actual size"}</button>
+              <button type="button" autoFocus onClick={() => dialog.current?.close()}>Close</button>
+            </div>
+            <div className="tour-viewport" data-full={fullSize} tabIndex={0} role="region" aria-label={`${current.label} screenshot`}>
+              <picture>
+                <source media="(prefers-color-scheme: dark)" srcSet={current.dark.src} />
+                <img src={current.light.src} alt={current.alt} width={current.light.width} height={current.light.height} />
+              </picture>
+            </div>
+          </div>
+        )}
+      </dialog>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { PocketCharacter } from "@/components/PocketCharacter";
 import { DownloadIcon, SiteNav } from "@/components/SiteNav";
 import { Tour } from "@/components/Tour";
 import { HeroAnnounce } from "@/components/HeroAnnounce";
+import { RenewalPreview } from "@/components/RenewalPreview";
 import { HeroScene } from "@/components/HeroScene";
 import { ForDesktopPlatform, HeroDownloadDetails, HeroPlatformHeadline, PlatformDownloadLink } from "@/components/PlatformDownload";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -119,7 +120,6 @@ export default function Home() {
               </a>
             </HeroAnnounce>
             <HeroPlatformHeadline />
-            <p className="lead">Start with the money you have today, then add what you spend and what comes in.</p>
             <div className="cta" id="hero-cta">
               <DownloadButton />
               <a className="pill pill-soft" href="#tour">
@@ -147,12 +147,17 @@ export default function Home() {
         </div>
 
         <section className="section wrap" id="subscriptions">
-          <h2>See what renews next</h2>
-          <p className="section-lead">See the next renewal date and price for each subscription. Check what’s due in the next 7 or 30 days and the estimated monthly and yearly totals.</p>
-          <p className="section-lead subscriptions-local">Set renewal reminders on your Mac. If saving a subscription would add a charge to History right away, Pocket tells you before you save. With sync, the same subscriptions appear in the web app.</p>
-          <div className="cta subscriptions-cta">
-            <DownloadButton />
-            <a className="pill pill-soft" href={WEB_APP_URL}>Open the browser app</a>
+          <div className="renewal-layout">
+            <div>
+              <h2>See what renews next</h2>
+              <p className="section-lead">Check which subscriptions are due in the next 7 or 30 days, then see what they cost you each month and year.</p>
+              <p className="subscriptions-local">Set renewal reminders on your Mac. Pocket flags charges that would go straight into History. With sync, your subscriptions also appear in the browser app.</p>
+              <div className="cta subscriptions-cta">
+                <DownloadButton />
+                <a className="pill pill-soft" href={WEB_APP_URL}>Open the browser app</a>
+              </div>
+            </div>
+            <RenewalPreview />
           </div>
         </section>
 
