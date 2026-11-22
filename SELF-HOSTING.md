@@ -45,8 +45,9 @@ it opens the Pocket web app already pointed at your server, with the code filled
 Alternatively, open [pocketleft.app/app](https://pocketleft.app/app/) on any device,
 choose **Use your own server**, enter the same URL and publishable key, and type a code.
 
-To host the web app yourself as well, publish the [`docs`](docs) folder anywhere that serves static files,
-for example GitHub Pages on your fork.
+To host the browser app yourself, publish the contents of [`web/public/app/`](web/public/app/) on a static host
+and serve it at a URL ending in `/` so its relative asset links resolve. The pairing link from the Mac opens
+`pocketleft.app`, so open your own web app URL and pair with the six-digit code when using your deployment.
 
 ## Keep it awake
 
