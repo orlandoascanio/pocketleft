@@ -329,26 +329,16 @@ html:has(.tour-dialog[open]) { overflow: hidden; }
 .tour-viewer { display: flex; flex-direction: column; height: calc(100dvh - 32px); }
 .tour-viewer-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; }
 .tour-viewer-tools h3 { flex: 1; margin: 0 8px; font: 650 clamp(16px, 3vw, 22px)/1.2 var(--display); }
-.tour-zoom { display: flex; gap: 2px; }
-.tour-zoom button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .tour-viewport {
-  container-type: size; flex: 1; min-height: 0; overflow: auto;
-  overscroll-behavior: contain; background: var(--surface-2);
-}
-.tour-viewport:focus-visible { outline-offset: -3px; }
-.tour-viewport picture {
-  display: grid; place-items: center; width: max-content; min-width: 100%; min-height: 100%;
+  container-type: size; flex: 1; min-height: 0; display: grid;
+  place-items: center; background: var(--surface-2);
 }
 .tour-viewport img {
   display: block; height: auto; max-width: none;
   width: min(100cqw, calc(100cqh * var(--shot-ratio)));
 }
-.tour-viewport[data-zoom="double"] img { width: min(200cqw, calc(200cqh * var(--shot-ratio))); }
-.tour-viewport[data-zoom="original"] img { width: auto; }
 @media (max-width: 480px) {
   #tour .tour-tabs { gap: 0; }
   #tour .tour-tabs button { padding-inline: clamp(6px, 2vw, 9px); }
   .tour-viewer-tools button { padding-inline: 10px; }
-  .tour-zoom { order: 1; width: 100%; }
-  .tour-zoom button { flex: 1; }
 }

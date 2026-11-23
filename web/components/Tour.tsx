@@ -52,7 +52,6 @@ export function Tour({ initialView = "menu" }: { initialView?: (typeof VIEWS)[nu
   const current = VIEWS.find((v) => v.id === view)!;
   const dialog = useRef<HTMLDialogElement>(null);
   const [inspecting, setInspecting] = useState(false);
-  const [zoom, setZoom] = useState<"fit" | "double" | "original">("fit");
   const tabs = useRef<HTMLDivElement>(null);
   const ind = useRef<HTMLSpanElement>(null);
   const moved = useRef(false);
@@ -115,7 +114,6 @@ export function Tour({ initialView = "menu" }: { initialView?: (typeof VIEWS)[nu
           ))}
         </div>
         <button className="tour-expand" type="button" aria-haspopup="dialog" onClick={() => {
-          setZoom("fit");
           setInspecting(true);
           dialog.current?.showModal();
         }}>
@@ -148,19 +146,12 @@ export function Tour({ initialView = "menu" }: { initialView?: (typeof VIEWS)[nu
           <div className="tour-viewer">
             <div className="tour-viewer-tools">
               <h3 id="tour-dialog-title">{current.label}</h3>
-              <div className="tour-zoom" role="group" aria-label="Screenshot size">
-                {([["fit", "Fit"], ["double", "2×"], ["original", "Actual size"]] as const).map(([size, label]) => (
-                  <button type="button" key={size} aria-pressed={zoom === size} onClick={() => setZoom(size)}>{label}</button>
-                ))}
-              </div>
               <button type="button" autoFocus onClick={() => dialog.current?.close()}>Close</button>
             </div>
-            <div className="tour-viewport" data-zoom={zoom} style={{ "--shot-ratio": current.light.width / current.light.height } as React.CSSProperties} tabIndex={0} role="region" aria-label={`${current.label} screenshot`}>
-              <picture>
-                <source media="(prefers-color-scheme: dark)" srcSet={current.dark.src} />
-                <img src={current.light.src} alt={current.alt} width={current.light.width} height={current.light.height} />
-              </picture>
-            </div>
+            <picture className="tour-viewport" style={{ "--shot-ratio": current.light.width / current.light.height } as React.CSSProperties}>
+              <source media="(prefers-color-scheme: dark)" srcSet={current.dark.src} />
+              <img src={current.light.src} alt={current.alt} width={current.light.width} height={current.light.height} />
+            </picture>
           </div>
         )}
       </dialog>
