@@ -176,8 +176,8 @@ export default function Home() {
             <div className="copy">
               <h2>See your balance after rent, before rent is due.</h2>
               <p>
-                Add your bills, subscriptions and expected pay once. Pocket estimates what you’ll have left after
-                each payment, factoring in what you usually spend between bills.
+                Start with your balance and schedule your bills and expected pay. See what you’ll have left after each payment.
+                Once you have at least two weeks of entries with everyday purchases, Pocket for Mac can also estimate what you spend between bills.
               </p>
               <ul className="dots">
                 <li>Choose a forecast of 1, 3, 6 or 12 months</li>

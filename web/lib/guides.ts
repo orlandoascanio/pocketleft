@@ -137,9 +137,10 @@ export const GUIDES: Guide[] = [
         id: "renewal-reminders",
         title: "Set a Mac reminder before renewal",
         paragraphs: [
-          "Turn on Remind me before renewals in Subscriptions and allow notifications in macOS when prompted. Use Defaults to change the schedule shared by your subscriptions.",
-          "For a single service, open its row menu and choose Renewal Reminders. You can set a specific date and time for the next charge or choose how many days before each renewal to get a reminder. For an annual plan you may cancel, set it early enough to act before the provider's cancellation deadline.",
+          "In Subscriptions, turn on Remind me before renewals and allow notifications in macOS. Reminders are free. By default, Pocket reminds you at 10 a.m. two days before each renewal. For a service that renews on December 12, expect the reminder on December 10.",
+          "Choose Defaults to set a reminder 1–365 days before renewal at a time you choose. To change just one service, open its row menu and choose Renewal Reminders. You can also set a one-time date and time before its next renewal.",
         ],
+        note: "Example Mac notification for a service named Music with a reminder set one day ahead: “Music renews tomorrow” — “Open Subscriptions in Pocket to review the charge.”",
       },
       {
         id: "what-you-owe",
@@ -220,7 +221,7 @@ export const GUIDES: Guide[] = [
     category: "Upcoming money",
     minutes: 4,
     published: "2026-10-13",
-    updated: "2026-10-13",
+    updated: "2026-11-22",
     image: "/screenshot-plan.png",
     imageAlt: "Pocket Plan with scheduled payments and a projected balance chart",
     related: ["getting-started", "quick-add-spending"],
@@ -271,8 +272,8 @@ export const GUIDES: Guide[] = [
         id: "forecast-limits",
         title: "Update the plan when expectations change",
         paragraphs: [
-          "If a payment will come later, click it in Plan and change its date. To skip the next payment, pause a repeating one or stop it, use the ⋯ button next to it in Plan.",
-          "Check uncertain income and [missing or duplicate entries](/guides/getting-started/#keep-current) before relying on the forecast. Pocket projects the amounts and dates you enter. Once you have two weeks of entries, Plan also takes out your usual everyday spending (you can turn that off under the chart); one-off purchases you have not recorded or planned are left out.",
+          "If a one-time payment will come later, go to Plan → Repeating & expected, open its ⋯ menu and choose Edit. Change Expected on and click Save to update the schedule. To skip the next payment, pause a repeating one or stop it, use the ⋯ button next to it in Plan.",
+          "Check uncertain income and [missing or duplicate entries](/guides/getting-started/#keep-current) before relying on the forecast. Pocket projects the amounts and dates you enter. Once you have at least two weeks of entries with enough everyday purchases to estimate a typical week, you can choose Count everyday spending under the chart. Add unusual upcoming purchases separately.",
         ],
       },
     ],
@@ -529,7 +530,7 @@ export const GUIDES: Guide[] = [
         title: "Read the forecast, then test a late payment",
         paragraphs: [
           "Plan's header says “Runs out on” a date if your balance would drop below zero in the range you chose, or “Lasts past” a date if it wouldn't. The line below it shows the balance at the end of the range and the lowest point on the way. Choose 3M or 6M for freelance work.",
-          "The forecast assumes every invoice arrives on time. To see what a late client would do, click an upcoming payment in Plan and move its date. In this example, it's early October, the balance is $700 and Client A's $1,200 invoice is due October 15:",
+          "Plan uses the date you expect each invoice to arrive. Suppose you have $700 and Client A owes you $1,200 on October 15. Both columns below end with $1,770. Only one covers rent on November 1.",
         ],
         table: {
           label: "Forecast balance when one client pays late",
@@ -542,7 +543,7 @@ export const GUIDES: Guide[] = [
             ["Nov 20: Client A +$1,200 (late)", "$1,770.00", "$1,770.00"],
           ],
         },
-        note: "With the late date, Plan says “Runs out on Nov 1”. That gives you time to chase the invoice, move a bill or hold off on spending. Set the date back if the client confirms they'll pay on time.",
+        note: "When the client gives you a new date, go to Plan → Repeating & expected, open the one-time invoice’s ⋯ menu and choose Edit. Change Expected on and click Save. This updates the saved schedule. In this example, moving the invoice to November 20 reveals a $230 shortfall on rent day.",
       },
       {
         id: "weekly",
@@ -550,7 +551,7 @@ export const GUIDES: Guide[] = [
         paragraphs: [],
         steps: [
           "Open Overview. For each payment under Waiting for you that has arrived, click Got it and enter the amount and date that actually landed. Click Skip for any that won't come.",
-          "An invoice that is past due stays under Waiting for you, and Plan counts it as arriving today. If you don't expect it soon, click Skip and add it again with the new expected date, so the forecast no longer counts it as arriving today.",
+          "Check overdue invoices in Waiting for you. The standard forecast counts them as arriving today. If a client gives you a new date, edit the existing one-time invoice under Plan → Repeating & expected.",
           "Add any invoices you sent this week.",
           "Compare Pocket's balance with your bank. Fix missing or duplicate entries in History.",
           "Check the Plan header. If it says “Runs out on”, decide what to change before that date.",
@@ -561,7 +562,7 @@ export const GUIDES: Guide[] = [
         id: "limits",
         title: "What the forecast leaves out",
         paragraphs: [
-          "The forecast depends on the payments you schedule. On Mac, turn on Count everyday spending to include an estimate based on a typical week. Upcoming taxes, invoices and unusual purchases need their own entries in Plan for Pocket to include them on the right dates.",
+          "The forecast depends on the payments you schedule. A new ledger starts with scheduled payments. After at least two weeks of entries with enough everyday purchases to establish a typical week, the Count everyday spending switch appears in Plan. Upcoming taxes, invoices and unusual purchases need their own entries in Plan for Pocket to include them on the right dates.",
         ],
       },
     ],

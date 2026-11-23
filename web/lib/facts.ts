@@ -16,6 +16,10 @@ export const FACTS: Fact[] = [
     value: "Plan estimates how your balance could change over 1, 3, 6 or 12 months based on the bills and income you've scheduled. On Mac, it can include a typical week of everyday spending from your recent entries.",
   },
   {
+    label: "Subscription reminders",
+    value: "Mac renewal reminders are free. Enter a service by hand and enable notifications. The default is two days before renewal at 10 a.m. Choose 1–365 days and a time, or set a one-time reminder for a particular renewal. [Set up renewal reminders](/guides/track-subscriptions/#renewal-reminders).",
+  },
+  {
     label: "Data",
     value: "The ledger stays on your device by default. On Mac, Pocket stores it in ~/Library/Application Support/Pocket/ledger.json, keeps seven daily backups, and supports JSON import and export and CSV export.",
   },

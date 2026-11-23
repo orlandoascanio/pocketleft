@@ -59,7 +59,7 @@ export function HeroPlatformHeadline() {
   return (
     <>
       <h1>Know what’s<br /><span>left.</span></h1>
-      <p className="lead">Log what comes in and what goes out. See your balance {platform === "mac" ? "in your Mac menu bar" : platform === "windows" ? "beside your Windows clock" : "on your Mac or Windows PC"}.</p>
+      <p className="lead">Enter income and expenses by hand. {platform === "windows" ? "See your balance beside the Windows clock, even offline." : "Pocket keeps your balance in the Mac menu bar, even offline."}</p>
     </>
   );
 }
@@ -80,7 +80,7 @@ export function HeroDownloadDetails() {
           <li>Windows 11</li>
           <li>Intel, AMD, and ARM</li>
           <li><a href="#windows">v{WINDOWS_VERSION} preview</a></li>
-        </> : <li>Mac and Windows</li>}
+        </> : <li><a href="#windows">Windows 11 preview</a></li>}
       </ul>
       {platform ? (
         <a className="hero-downloads-link" href="#downloads">Download details <span aria-hidden="true">↓</span></a>
