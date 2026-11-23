@@ -54,7 +54,7 @@ export const GUIDES: Guide[] = [
     category: "Start here",
     minutes: 4,
     published: "2026-10-13",
-    updated: "2026-10-13",
+    updated: "2026-11-22",
     image: "/screenshot-overview.png",
     imageAlt: "Pocket Overview with the recorded balance, the entry field, a payment waiting for confirmation and history",
     related: ["quick-add-spending", "expected-income", "back-up-your-data"],
@@ -92,6 +92,7 @@ export const GUIDES: Guide[] = [
           "Click Date & repeat under the description, or press Command-N in the Pocket window. It opens the full entry form, where you can set the date, category and repeat schedule. Enter the bill's amount, description and next date. Choose Repeat for a weekly, every-two-weeks, monthly or yearly payment. Leave the number of payments empty if it has no end date.",
           "An automatic payment counts on its date. Turn on Confirm each payment if you want to record the actual amount and date yourself. Those payments wait under Waiting for you in Overview, with Paid and Skip buttons. For income that might arrive late or smaller, see [Track expected income before it arrives](/guides/expected-income/).",
           "Open Plan to see your projected balance after each scheduled payment. The chart includes only the money you have recorded or planned.",
+          "For streaming services, software and other renewals, see [how to track subscriptions on Mac](/guides/track-subscriptions/) and set a reminder before the next charge.",
         ],
       },
       {
@@ -100,6 +101,59 @@ export const GUIDES: Guide[] = [
         paragraphs: [
           "Compare Pocket's balance with the account you used for your starting amount. If they differ, check for missing entries, duplicates and incorrect dates. Click an entry in History to edit or delete it.",
           "When you add a purchase you make often, choose Save as Button in the confirmation under the entry field. The [quick-add guide](/guides/quick-add-spending/) covers fixed and variable amounts. Then add your remaining upcoming bills and income.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "track-subscriptions",
+    title: "How to track subscriptions on Mac",
+    description: "Track subscriptions without linking a bank account. Enter each service, its price, billing cycle and next renewal in Pocket for Mac. Set a reminder before the charge and check which payments are due in the next 7 or 30 days.",
+    metaDescription: "Track subscriptions on Mac without linking your bank. Add monthly and yearly renewals, see what’s due in the next 7 or 30 days, and set renewal reminders.",
+    category: "Upcoming payments",
+    minutes: 4,
+    published: "2026-11-22",
+    updated: "2026-11-22",
+    image: "/media/subscriptions-light-2026-11-18.png",
+    imageAlt: "Pocket for Mac Subscriptions tab showing upcoming renewals and cost totals",
+    imageWidth: 2000,
+    imageHeight: 1560,
+    related: ["getting-started", "manual-vs-bank-sync", "menu-bar-balance"],
+    sections: [
+      {
+        id: "add-a-subscription",
+        title: "Add a service and its next renewal date",
+        paragraphs: [
+          "Gather the name, price and next billing date from each provider's account page or receipt. Start with the services you pay for every month and any yearly plans you might forget.",
+          "If you already entered a service in Plan as a repeating expense, it appears automatically when it uses the Subscriptions category. For another category, expand Add from repeating payments and choose Include. Pocket uses the existing schedule in both views.",
+        ],
+        steps: [
+          "Open Subscriptions in the Pocket window and click Add Subscription.",
+          "Enter the subscription name, price per renewal, billing cycle and next renewal date. If your current balance already includes last month's charge, start from the next date the provider will bill you.",
+          "Review the message above Add Subscription before saving. Pocket shows when saving will record a charge in History right away.",
+        ],
+      },
+      {
+        id: "renewal-reminders",
+        title: "Set a Mac reminder before renewal",
+        paragraphs: [
+          "Turn on Remind me before renewals in Subscriptions and allow notifications in macOS when prompted. Use Defaults to change the schedule shared by your subscriptions.",
+          "For a single service, open its row menu and choose Renewal Reminders. You can set a specific date and time for the next charge or choose how many days before each renewal to get a reminder. For an annual plan you may cancel, set it early enough to act before the provider's cancellation deadline.",
+        ],
+      },
+      {
+        id: "what-you-owe",
+        title: "Read the monthly cost and the next 30 days separately",
+        paragraphs: [
+          "A $12 monthly plan and a $60 yearly plan cost the equivalent of $17 per month and $204 per year. If both renew in the next 30 days, the upcoming total is $72. The monthly equivalent spreads the yearly charge across 12 months, while the upcoming total shows the charges actually scheduled in that window.",
+          "Use the 7- or 30-day menu to change the window. Select a subscription's renewal date or countdown to see when it is scheduled to charge.",
+        ],
+      },
+      {
+        id: "pause-or-cancel",
+        title: "Update Pocket after you cancel with the provider",
+        paragraphs: [
+          "Cancel with the service provider to stop future billing. Then use Delete Schedule in the subscription's row menu to remove its future charges and reminders from Pocket. Earlier charges stay in History. If you only want to suspend the schedule in Pocket, choose Pause Tracking.",
         ],
       },
     ],
@@ -446,7 +500,7 @@ export const GUIDES: Guide[] = [
     category: "Upcoming money",
     minutes: 5,
     published: "2026-10-13",
-    updated: "2026-10-13",
+    updated: "2026-11-22",
     image: "/screenshot-plan.png",
     imageAlt: "Pocket Plan with expected client payments, bills and a projected balance chart",
     related: ["expected-income", "manual-vs-bank-sync", "quick-add-spending"],
@@ -507,7 +561,7 @@ export const GUIDES: Guide[] = [
         id: "limits",
         title: "What the forecast leaves out",
         paragraphs: [
-          "Pocket projects only what you've entered. Everyday spending you haven't planned, taxes you haven't scheduled and invoices you haven't added aren't in the chart. If you set money aside for taxes in another account, leave it out of the balance you track, or schedule the tax payment so the forecast includes it.",
+          "The forecast depends on the payments you schedule. On Mac, turn on Count everyday spending to include an estimate based on a typical week. Upcoming taxes, invoices and unusual purchases need their own entries in Plan for Pocket to include them on the right dates.",
         ],
       },
     ],

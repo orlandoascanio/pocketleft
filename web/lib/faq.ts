@@ -8,12 +8,17 @@ export const FAQ: FaqItem[] = [
   {
     q: "Is there a Mac app that shows my balance in the menu bar?",
     a: "Pocket shows your recorded balance beside the Mac clock. Click the balance to log an expense or income.",
-    link: { href: "/guides/mac-menu-bar-money-apps/", label: "Compare Mac menu bar money apps" },
+    link: { href: "/guides/menu-bar-balance/", label: "Set up your Mac menu bar balance" },
   },
   {
     q: "Does Pocket connect to my bank?",
     a: "You enter income and spending by hand. Pocket can record repeating payments on their due dates. On Mac, use ⌘1 through ⌘9 to log purchases you’ve saved as quick-add buttons.",
     link: { href: "/guides/manual-vs-bank-sync/", label: "Compare manual tracking with bank sync" },
+  },
+  {
+    q: "Can Pocket forecast what I'll have left after bills?",
+    a: "Yes. Plan estimates your balance for the next 1, 3, 6 or 12 months using the bills and income you schedule. An invoice can appear in Plan while your recorded balance stays the same until you confirm it arrived. If a payment date or amount changes, update it to see the effect on your forecast.",
+    link: { href: "/guides/freelance-income/", label: "See a forecast with a late invoice" },
   },
   {
     q: "Is Pocket a YNAB alternative?",

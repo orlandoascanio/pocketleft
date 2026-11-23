@@ -4,7 +4,7 @@ export const DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/Pocket.dmg`;
 export const WINDOWS_VERSION = "0.1.4";
 export const WINDOWS_SETUP_URL = `${REPO_URL}/releases/download/windows-preview-6/Pocket-Setup.exe`;
 export const DESCRIPTION =
-  "Free Mac menu bar app that shows how much money you have left. Log spending and income, plan upcoming bills, and keep your data on your Mac.";
+  "Free offline expense tracker for Mac. See your balance in the menu bar and forecast what’s left after bills. Log transactions by hand without linking a bank.";
 
 // Bump these with each release (see README: Releasing a new version).
 export const VERSION = "1.5.3";

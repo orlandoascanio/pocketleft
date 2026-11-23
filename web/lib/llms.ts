@@ -1,4 +1,4 @@
-import { FACTS } from "@/lib/facts";
+import { AT_A_GLANCE, FACTS } from "@/lib/facts";
 import { FAQ } from "@/lib/faq";
 import { GUIDES, guideUrl, textParts, type Guide } from "@/lib/guides";
 import { RELEASES } from "@/lib/releases";
@@ -20,9 +20,9 @@ export function llmsTxt() {
 
 ${SUMMARY}
 
-Pocket keeps your recorded balance in the Mac menu bar and forecasts how long it will last from the bills, subscriptions and income you schedule.
+${AT_A_GLANCE}
 
-Also written as Pocket Left or pocketleft. It is not related to Mozilla Pocket (the read-it-later app), PocketGuard or Pocket Clear.
+Also known as PocketLeft and Pocket Left. Made by Orlando Ascanio. PocketLeft.com is a separate finance coach. Mozilla Pocket was a read-it-later service. PocketGuard and Pocket Clear are separate finance apps.
 
 ## Key facts
 

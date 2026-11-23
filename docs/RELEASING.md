@@ -73,7 +73,7 @@ Netlify deploys `main` with `web` as the base directory and `npm run build` as t
    npm --prefix web run build
    ```
 
-3. On [pocketleft.app](https://pocketleft.app/), verify the Mac and Windows download links on their respective platforms, the changelog, and the browser app at `/app/`. Check that `/app/` returns `X-Robots-Tag: noindex`. For changes affecting sync, pair a test device and confirm a test entry appears on a second paired device.
+3. On [pocketleft.app](https://pocketleft.app/), verify the Mac and Windows download links on their respective platforms, the changelog, and the browser app at `/app/`. Check that `/app/` and `/app/index.html` both serve a robots `noindex` meta tag. For changes affecting sync, pair a test device and confirm a test entry appears on a second paired device.
 
 ### Website environment variables
 

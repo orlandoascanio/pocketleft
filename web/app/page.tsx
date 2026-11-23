@@ -32,6 +32,13 @@ import {
 const jsonLd = [
   {
     "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "PocketLeft",
+    alternateName: ["Pocket for Mac", "pocketleft.app"],
+    url: `${SITE_URL}/`,
+  },
+  {
+    "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "@id": `${SITE_URL}/#software`,
     name: "Pocket for Mac",
@@ -156,6 +163,9 @@ export default function Home() {
                 <DownloadButton />
                 <a className="pill pill-soft" href={WEB_APP_URL}>Open the browser app</a>
               </div>
+              <a className="feature-guide" href="/guides/track-subscriptions/">
+                How to track subscriptions on Mac <span aria-hidden="true">→</span>
+              </a>
             </div>
             <RenewalPreview />
           </div>
@@ -174,6 +184,9 @@ export default function Home() {
                 <li>Schedule payments weekly, every two weeks, monthly, quarterly or yearly</li>
                 <li>Pause or stop a payment, or skip a single occurrence</li>
               </ul>
+              <a className="feature-guide" href="/guides/freelance-income/">
+                See how a late payment changes your forecast <span aria-hidden="true">→</span>
+              </a>
             </div>
             <div className="upcoming" aria-label="Example of payments coming up">
               <div className="upcoming-head">

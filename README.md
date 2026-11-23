@@ -1,6 +1,6 @@
-# Pocket
+# Pocket for Mac (PocketLeft)
 
-Pocket is a personal finance tracker that shows how much money you have left. Record income and expenses, plan for upcoming bills, and see how long your balance could last.
+PocketLeft is a free, offline expense tracker at pocketleft.app. On Mac, your recorded balance stays visible in the menu bar. Enter income and expenses by hand and estimate how upcoming bills and expected payments could affect your balance. Local use requires neither a bank connection nor a Pocket account.
 
 [Download Pocket](https://pocketleft.app/) · [Open the web app](https://pocketleft.app/app/) · [Read the guides](https://pocketleft.app/guides/) · [Changelog](https://pocketleft.app/changelog/)
 

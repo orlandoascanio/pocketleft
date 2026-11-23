@@ -13,7 +13,8 @@ import "../guides/guides.css";
 // The "official" page answer engines look for: what Pocket is, in plain facts, and which Pocket it is.
 const title = "What is Pocket for Mac? PocketLeft at a glance";
 const description = "Pocket (PocketLeft) is a free Mac menu bar app that shows the money you have left. Price, requirements, where data lives and how it differs from Mozilla Pocket.";
-const updated = RELEASES[0].date;
+const factsUpdated = "2026-11-22";
+const updated = RELEASES[0].date > factsUpdated ? RELEASES[0].date : factsUpdated;
 
 export const metadata: Metadata = {
   title,
@@ -28,6 +29,7 @@ function Text({ children }: { children: string }) {
 }
 
 const OTHER_POCKETS = [
+  ["PocketLeft.com", "A separate personal finance coach website."],
   ["Mozilla Pocket", "A read-it-later app for saving articles, made by Mozilla. It has nothing to do with money."],
   ["PocketGuard", "A budgeting app that links to your bank accounts."],
   ["Pocket Clear", "A separate expense tracker for Mac and Android, from a different developer."],
@@ -75,7 +77,7 @@ export default function AboutPage() {
           <section id="what-it-does">
             <h2>What does Pocket do?</h2>
             <p>Pocket answers one question: how much money do you have left? You enter the amount you have today. After that, every purchase and payment you record changes the number in the menu bar.</p>
-            <p>Bills, subscriptions and paychecks can repeat on their own. Income you're still waiting for stays out of the balance until you confirm what arrived. Plan shows your balance for the next 1, 3, 6 or 12 months, and the date it would run out. Insights shows where each month's money went.</p>
+            <p>Bills, subscriptions and paychecks can repeat on their own. Income you're still waiting for stays out of the balance until you confirm what arrived. Plan estimates when your balance could run out using the dates and amounts you've entered. Insights shows where each month's money went.</p>
           </section>
           <section id="who-its-for">
             <h2>Who is Pocket for?</h2>
@@ -83,8 +85,8 @@ export default function AboutPage() {
             <p><Text>{"It helps most when income doesn't arrive on a fixed schedule, for example [freelance pay](/guides/freelance-income/). If you'd rather have transactions imported automatically, a bank-sync app will suit you better. Read [manual tracking vs bank sync](/guides/manual-vs-bank-sync/) to decide."}</Text></p>
           </section>
           <section id="other-pockets">
-            <h2>Is this the same as Mozilla Pocket?</h2>
-            <p>No. Pocket for Mac is a money app published at pocketleft.app and on GitHub as <a href={REPO_URL}>orlandoascanio/pocketleft</a>. It's sometimes written as Pocket Left or pocketleft. These apps have similar names but are unrelated:</p>
+            <h2>Which Pocket app is this?</h2>
+            <p>Pocket for Mac is the money tracker at pocketleft.app, also known as PocketLeft or Pocket Left. Orlando Ascanio publishes the source code as <a href={REPO_URL}>orlandoascanio/pocketleft</a>. These apps have similar names but are unrelated.</p>
             <dl className="about-facts">
               {OTHER_POCKETS.map(([name, what]) => <div key={name}><dt>{name}</dt><dd>{what}</dd></div>)}
             </dl>
