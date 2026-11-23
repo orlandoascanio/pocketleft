@@ -65,7 +65,7 @@ function ReleaseDetails({ title, items }: { title: string; items: string[] }) {
     };
   }
   return <details className="release-details" ref={root}>
-    <summary onClick={toggle}><span>{title}<small>{items.length} more changes</small></span><span className="release-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg></span></summary>
+    <summary onClick={toggle}><span>{title}<small>{items.length} more {items.length === 1 ? "change" : "changes"}</small></span><span className="release-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg></span></summary>
     <div className="release-details-body"><ul>{items.map(item => <li key={item}>{item}</li>)}</ul></div>
   </details>;
 }

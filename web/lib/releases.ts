@@ -14,6 +14,23 @@ export type Release = {
 // and update VERSION in site.ts. Dates are publication dates, not commit dates.
 export const RELEASES: Release[] = [
   {
+    version: "1.5.5",
+    date: "2026-11-22",
+    title: "See what you can spend before payday.",
+    summary: "Pocket for Mac helps you plan what you can spend today, undo an accidental entry, and hide your balance before sharing your screen.",
+    theme: "update",
+    highlights: [
+      { title: "Available until payday", description: "Choose a payday and a minimum balance to keep. Pocket uses the lowest projected balance before that date and includes usual spending when you have enough history." },
+      { title: "Undo a quick entry", description: "Click Undo on the confirmation to reverse the entry you just added, including an entry that’s still waiting to sync." },
+      { title: "Hide your balance", description: "Choose Hide Balance from the menu bar panel’s More menu. The balance in the menu bar and panel is hidden while Quick Entry stays available." },
+    ],
+    detailsTitle: "How the payday estimate works",
+    details: [
+      "Pocket leaves out income awaiting confirmation and ends the estimate the day before your selected payday.",
+    ],
+    source: "https://github.com/orlandoascanio/pocketleft/releases/tag/v1.5.5",
+  },
+  {
     version: "1.5.4",
     date: "2026-11-22",
     title: "See what overdue income changes.",

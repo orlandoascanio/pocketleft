@@ -120,7 +120,7 @@ export default function Home() {
               <a className="announce" href={"/changelog/#" + releaseId(VERSION)}>
                 <span className="announce-tag">New</span>
                 <b>Pocket {VERSION.replace(/\.0$/, "")}</b>
-                <span className="announce-text">Preview a forecast without overdue income.</span>
+                <span className="announce-text">See what you can spend before payday.</span>
                 <span className="announce-arrow" aria-hidden="true">
                   ↗
                 </span>
@@ -180,6 +180,7 @@ export default function Home() {
                 Once you have at least two weeks of entries with everyday purchases, Pocket for Mac can also estimate what you spend between bills.
               </p>
               <ul className="dots">
+                <li>See what you can spend before payday after setting a cushion on Mac</li>
                 <li>Choose a forecast of 1, 3, 6 or 12 months</li>
                 <li>Schedule payments weekly, every two weeks, monthly, quarterly or yearly</li>
                 <li>Pause or stop a payment, or skip a single occurrence</li>
@@ -233,6 +234,7 @@ export default function Home() {
                 Log a coffee and choose <strong>Save as Button</strong>. Next time, click the button or use ⌘1 through ⌘9 in
                 the Mac menu bar panel or the Pocket window.
               </p>
+              <p>Added an entry by mistake? Click <strong>Undo</strong> on the confirmation.</p>
               <a className="feature-guide" href="/guides/quick-add-spending/">
                 Set up quick-add buttons <span aria-hidden="true">→</span>
               </a>

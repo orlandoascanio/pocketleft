@@ -7,8 +7,8 @@ export const DESCRIPTION =
   "Free offline expense tracker for Mac. See your balance in the menu bar and forecast what’s left after bills. Log transactions by hand without linking a bank.";
 
 // Bump these with each release (see README: Releasing a new version).
-export const VERSION = "1.5.4";
-export const DMG_SIZE = "4.8 MB";
+export const VERSION = "1.5.5";
+export const DMG_SIZE = "4.9 MB";
 export const RELEASE_URL = `${REPO_URL}/releases/tag/v${VERSION}`;
 export const RELEASES_URL = `${REPO_URL}/releases`;
 // The on-site guide is where visitors go; the GitHub file stays the full technical reference.
