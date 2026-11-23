@@ -57,6 +57,17 @@ final class ReminderTests: XCTestCase {
         XCTAssertTrue(PaymentReminders.plans(for: [paused], now: now, calendar: calendar, subscriptions: true).isEmpty)
     }
 
+    func testOneDayRenewalExampleMatchesTheNotificationContent() throws {
+        let rule = Rule(cents: -1500, label: "Music", cadence: .monthly, anchor: dueDay, subscription: true)
+        let preferences = RenewalReminderPreferences(defaults: [.relative(.init(amount: 1))])
+        let plans = PaymentReminders.plans(for: [rule], now: date("2026-10-11T09:00:00Z"), calendar: calendar,
+                                           subscriptions: true, renewalPreferences: preferences)
+        let request = try XCTUnwrap(plans.first)
+        XCTAssertEqual(request.date, date("2026-10-12T10:00:00Z"))
+        XCTAssertEqual(request.content.title, "Music renews tomorrow")
+        XCTAssertEqual(request.content.body, "Open Subscriptions in Pocket to review the charge.")
+    }
+
     func testSubscriptionWarningRetainsDueDayRequestWithoutLateCatchUp() async throws {
         let backend = FakeReminderClient()
         let clock = ReminderClock(localDate(hour: 9, on: dueDay.adding(days: -2)))

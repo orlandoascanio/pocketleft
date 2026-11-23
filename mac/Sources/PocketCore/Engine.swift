@@ -159,11 +159,20 @@ extension Ledger {
 
     /// The balance from today to `today + days`: scheduled payments land on their day, and `everyday` (cents a day)
     /// goes out every day after today.
-    public func project(today: Day, days: Int, everyday: Cents = 0) -> Projection {
+    public func project(today: Day, days: Int, everyday: Cents = 0, includeOverdueIncome: Bool = true) -> Projection {
         let end = today.adding(days: days)
-        let events = upcoming(today: today, days: days)
-            .map { o -> Occurrence in var o = o; if o.overdue { o.day = today }; return o }
-            .sorted { ($0.day, $0.label) < ($1.day, $1.label) }
+        let unconfirmedIncome = Set(rules.lazy.filter { !$0.auto && $0.cents > 0 }.map(\.id))
+        var overdueIncome: Cents = 0
+        var events: [Occurrence] = []
+        for var occurrence in upcoming(today: today, days: days) {
+            if occurrence.day < today && unconfirmedIncome.contains(occurrence.ruleID) {
+                overdueIncome += occurrence.cents
+                if !includeOverdueIncome { continue }
+            }
+            if occurrence.overdue { occurrence.day = today }
+            events.append(occurrence)
+        }
+        events.sort { ($0.day, $0.label) < ($1.day, $1.label) }
         let start = balance
         var bal = start
         var spentThrough = today
@@ -200,7 +209,7 @@ extension Ledger {
         }
         spend(through: end)
         return Projection(today: today, end: end, days: days, everyday: everyday, start: start, endBalance: bal, points: points,
-                          steps: steps, hitZero: hitZero, backAbove: backAbove, lowDay: low.day, lowBalance: low.balance)
+                          steps: steps, overdueIncome: overdueIncome, hitZero: hitZero, backAbove: backAbove, lowDay: low.day, lowBalance: low.balance)
     }
 
     /// Roughly how many months the balance lasts at the usual pace: `everyday` spending plus repeating money
@@ -292,6 +301,8 @@ public struct Projection: Sendable {
     public var endBalance: Cents
     public var points: [Point]
     public var steps: [Step]
+    /// Unconfirmed income due strictly before today, even when excluded from the preview.
+    public var overdueIncome: Cents
     public var hitZero: Day?
     public var backAbove: Occurrence?
     public var lowDay: Day

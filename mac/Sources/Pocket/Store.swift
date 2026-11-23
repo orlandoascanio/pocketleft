@@ -141,7 +141,9 @@ final class Store: ObservableObject {
     var everyday: EverydaySpending? { ledger.everydaySpending(today: today) }
     /// Everyday spending the forecast counts, in cents a day.
     var forecastEveryday: Cents { includeEveryday ? everyday?.perDay ?? 0 : 0 }
-    var projection: Projection { ledger.project(today: today, days: range, everyday: forecastEveryday) }
+    func projection(includeOverdueIncome: Bool = true) -> Projection {
+        ledger.project(today: today, days: range, everyday: forecastEveryday, includeOverdueIncome: includeOverdueIncome)
+    }
     var monthsLeft: Double? { ledger.monthsLeft(everyday: forecastEveryday) }
     var menuTitle: String {
         if loadError != nil { return "Pocket ⚠︎" }

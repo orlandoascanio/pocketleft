@@ -60,6 +60,44 @@ final class ForecastAndHistoryTests: XCTestCase {
         XCTAssertEqual(p.lowDay, day("2026-10-31"))
     }
 
+    func testOverdueIncomePreviewKeepsBillsAndCurrentIncomeWithoutEditingTheLedger() {
+        let today = day("2026-10-30")
+        var ledger = Ledger()
+        ledger.add(Entry(cents: 70_000, label: "Cash", day: today))
+        func schedule(_ cents: Cents, _ label: String, _ date: String, repeats: Bool = false) {
+            ledger.addRule(Rule(cents: cents, label: label, cadence: .weekly, anchor: day(date),
+                                total: repeats ? 4 : 1, auto: false), today: today)
+        }
+        schedule(60_000, "Retainer", "2026-10-16", repeats: true)
+        schedule(-3_000, "Software", "2026-10-28")
+        schedule(-90_000, "Rent", "2026-11-01")
+        schedule(500, "Refund", "2026-10-30")
+        schedule(80_000, "New invoice", "2026-11-05")
+        let saved = ledger
+
+        let full = ledger.project(today: today, days: 8, everyday: 100)
+        let preview = ledger.project(today: today, days: 8, everyday: 100, includeOverdueIncome: false)
+        XCTAssertEqual(full.overdueIncome, 120_000)
+        XCTAssertEqual(preview.overdueIncome, full.overdueIncome)
+        XCTAssertEqual(preview.endBalance, full.endBalance - 120_000)
+        XCTAssertEqual(preview.steps.filter { $0.occurrence.label == "Retainer" }.map(\.occurrence.day),
+                       [today, day("2026-11-06")])
+        XCTAssertEqual(preview.start, full.start)
+        XCTAssertEqual(ledger, saved)
+
+        // A missing one-off invoice alone can reverse whether rent is covered.
+        var rentCase = Ledger()
+        rentCase.add(Entry(cents: 70_000, label: "Cash", day: today))
+        rentCase.addRule(Rule(cents: 120_000, label: "Invoice", cadence: .monthly, anchor: day("2026-10-15"),
+                              total: 1, auto: false), today: today)
+        rentCase.addRule(Rule(cents: -90_000, label: "Rent", cadence: .monthly, anchor: day("2026-11-01")), today: today)
+        XCTAssertEqual(rentCase.project(today: today, days: 5).endBalance, 100_000)
+        let shortfall = rentCase.project(today: today, days: 5, includeOverdueIncome: false)
+        XCTAssertEqual(shortfall.lowBalance, -20_000)
+        XCTAssertEqual(shortfall.runway, .runsOut(day("2026-11-01")))
+        XCTAssertEqual(rentCase.balance, 70_000)
+    }
+
     func testMonthsLeftAtTheUsualPace() {
         XCTAssertEqual(Ledger.monthsLeft(balance: 10_000, everyday: 0, repeating: [(-5_000, .monthly), (2_000, .monthly)])!, 10.0 / 3, accuracy: 0.0001)
         XCTAssertEqual(Ledger.monthsLeft(balance: 10_000, everyday: 100, repeating: [(-3_000, .quarterly)])!, 10_000 / (100 * 365.25 / 12 + 1_000), accuracy: 0.0001)

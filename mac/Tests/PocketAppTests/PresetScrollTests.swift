@@ -155,7 +155,11 @@ final class PresetScrollTests: XCTestCase {
         XCTAssertTrue(scroll.isMoving, "a fast release should hand its velocity to a glide")
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
         XCTAssertGreaterThan(scroll.contentView.bounds.minX, released + 5, "the row keeps moving the way it was thrown")
-        RunLoop.main.run(until: Date().addingTimeInterval(2.5))
+        // A faster throw takes longer to decay. Wait for it to settle across display refresh rates.
+        let deadline = Date().addingTimeInterval(6)
+        while scroll.isMoving && Date() < deadline {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        }
         XCTAssertFalse(scroll.isMoving)
         XCTAssertGreaterThanOrEqual(scroll.contentView.bounds.minX, 0)
         XCTAssertLessThanOrEqual(scroll.contentView.bounds.minX, scroll.maximumOffset + 0.5)

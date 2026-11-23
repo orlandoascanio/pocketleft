@@ -121,7 +121,7 @@ final class SubscriptionFlowTests: XCTestCase {
         let summary = SubscriptionSummary(ledger: store.ledger, today: store.today)
         XCTAssertEqual(summary.monthly, 0)
         XCTAssertEqual(summary.paused.count, 1)
-        XCTAssertTrue(store.projection.steps.isEmpty)
+        XCTAssertTrue(store.projection().steps.isEmpty)
         XCTAssertTrue(store.setActive(rule.id, true))
         XCTAssertEqual(SubscriptionSummary(ledger: store.ledger, today: store.today).monthly, 999)
     }

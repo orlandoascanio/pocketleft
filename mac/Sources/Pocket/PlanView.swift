@@ -5,15 +5,26 @@ import SwiftUI
 struct PlanView: View {
     @EnvironmentObject var store: Store
     var onEdit: (EditTarget) -> Void
+    @State private var previewWithoutOverdueIncome = false
     @State private var showAll = false
     @State private var pendingStop: Rule?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let p = store.projection
+        let p = store.projection(includeOverdueIncome: !previewWithoutOverdueIncome)
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 header(p)
+                if p.overdueIncome > 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(previewWithoutOverdueIncome
+                             ? "This preview leaves out \(store.money.string(p.overdueIncome)) in overdue income."
+                             : "This forecast counts \(store.money.string(p.overdueIncome)) in overdue income as arriving today.")
+                        Toggle("Preview without overdue income", isOn: $previewWithoutOverdueIncome)
+                            .toggleStyle(.checkbox)
+                    }
+                    .font(.callout)
+                }
                 SaveFailureView()
                 Card {
                     ForecastChart(projection: p, money: store.money)
@@ -27,6 +38,9 @@ struct PlanView: View {
             .frame(maxWidth: 760)
             .padding(.horizontal, 32).padding(.vertical, 24)
             .frame(maxWidth: .infinity)
+        }
+        .onChange(of: p.overdueIncome) { _, amount in
+            if amount == 0 { previewWithoutOverdueIncome = false }
         }
         .confirmationDialog("Stop “\(pendingStop?.label ?? "")”?", isPresented: Binding(
             get: { pendingStop != nil }, set: { if !$0 { pendingStop = nil } }), presenting: pendingStop) { r in
@@ -53,7 +67,7 @@ struct PlanView: View {
                 Text("On \(d(p.end)): \(store.money.string(p.endBalance))"
                      + (p.lowBalance < p.start ? " · lowest \(store.money.string(p.lowBalance)) on \(d(p.lowDay))" : ""))
                     .foregroundStyle(.secondary).monospacedDigit()
-                if let months = store.monthsLeft {
+                if !previewWithoutOverdueIncome, let months = store.monthsLeft {
                     Text(monthsLeftText(months)).foregroundStyle(.secondary)
                 }
             }
@@ -78,7 +92,7 @@ struct PlanView: View {
             .padding(.horizontal, 14).padding(.vertical, 10)
         } else if store.hasRecordedEntries {
             Divider().padding(.horizontal, 8)
-            Text("After two weeks of entries, the forecast also counts your everyday spending.")
+            Text("Your forecast uses scheduled payments. After at least two weeks with everyday purchases, Pocket can estimate your usual daily spending.")
                 .font(.callout).foregroundStyle(.secondary)
                 .padding(.horizontal, 14).padding(.vertical, 10)
         }
