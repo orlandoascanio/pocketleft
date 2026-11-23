@@ -120,7 +120,7 @@ export default function Home() {
               <a className="announce" href={"/changelog/#" + releaseId(VERSION)}>
                 <span className="announce-tag">New</span>
                 <b>Pocket {VERSION.replace(/\.0$/, "")}</b>
-                <span className="announce-text">Compare full months in Categories.</span>
+                <span className="announce-text">Preview a forecast without overdue income.</span>
                 <span className="announce-arrow" aria-hidden="true">
                   ↗
                 </span>

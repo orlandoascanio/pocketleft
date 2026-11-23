@@ -14,6 +14,22 @@ export type Release = {
 // and update VERSION in site.ts. Dates are publication dates, not commit dates.
 export const RELEASES: Release[] = [
   {
+    version: "1.5.4",
+    date: "2026-11-22",
+    title: "See what overdue income changes.",
+    summary: "Plan shows how much overdue income your forecast counts as arriving today. Preview your balance without it to see whether your upcoming bills are covered.",
+    theme: "update",
+    highlights: [
+      { title: "See what Plan assumes", description: "When income is past due and still waiting for confirmation, Plan shows how much it counts as arriving today." },
+      { title: "Preview without overdue income", description: "Turn on the preview in Plan to update the chart and projected balance. Your recorded balance and saved payment dates stay intact." },
+    ],
+    detailsTitle: "Everyday spending in Plan",
+    details: [
+      "A new ledger starts with scheduled payments. Once Pocket has enough history to estimate everyday spending, you can include it in Plan.",
+    ],
+    source: "https://github.com/orlandoascanio/pocketleft/releases/tag/v1.5.4",
+  },
+  {
     version: "1.5.3",
     date: "2026-11-19",
     title: "See where your money went.",

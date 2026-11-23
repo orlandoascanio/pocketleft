@@ -8,15 +8,15 @@ import menuBarDark from "@/public/media/menu-bar-dark-2026-10-14.png";
 import menuBar from "@/public/media/menu-bar-2026-10-14.png";
 import overviewDark from "@/public/media/overview-dark-2026-10-14.png";
 import overview from "@/public/media/overview-2026-10-14.png";
-import planDark from "@/public/media/plan-dark-2026-10-14.png";
-import plan from "@/public/media/plan-2026-10-14.png";
+import planDark from "@/public/media/plan-1-5-4-dark.webp";
+import plan from "@/public/media/plan-1-5-4-light.webp";
 import subscriptions from "@/public/media/subscriptions-light-2026-11-18.png";
 import subscriptionsDark from "@/public/media/subscriptions-dark-2026-11-18.png";
 
 const VIEWS = [
   { id: "menu", label: "Menu bar", caption: "Click your balance to log an entry.", light: menuBar, dark: menuBarDark, alt: "Pocket’s menu bar panel shows the balance, quick-add buttons, an entry form and recent activity." },
   { id: "overview", label: "Overview", caption: "What came in, what went out.", light: overview, dark: overviewDark, alt: "Pocket’s main window shows the balance, spending and income entries, and payments waiting for confirmation." },
-  { id: "plan", label: "Plan", caption: "Your balance after upcoming payments.", light: plan, dark: planDark, alt: "The Plan chart shows the projected balance after each scheduled payment." },
+  { id: "plan", label: "Plan", caption: "Your balance after upcoming payments.", light: plan, dark: planDark, alt: "Pocket Plan shows the projected balance and the option to preview it without overdue income." },
   { id: "subscriptions", label: "Subscriptions", caption: "See when each subscription renews and what’s due soon.", light: subscriptions, dark: subscriptionsDark, alt: "Example subscription renewals with monthly and yearly costs and charges due in the next 30 days." },
 ] as const;
 
