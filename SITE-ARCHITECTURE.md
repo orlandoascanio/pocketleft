@@ -115,10 +115,10 @@ Use the existing trailing slash policy. Preserve homepage fragments `#tour`, `#v
 
 **Homepage reading order**
 
-1. **Hero.** Explain manual tracking and the balance at a glance. Lead with real Quick Entry screenshots. Start with the visitor’s desktop platform and let anyone switch between Mac and Windows. Link the release announcement to the matching platform’s notes.
+1. **Hero.** Explain manual tracking and the balance at a glance. Let visitors add and undo a coffee on the interactive receipt at `/#try-pocket`. Link the release announcement to the matching platform’s notes.
 2. **Product tour.** Keep the existing video at `/#video` and the tabbed screenshots inside `/#tour`. Introduce Overview and payments waiting for confirmation alongside the film.
-3. **Feature walkthroughs.** Let visitors add and undo a sample purchase, inspect the Mac payday forecast, switch between renewal windows, and see a monthly category breakdown. Keep the sample ledger at `/#try-pocket` and the relevant guide links beside each example.
-4. **Privacy, help, and downloads.** Summarize local storage and optional sync, surface getting started, and keep the purchase and setup questions easy to scan. Follow with a compact download row that links to the platform chooser.
+3. **Feature walkthroughs.** Show the Mac and Windows Quick Entry panels alongside the coffee example. Let visitors inspect the Mac payday forecast, switch between renewal windows, and see a monthly category breakdown. Keep relevant guide links beside each example.
+4. **Privacy, help, and downloads.** Summarize local storage and optional sync, link the setup guides, and keep just the currency and Mac migration questions alongside them. Follow with a compact download row that links to the platform chooser.
 
 **Download page.** Show both desktop installers regardless of the visitor’s operating system. Platform detection can highlight a card. Give each card version, requirements, the matching installer, concise installation steps, and a release history link. Identify Windows as a preview and explain the unsigned installer there. Add the web app as a third option with the pairing guide. Use the same version and installer constants that drive the homepage.
 

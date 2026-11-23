@@ -99,7 +99,7 @@ export default function Home() {
             <HeroPlatformHeadline />
             <HeroActions downloadIcon={<DownloadIcon />} />
           </div>
-          <QuickEntryPreview />
+          <HeroScene />
           <div className="hero-details"><HeroDownloadDetails /></div>
         </section>
 
@@ -126,11 +126,11 @@ export default function Home() {
           <section className="product-story" id="quick-add">
             <div className="story-copy">
               <h2>Your usual coffee, one click away</h2>
-              <p>Save a purchase as a button in Pocket for Mac. The next time you buy it, click the button or press its shortcut in the menu bar. Your balance updates immediately.</p>
-              <p>Clicked twice? Choose <strong>Undo</strong> on the confirmation. Try adding and undoing a coffee in the example ledger.</p>
+              <p>Open Quick Entry from the Mac menu bar or the Windows tray to record a purchase without leaving what you’re doing.</p>
+              <p>On Mac, save your usual coffee as a button. Next time, click it or press its keyboard shortcut. If you add it twice, choose <strong>Undo</strong> on the confirmation.</p>
               <a className="feature-guide" href="/guides/quick-add-spending/">Set up quick-add buttons <span aria-hidden="true">→</span></a>
             </div>
-            <HeroScene />
+            <QuickEntryPreview />
           </section>
 
           <section className="product-story story-reverse" id="plan">
@@ -171,9 +171,8 @@ export default function Home() {
 
         <section className="section wrap home-help" aria-label="Data and help">
           <div id="private">
-            <h2>Your data stays on your device</h2>
-            <p>Pocket works offline by default. On Mac, it keeps seven daily backups and lets you export your ledger. For phone access, set up optional sync and pair your device.</p>
-            <a className="feature-guide" href="/guides/back-up-your-data/">Back up or move to a new Mac</a>
+            <h2>Your ledger starts on your device</h2>
+            <p>Pocket saves entries on your computer and works offline. On Mac, it keeps seven daily backups. To see your balance on your phone, connect your own Supabase project and pair the web app.</p>
             <a className="feature-guide" href={SELF_HOSTING_GUIDE_URL}>Set up phone pairing</a>
           </div>
           <div id="guides">
@@ -181,12 +180,8 @@ export default function Home() {
             <p>Set your starting balance, record your first purchase, and plan one upcoming bill.</p>
             <a className="feature-guide" href="/guides/getting-started/">Get started on Mac</a>
             <a className="feature-guide" href="/guides/">Browse all guides</a>
+            <div id="faq"><Faq items={FAQ} /></div>
           </div>
-        </section>
-
-        <section className="section wrap" id="faq">
-          <h2>Questions about Pocket</h2>
-          <Faq items={FAQ} />
         </section>
 
         <section className="section wrap home-platforms" id="downloads" aria-labelledby="downloads-heading">

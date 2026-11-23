@@ -57,8 +57,8 @@ export function HeroPlatformHeadline() {
     <>
       <h1>Know what’s<br /><span>left.</span></h1>
       <p className="lead">{platform === "windows"
-        ? "A free offline expense tracker for Windows. Log a purchase from the tray and see your balance beside the clock."
-        : "A free offline expense tracker for Mac and Windows. Log a purchase and see your balance in the menu bar or tray."}</p>
+        ? "A free offline expense tracker for Windows. Enter purchases by hand and see your balance beside the clock. Your bank account stays unlinked."
+        : "A free offline expense tracker for Mac and Windows. Enter purchases by hand and see your balance in the menu bar or tray. Your bank account stays unlinked."}</p>
     </>
   );
 }

@@ -27,7 +27,7 @@ export function QuickEntryPreview() {
   return (
     <div className="entry-preview" data-platform={platform}>
       <div className="entry-preview-stage">
-        <Image src={panel.image} alt={panel.alt} sizes="(max-width: 420px) 75vw, 314px" loading="eager" fetchPriority="high" />
+        <Image src={panel.image} alt={panel.alt} sizes="(max-width: 420px) 75vw, 314px" />
       </div>
       <div className="entry-preview-options" role="group" aria-label="Preview Quick Entry by platform">
         {(["mac", "windows"] as const).map((id) => (
