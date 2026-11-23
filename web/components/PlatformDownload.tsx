@@ -57,8 +57,8 @@ export function HeroPlatformHeadline() {
     <>
       <h1>Know what’s<br /><span>left.</span></h1>
       <p className="lead">{platform === "windows"
-        ? "PocketLeft is a free expense tracker for Windows. Log spending by hand and see your balance beside the clock, even offline."
-        : "PocketLeft is a free offline expense tracker for Mac and Windows. Log income and spending by hand and see your balance in the Mac menu bar or Windows tray."}</p>
+        ? "A free offline expense tracker for Windows. Log a purchase from the tray and see your balance beside the clock."
+        : "A free offline expense tracker for Mac and Windows. Log a purchase and see your balance in the menu bar or tray."}</p>
     </>
   );
 }

@@ -4,6 +4,8 @@ import { Faq } from "@/components/Faq";
 import { DownloadIcon, SiteNav } from "@/components/SiteNav";
 import { Tour } from "@/components/Tour";
 import { HeroAnnounce } from "@/components/HeroAnnounce";
+import { QuickEntryPreview } from "@/components/QuickEntryPreview";
+import { RenewalPreview } from "@/components/RenewalPreview";
 import { HeroScene } from "@/components/HeroScene";
 import { ForDesktopPlatform, HeroActions, HeroDownloadDetails, HeroPlatformHeadline } from "@/components/PlatformDownload";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -96,55 +98,76 @@ export default function Home() {
             </HeroAnnounce>
             <HeroPlatformHeadline />
             <HeroActions downloadIcon={<DownloadIcon />} />
-            <HeroDownloadDetails />
           </div>
-          <HeroScene />
+          <QuickEntryPreview />
+          <div className="hero-details"><HeroDownloadDetails /></div>
         </section>
 
         <section className="section wrap" id="tour">
-          <h2>Inside Pocket for Mac</h2>
-          <p className="section-lead">
-            Click your balance in the menu bar to add an entry. In the main window, review your history, confirm payments and see what’s coming up.
-          </p>
-          <figure className="pocket-film" id="video">
-            <video controls playsInline preload="none" width={1920} height={1080}
-              poster="/media/pocket-for-mac-demo.webp" aria-label="Pocket for Mac demo">
-              <source src="/media/pocket-for-mac-demo.mp4" type="video/mp4" />
-              <a href="/media/pocket-for-mac-demo.mp4">Watch the Pocket for Mac demo</a>
-            </video>
-          </figure>
+          <div className="tour-intro">
+            <div className="story-copy" id="waiting">
+              <h2>Inside Pocket for Mac</h2>
+              <p>Overview puts your balance, recent purchases, and payments you’re waiting for in one window.</p>
+              <p>If a client pays late or sends a different amount, choose <strong>Got it</strong> when the money arrives. Enter the amount and date to update your balance.</p>
+              <a className="feature-guide" href="/guides/expected-income/">Track expected income <span aria-hidden="true">→</span></a>
+            </div>
+            <figure className="pocket-film" id="video">
+              <video controls playsInline preload="none" width={1920} height={1080}
+                poster="/media/pocket-for-mac-demo.webp" aria-label="Pocket for Mac demo">
+                <source src="/media/pocket-for-mac-demo.mp4" type="video/mp4" />
+                <a href="/media/pocket-for-mac-demo.mp4">Watch the Pocket for Mac demo</a>
+              </video>
+            </figure>
+          </div>
           <Tour initialView="overview" />
         </section>
 
-        <section className="section wrap" aria-labelledby="workflows-heading">
-          <h2 id="workflows-heading">From today’s coffee to next month’s bills</h2>
-          <div className="workflow-grid">
-            <article className="workflow-card" id="quick-add">
-              <h3>Log spending in a tap</h3>
-              <p>Save frequent purchases as quick-add buttons. On Mac, click a button or use Command-1 through Command-9. If you add an entry by mistake, click Undo on the confirmation.</p>
+        <div className="wrap product-stories">
+          <section className="product-story" id="quick-add">
+            <div className="story-copy">
+              <h2>Your usual coffee, one click away</h2>
+              <p>Save a purchase as a button in Pocket for Mac. The next time you buy it, click the button or press its shortcut in the menu bar. Your balance updates immediately.</p>
+              <p>Clicked twice? Choose <strong>Undo</strong> on the confirmation. Try adding and undoing a coffee in the example ledger.</p>
               <a className="feature-guide" href="/guides/quick-add-spending/">Set up quick-add buttons <span aria-hidden="true">→</span></a>
-              <div className="workflow-detail" id="categories">
-                <h4>See where your money went</h4>
-                <p>Use Categories to compare completed months and open the entries behind each total.</p>
-              </div>
-            </article>
-            <article className="workflow-card" id="plan">
-              <h3>See what’s available before payday</h3>
-              <p>In Pocket for Mac, choose a payday and a minimum balance to keep. Plan uses the lowest projected balance before payday and includes usual spending once you have enough history.</p>
+            </div>
+            <HeroScene />
+          </section>
+
+          <section className="product-story story-reverse" id="plan">
+            <div className="story-copy">
+              <h2>Will Thursday’s rent leave room for dinner?</h2>
+              <p>In Plan on Mac, choose your next payday and the minimum balance you want to keep. Pocket finds the lowest projected balance before payday, even if rent comes out the day before you get paid.</p>
+              <p>With enough spending history, the forecast also accounts for everyday purchases between bills.</p>
               <a className="feature-guide" href="/guides/freelance-income/#before-payday">Set your payday and cushion <span aria-hidden="true">→</span></a>
-              <div className="workflow-detail" id="waiting">
-                <h4>Track money you’re waiting for</h4>
-                <p>Confirm the amount and date when it arrives to add it to your recorded balance.</p>
-                <a href="/guides/expected-income/">Track expected income</a>
-              </div>
-            </article>
-            <article className="workflow-card" id="subscriptions">
-              <h3>Know what renews next</h3>
-              <p>See which subscriptions are due over the next 7 or 30 days. On Mac, set reminders before a renewal and compare monthly and yearly costs.</p>
+            </div>
+            <picture className="story-screen">
+              <source media="(prefers-color-scheme: dark)" srcSet="/media/plan-1-5-5-dark.webp" />
+              <img src="/media/plan-1-5-5-light.webp" width={1640} height={1270} loading="lazy" alt="Pocket’s Plan view shows $319.54 available before payday above a chart of the projected balance." />
+            </picture>
+          </section>
+
+          <section className="product-story" id="subscriptions">
+            <div className="story-copy">
+              <h2>See what renews before the bill lands</h2>
+              <p>A music subscription renews this week. Your design tools renew later in the month. Switch between 7 and 30 days to see which charges are coming and how much they add up to.</p>
+              <p>In Pocket for Mac, you can also compare monthly and yearly costs and set a reminder before a renewal.</p>
               <a className="feature-guide" href="/guides/track-subscriptions/">Track subscriptions on Mac <span aria-hidden="true">→</span></a>
-            </article>
-          </div>
-        </section>
+            </div>
+            <RenewalPreview />
+          </section>
+
+          <section className="product-story story-reverse" id="categories">
+            <div className="story-copy">
+              <h2>Where did this month’s money go?</h2>
+              <p>Categories breaks down spending by month. Open a category to see the purchases behind its total, or compare two completed months to see what changed.</p>
+              <p>Use <strong>Review</strong> to find entries that still need a category.</p>
+            </div>
+            <picture className="story-screen">
+              <source media="(prefers-color-scheme: dark)" srcSet="/media/categories-1-5-3-dark.webp" />
+              <img src="/media/categories-1-5-3-light.webp" width={1640} height={910} loading="lazy" alt="Pocket’s Categories view shows $22.49 spent in November, split between Games and Food." />
+            </picture>
+          </section>
+        </div>
 
         <section className="section wrap home-help" aria-label="Data and help">
           <div id="private">
