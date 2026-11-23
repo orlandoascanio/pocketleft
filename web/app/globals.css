@@ -16,6 +16,7 @@
     radial-gradient(80% 70% at 100% 0%, #f6dda4 0%, transparent 55%),
     radial-gradient(120% 90% at 60% 120%, #b4d2bf 0%, transparent 60%), #e8ebe2;
   --foot-bg: #2b2a27;
+  --foot-word: #34322e;
   --foot-ink: #f1efe9;
   --foot-muted: #aaa69c;
   --foot-line: #3d3b37;
@@ -43,6 +44,7 @@
       radial-gradient(80% 70% at 100% 0%, #3e2f12 0%, transparent 55%),
       radial-gradient(120% 90% at 60% 120%, #12301f 0%, transparent 60%), #141714;
     --foot-bg: #0b0b0b;
+    --foot-word: #161616;
     --foot-line: #232322;
   }
 }
@@ -457,6 +459,15 @@ h2 { font: 750 clamp(32px, 4.4vw, 52px)/1.04 var(--display); letter-spacing: -0.
 .foot-col a:hover, .foot-ver:hover { color: var(--foot-ink); background-size: 100% 1px; background-position-x: left; }
 .foot-base { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 24px; margin-top: 64px; padding-top: 16px; padding-bottom: 16px; border-top: 1px solid var(--foot-line); color: var(--foot-muted); font-size: 13.5px; }
 .foot-base b { color: var(--foot-ink); font-weight: 600; }
+.foot-word {
+  font: 800 min(27vw, 380px)/.78 var(--display);
+  letter-spacing: -.05em;
+  text-align: center;
+  color: var(--foot-word);
+  margin-bottom: -.12em;
+  user-select: none;
+  pointer-events: none;
+}
 @media (max-width: 900px) {
   .foot .foot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 16px; }
   .foot-col { gap: 0; }

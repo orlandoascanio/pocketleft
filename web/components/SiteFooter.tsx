@@ -64,6 +64,7 @@ export function SiteFooter() {
           <AnalyticsPreferences />
         </nav>
       </div>
+      <div className="foot-word" aria-hidden="true">Pocket</div>
     </footer>
   );
 }
