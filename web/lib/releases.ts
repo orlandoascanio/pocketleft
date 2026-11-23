@@ -8,6 +8,7 @@ export type Release = {
   detailsTitle: string;
   details: string[];
   source: string;
+  relatedSources?: { title: string; url: string }[];
 };
 
 // Curated from the published GitHub releases. Add a new entry here when shipping,
@@ -263,6 +264,52 @@ export const RELEASES: Release[] = [
 ];
 
 export const releaseId = (version: string) => `v${version.replaceAll(".", "-")}`;
+
+export function groupReleasesByDay(releases: Release[]) {
+  const days = new Map<string, Release[]>();
+  const newestFirst = [...releases].sort((a, b) =>
+    b.date.localeCompare(a.date) || b.version.localeCompare(a.version, "en", { numeric: true }));
+  for (const release of newestFirst) {
+    const sameDay = days.get(release.date) ?? [];
+    sameDay.push(release);
+    days.set(release.date, sameDay);
+  }
+  return [...days.values()].map(([release, ...earlier]) => ({ release, earlier }));
+}
+
+// These previews all shipped on November 20 in America/Caracas.
+export const WINDOWS_RELEASES: Release[] = [
+  {
+    version: "0.1.4",
+    date: "2026-11-20",
+    title: "Keep your balance by the Windows clock.",
+    summary: "Pocket for Windows 11 opens from the tray. Check your balance, log an expense or income, or open Pocket for History, Plan, Subscriptions and Categories.",
+    theme: "update",
+    highlights: [
+      { title: "Choose how your balance appears", description: "Right-click Pocket and choose Balance display. Balance on hover shows the exact amount on the tray icon. Floating panel keeps it visible above the clock. Click either to open Quick Entry." },
+      { title: "Search and export History", description: "Filter your entries, export all entries or the current results as CSV, compare completed months, and choose your display currency." },
+      { title: "Plan ahead and back up", description: "See spending and income by category, include everyday spending in your forecast, manage quick-add buttons, and export or restore a Pocket JSON backup." },
+      { title: "Keep using Pocket offline", description: "A synced ledger keeps a copy on your PC. Changes made offline wait in Settings and sync when you reconnect. Pocket can remind you about payments and subscription renewals while it runs in the tray." },
+      { title: "Choose where to install", description: "One unsigned Setup works for Windows 11 on Intel, AMD and ARM. Choose an install folder, add a desktop shortcut, or start Pocket at sign-in. Setup adds a Start menu shortcut and keeps your ledger in your Windows profile." },
+    ],
+    detailsTitle: "Earlier previews and installation",
+    details: [
+      "The first preview offered separate x64 and ARM64 ZIPs, a local offline ledger, and amounts displayed in USD.",
+      "The installer replaced the ZIPs and added install location and shortcut options. If Setup stops, look for the operation and folder in %TEMP%\\Pocket-Setup.log.",
+      "Early builds introduced the balance above the clock and tried an abbreviated tray number and an icon-only mode. The 0.1.4 preview offers balance on hover and a floating panel.",
+      "To remove Pocket, open Settings → Apps → Installed apps.",
+    ],
+    source: "https://github.com/orlandoascanio/pocketleft/releases/tag/windows-preview-6",
+    relatedSources: [
+      { title: "Display options preview", url: "https://github.com/orlandoascanio/pocketleft/releases/tag/windows-preview-5" },
+      { title: "Balance above the clock", url: "https://github.com/orlandoascanio/pocketleft/releases/tag/windows-preview-4" },
+      { title: "Setup with install options", url: "https://github.com/orlandoascanio/pocketleft/releases/tag/windows-preview-3" },
+      { title: "Preview installer", url: "https://github.com/orlandoascanio/pocketleft/releases/tag/windows-preview-2" },
+      { title: "First Windows preview", url: "https://github.com/orlandoascanio/pocketleft/releases/tag/windows-preview-1" },
+    ],
+  },
+];
+
 export const releaseDate = (date: string) => new Intl.DateTimeFormat("en", {
   month: "long", day: "numeric", year: "numeric", timeZone: "UTC",
 }).format(new Date(`${date}T12:00:00Z`));

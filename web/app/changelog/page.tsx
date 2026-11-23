@@ -9,14 +9,14 @@ import { ISSUES_URL, REPO_URL, SITE_URL } from "@/lib/site";
 import "./changelog.css";
 
 export const metadata: Metadata = {
-  title: "Changelog · Pocket for Mac",
-  description: "What’s new in Pocket for Mac. Read the latest releases, improvements and changes.",
+  title: "Changelog · Pocket for Mac and Windows",
+  description: "Read release notes for Pocket for Mac and the Windows preview.",
   alternates: { canonical: "/changelog/" },
   openGraph: {
     type: "website",
     siteName: "Pocket",
     title: "What’s new in Pocket",
-    description: "The latest releases and improvements to Pocket for Mac.",
+    description: "Read release notes for Pocket for Mac and the Windows preview.",
     url: "/changelog/",
     images: [{ url: `${SITE_URL}/screenshot-overview.png`, width: 1600, height: 1283, alt: "Pocket for Mac" }],
   },
@@ -31,7 +31,7 @@ export default function ChangelogPage() {
         <header className="changes-intro">
           <div>
             <h1>What’s new<br />in Pocket<span>.</span></h1>
-            <p>The releases, refinements, and little details<br className="changes-desktop-break" /> that make Pocket better to use.</p>
+            <p>Release notes for Pocket for Mac and the Windows preview.</p>
             <p className="changes-start">New to Pocket? <a href="/guides/getting-started/">Start with the setup guide</a>.</p>
           </div>
           <div className="changes-character" aria-hidden="true">

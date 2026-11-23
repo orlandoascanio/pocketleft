@@ -79,6 +79,13 @@
   .tour-tabs button { padding: 8px 9px; font-size: 12px; }
 }
 #tour .tour-stage { background: #dce6d6; border-radius: 16px; }
+.pocket-film { margin: 26px 0 32px; scroll-margin-top: 108px; }
+.pocket-film video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #163d2e; border-radius: 16px; }
+.pocket-film video:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.pocket-film figcaption { margin-top: 10px; color: var(--ink); font-weight: 650; }
+.pocket-film details { color: var(--muted); font-size: 14px; margin-top: 6px; }
+.pocket-film summary { cursor: pointer; width: fit-content; }
+.pocket-film details p { margin: 8px 0 0; max-width: 65ch; }
 #tour .tour-behind { transform: rotate(-5deg); top: 17%; left: 5%; }
 #tour .tour-panel { transform: rotate(3deg); right: 10%; top: 46px; }
 #plan .feature { padding-block: 36px 55px; }

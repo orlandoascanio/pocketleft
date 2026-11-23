@@ -143,6 +143,18 @@ export default function Home() {
           <p className="section-lead">
             Click your balance in the menu bar to add an entry. In the main window, review your history, confirm payments and see what’s coming up.
           </p>
+          <figure className="pocket-film" id="video">
+            <video controls playsInline preload="none" width={1920} height={1080}
+              poster="/media/pocket-for-mac-demo.webp" aria-labelledby="pocket-film-caption">
+              <source src="/media/pocket-for-mac-demo.mp4" type="video/mp4" />
+              <a href="/media/pocket-for-mac-demo.mp4">Watch the Pocket for Mac demo</a>
+            </video>
+            <figcaption id="pocket-film-caption">Pocket for Mac in 25 seconds</figcaption>
+            <details>
+              <summary>Video description</summary>
+              <p>The demo opens with “Know what’s left.” It shows a coffee purchase lowering the balance in the Mac menu bar, the Plan chart projecting upcoming bills and income, and the Subscriptions view showing what renews next.</p>
+            </details>
+          </figure>
           <Tour initialView="overview" />
           <div className="tour-download">
             <DownloadButton />

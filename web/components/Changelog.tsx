@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import { DownloadIcon } from "@/components/SiteNav";
-import { DOWNLOAD_URL, SELF_HOSTING_URL } from "@/lib/site";
-import { RELEASES, releaseDate, releaseId } from "@/lib/releases";
+import { DOWNLOAD_URL, SELF_HOSTING_URL, WINDOWS_SETUP_URL } from "@/lib/site";
+import { RELEASES, WINDOWS_RELEASES, groupReleasesByDay, releaseDate, releaseId, type Release } from "@/lib/releases";
 
 function LinkIcon({ check = false }: { check?: boolean }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true">{check ? <path d="m5 12 4 4L19 6" /> : <><path d="m10 13 4-4M8 16l-1 1a4.2 4.2 0 0 1-6-6l4-4a4.2 4.2 0 0 1 6 0M16 8l1-1a4.2 4.2 0 0 1 6 6l-4 4a4.2 4.2 0 0 1-6 0" transform="translate(1 0) scale(.9)" /></>}</svg>;
@@ -70,42 +70,74 @@ function ReleaseDetails({ title, items }: { title: string; items: string[] }) {
   </details>;
 }
 
-export function Changelog() {
-  const [active, setActive] = useState(releaseId(RELEASES[0].version));
+function ReleaseNotes({ release, earlier = false }: { release: Release; earlier?: boolean }) {
+  const Heading = earlier ? "h5" : "h4";
+  return <>
+    <p className="release-summary">{release.summary}</p>
+    {(release.theme === "sync" || release.theme === "findable") && <figure className="release-visual">
+      {release.theme === "sync"
+        ? <div className="release-visual-copy"><span className="release-visual-mark"><img src="/pocket-icon.webp" alt="" width={32} height={32} />Pocket 1.1</span><p>Your Mac.<br />Your phone.<br /><span>Your server.</span></p><span className="release-visual-note">Sync is optional. You’re in control.</span></div>
+        : <div className="release-visual-copy"><span className="release-visual-mark"><img src="/pocket-icon.webp" alt="" width={32} height={32} />Pocket 1.2</span><p>Got it.<br />Skip it.<br /><span>Save it.</span></p><span className="release-visual-note">Every action, one click away.</span></div>}
+      <div className="release-visual-screen"><Image src="/screenshot-overview.png" alt="Pocket for Mac’s Overview window with balance, history and quick-add buttons" width={1600} height={1283} sizes="(max-width: 700px) 80vw, 440px" /></div>
+    </figure>}
+    <ul className="release-highlights">{release.highlights.map(item => <li key={item.title}><span className="release-bullet" aria-hidden="true" /><div><Heading>{item.title}</Heading><p>{item.description}</p></div></li>)}</ul>
+    <ReleaseDetails title={release.detailsTitle} items={release.details} />
+  </>;
+}
+
+const macHistory = groupReleasesByDay(RELEASES);
+const windowsHistory = groupReleasesByDay(WINDOWS_RELEASES);
+
+function ReleaseHistory({ platform, groups }: { platform: "Mac" | "Windows"; groups: typeof macHistory }) {
+  const windows = platform === "Windows";
+  const sectionId = windows ? "windows" : "mac";
+  const articleId = (release: Release) => `${windows ? "windows-" : ""}${releaseId(release.version)}`;
+  const [active, setActive] = useState(articleId(groups[0].release));
+  const section = useRef<HTMLElement>(null);
   useEffect(() => {
-    const elements = RELEASES.map(release => document.getElementById(releaseId(release.version))).filter((el): el is HTMLElement => !!el);
     const observer = new IntersectionObserver(entries => {
       for (const entry of entries) if (entry.isIntersecting) setActive(entry.target.id);
     }, { rootMargin: "-15% 0px -65% 0px" });
-    elements.forEach(el => observer.observe(el));
+    section.current?.querySelectorAll(".release").forEach(el => observer.observe(el));
     return () => observer.disconnect();
   }, []);
-  return <div className="changes-layout" id="releases" tabIndex={-1}>
+  return <section className="changes-layout" ref={section} id={sectionId} aria-labelledby={`${sectionId}-release-heading`}>
     <aside className="changes-rail">
-      <nav aria-label="Release history"><h2>Changelog</h2>
-        {RELEASES.map((release, i) => <a href={`#${releaseId(release.version)}`} key={release.version} aria-current={active === releaseId(release.version) ? "location" : undefined}>
+      <nav aria-label={`${platform} release history`}><h2 id={`${sectionId}-release-heading`}>{platform} releases</h2>
+        {groups.map(({ release }, i) => <a href={`#${articleId(release)}`} key={release.version} aria-current={active === articleId(release) ? "location" : undefined}>
           <span className="rail-dot" aria-hidden="true" /><span>v{release.version}<small>{releaseDate(release.date)}</small></span>{i === 0 && <span className="rail-latest">Latest</span>}
         </a>)}
       </nav>
-      <p>Free for macOS 14+.<br />Apple Silicon &amp; Intel.</p>
-      <a className="changes-home" href="/">Back to Pocket <span aria-hidden="true">↗</span></a>
+      <p>{windows ? <>Windows 11 preview.<br />Intel, AMD &amp; ARM.</> : <>Free for macOS 14+.<br />Apple Silicon &amp; Intel.</>}</p>
+      <a className="changes-home" href={windows ? "#mac" : "#windows"}>{windows ? "Mac releases" : "Windows releases"} <span aria-hidden="true">{windows ? "↑" : "↓"}</span></a>
     </aside>
     <div className="release-list">
-      {RELEASES.map((release, i) => <article className="release" id={releaseId(release.version)} key={release.version} aria-labelledby={`${releaseId(release.version)}-title`}>
-        <div className="release-meta"><a className="release-version" href={`#${releaseId(release.version)}`}>v{release.version}</a>{i === 0 && <span className="release-latest"><span aria-hidden="true" />Latest release</span>}<time dateTime={release.date}>{releaseDate(release.date)}</time><Permalink id={releaseId(release.version)} version={release.version} /></div>
-        <h2 id={`${releaseId(release.version)}-title`}>{release.title}</h2>
-        <p className="release-summary">{release.summary}</p>
-        {(release.theme === "sync" || release.theme === "findable") && <figure className="release-visual">
-          {release.theme === "sync"
-            ? <div className="release-visual-copy"><span className="release-visual-mark"><img src="/pocket-icon.webp" alt="" width={32} height={32} />Pocket 1.1</span><p>Your Mac.<br />Your phone.<br /><span>Your server.</span></p><span className="release-visual-note">Sync is optional. You’re in control.</span></div>
-            : <div className="release-visual-copy"><span className="release-visual-mark"><img src="/pocket-icon.webp" alt="" width={32} height={32} />Pocket 1.2</span><p>Got it.<br />Skip it.<br /><span>Save it.</span></p><span className="release-visual-note">Every action, one click away.</span></div>}
-          <div className="release-visual-screen"><Image src="/screenshot-overview.png" alt="Pocket for Mac’s Overview window with balance, history and quick-add buttons" width={1600} height={1283} sizes="(max-width: 700px) 80vw, 440px" /></div>
-        </figure>}
-        <ul className="release-highlights">{release.highlights.map(item => <li key={item.title}><span className="release-bullet" aria-hidden="true" /><div><h3>{item.title}</h3><p>{item.description}</p></div></li>)}</ul>
-        <ReleaseDetails title={release.detailsTitle} items={release.details} />
-        <div className="release-actions">{i === 0 ? <><a className="pill pill-dark" href={DOWNLOAD_URL} data-download><DownloadIcon />Download v{release.version}</a><a className="release-text-link" href={SELF_HOSTING_URL}>Set up sync <span aria-hidden="true">↗</span></a></> : i === RELEASES.length - 1 ? <span className="release-first">The first chapter.</span> : null}<a className="release-source" href={release.source}>On GitHub <span aria-hidden="true">↗</span></a></div>
+      {groups.map(({ release, earlier }, i) => <article className="release" id={articleId(release)} key={release.version} aria-labelledby={`${articleId(release)}-title`}>
+        {earlier.map(previous => <span className="release-anchor" id={articleId(previous)} key={previous.version} aria-hidden="true" />)}
+        <div className="release-meta"><a className="release-version" href={`#${articleId(release)}`}>v{release.version}</a>{i === 0 && <span className="release-latest"><span aria-hidden="true" />{windows ? "Latest preview" : "Latest release"}</span>}<time dateTime={release.date}>{releaseDate(release.date)}</time><Permalink id={articleId(release)} version={release.version} /></div>
+        <h3 className="release-title" id={`${articleId(release)}-title`}>{release.title}</h3>
+        <ReleaseNotes release={release} />
+        {earlier.map(previous => <div className="release-earlier" key={previous.version}>
+          <h4>{previous.title}</h4>
+          <ReleaseNotes release={previous} earlier />
+          <a className="release-text-link" href={previous.source}>Original v{previous.version} notes on GitHub <span aria-hidden="true">↗</span></a>
+        </div>)}
+        {release.relatedSources && <ul className="release-related">
+          {release.relatedSources.map(source => <li key={source.url}><a className="release-text-link" href={source.url}>{source.title} <span aria-hidden="true">↗</span></a></li>)}
+        </ul>}
+        <div className="release-actions">{i === 0 ? <><a className="pill pill-dark" href={windows ? WINDOWS_SETUP_URL : DOWNLOAD_URL} data-download><DownloadIcon />Download v{release.version}</a>{!windows && <a className="release-text-link" href={SELF_HOSTING_URL}>Set up sync <span aria-hidden="true">↗</span></a>}</> : i === groups.length - 1 ? <span className="release-first">The first chapter.</span> : null}<a className="release-source" href={release.source}>On GitHub <span aria-hidden="true">↗</span></a></div>
       </article>)}
-      <div className="release-end"><span aria-hidden="true" /><p>You’re all caught up.</p><span>That’s every release of Pocket for Mac.</span></div>
     </div>
+  </section>;
+}
+
+export function Changelog() {
+  return <div id="releases" tabIndex={-1}>
+    <nav className="changes-platforms" aria-label="Changelog by platform">
+      <a href="#mac">Mac releases</a>
+      <a href="#windows">Windows releases</a>
+    </nav>
+    <ReleaseHistory platform="Mac" groups={macHistory} />
+    <ReleaseHistory platform="Windows" groups={windowsHistory} />
   </div>;
 }
