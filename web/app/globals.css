@@ -68,10 +68,19 @@ a { color: var(--accent); text-underline-offset: 3px; }
 .wrap-wide { max-width: 1180px; }
 
 /* ── nav: a floating pill with a permanent Download link ── */
-/* Once the page scrolls it firms up; scrolling down slides it away (data-away), scrolling up brings it back. */
-.nav-shell { position: sticky; top: 12px; z-index: 50; padding: 12px 16px 0; margin-top: -12px; transition: translate 550ms var(--out); }
-.nav-shell[data-away] { translate: 0 calc(-100% - 48px); }
+/* The progress track follows the straight lower edge of the floating nav. */
+.reading-progress {
+  appearance: none; position: absolute; inset: auto 28px 1px;
+  width: calc(100% - 56px); height: 3px; border: 0; border-radius: 999px; overflow: hidden;
+  background: var(--line); color: var(--accent); pointer-events: none; opacity: 0;
+}
+.nav-shell[data-scrolled] .reading-progress { opacity: 1; }
+.reading-progress::-webkit-progress-bar { background: var(--line); }
+.reading-progress::-webkit-progress-value { background: currentColor; border-radius: inherit; }
+.reading-progress::-moz-progress-bar { background: currentColor; border-radius: inherit; }
+.nav-shell { position: sticky; top: 8px; z-index: 50; padding: 8px 16px 0; margin-top: -8px; }
 .nav {
+  position: relative;
   max-width: 1080px; margin: 0 auto; display: flex; align-items: center; gap: 8px;
   padding: 7px 7px 7px 16px; border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 80%, transparent);
@@ -115,9 +124,9 @@ a { color: var(--accent); text-underline-offset: 3px; }
   transition: color 200ms, scale 450ms var(--spring); animation: nav-link-in 700ms var(--out) both; animation-delay: calc(180ms + var(--i) * 45ms);
 }
 .nav-links a:active { scale: .94; transition-duration: 200ms, 120ms; }
-.nav-links a:hover, .nav-links a[aria-current] { color: var(--ink); }
+.nav-links a:hover { color: var(--ink); }
+.nav-links a[aria-current] { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 .nav-hl { position: absolute; left: 0; top: 0; height: 100%; width: 0; border-radius: 999px; background: var(--surface-2); opacity: 0; pointer-events: none; }
-.nav-dot { position: absolute; left: 0; bottom: 1px; width: 4px; height: 4px; border-radius: 4px; background: var(--accent); opacity: 0; pointer-events: none; }
 
 /* narrow screens: the links move into a menu under the pill */
 .nav-toggle {
@@ -565,6 +574,7 @@ body:has(.dl[open]) .website-consent { visibility: hidden; }
     display: flex; flex-direction: column; position: absolute; left: 16px; right: 16px; top: calc(100% + 8px); padding: 8px;
     border-radius: 28px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 86%, transparent);
     backdrop-filter: blur(22px) saturate(1.8); box-shadow: 0 1px 2px rgb(0 0 0 / .05), 0 28px 60px -20px rgb(0 0 0 / .28);
+    max-height: calc(100dvh - 96px); overflow-y: auto;
     /* grows out of the toggle at the pill's right end */
     transform-origin: calc(100% - 28px) 0; opacity: 0; translate: 0 -10px; scale: .96; visibility: hidden;
     transition: opacity 200ms, translate 500ms var(--out), scale 500ms var(--out), visibility 0s 500ms;

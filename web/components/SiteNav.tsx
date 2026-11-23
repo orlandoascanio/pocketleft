@@ -8,15 +8,14 @@ import { DOWNLOAD_PAGE } from "@/lib/site";
 
 const LINKS = [
   { href: "#tour", label: "Features" },
+  { href: "#plan", label: "Plan ahead" },
+  { href: "#subscriptions", label: "Subscriptions" },
   { href: "/guides/", label: "Guides" },
   { href: "/changelog/", label: "Changelog" },
 ];
 
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// A floating pill. It firms up once the page scrolls, steps out of the way while you read down,
-// and comes back as soon as you scroll up. On wide screens a grey highlight follows the pointer across the links
-// and a green dot marks the section you're in; on narrow ones the links move into a menu.
 export function SiteNav() {
   const pathname = usePathname();
   const platform = useDownloadPlatform();
@@ -25,14 +24,13 @@ export function SiteNav() {
   const page = LINKS.find((l) => !l.href.startsWith("#") && pathname.startsWith(l.href))?.href ?? null;
   const linkTo = (href: string) => !home && href.startsWith("#") ? `/${href}` : href;
   const [scrolled, setScrolled] = useState(false);
-  const [away, setAway] = useState(false);
   const [section, setSection] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const shell = useRef<HTMLElement>(null);
+  const progress = useRef<HTMLProgressElement>(null);
   const links = useRef<HTMLDivElement>(null);
   const hl = useRef<HTMLSpanElement>(null);
-  const dot = useRef<HTMLSpanElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const name = useRef<HTMLSpanElement>(null);
   const sweeping = useRef(false);
@@ -77,24 +75,28 @@ export function SiteNav() {
   useLayoutEffect(() => sweep(true), []);
 
   useEffect(() => {
-    // Small jitters don't count: it takes a deliberate 10px either way to hide or bring it back.
-    let anchor = scrollY;
     let frame = 0;
     function onScroll() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const y = scrollY;
+        const root = document.documentElement;
+        const distance = root.scrollHeight - root.clientHeight;
+        if (progress.current) {
+          progress.current.hidden = distance <= 0;
+          progress.current.value = distance > 0 ? Math.min(1, Math.max(0, y / distance)) : 0;
+        }
         setScrolled(y > 8);
-        if (y < 160) setAway(false);
-        else if (y - anchor > 10) setAway(true);
-        else if (anchor - y > 10) setAway(false);
-        else return;
-        anchor = y;
       });
     }
+    const observer = new ResizeObserver(onScroll);
+    observer.observe(document.body);
     onScroll();
+    addEventListener("resize", onScroll);
     addEventListener("scroll", onScroll, { passive: true });
     return () => {
+      observer.disconnect();
+      removeEventListener("resize", onScroll);
       removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
     };
@@ -107,7 +109,7 @@ export function SiteNav() {
       (entries) => {
         for (const e of entries) {
           if (e.isIntersecting) setSection(`#${e.target.id}`);
-          else if (e.boundingClientRect.top > 0) setSection((s) => (s === `#${e.target.id}` ? null : s));
+          else setSection((s) => (s === `#${e.target.id}` ? null : s));
         }
       },
       { rootMargin: "-40% 0px -55% 0px" },
@@ -129,29 +131,6 @@ export function SiteNav() {
     if (+gsap.getProperty(pill, "opacity") < 0.05) gsap.set(pill, { ...to, scale: 0.92 });
     gsap.to(pill, { ...to, opacity: 1, scale: 1, duration: reduced() ? 0 : 0.45, ease: "expo.out", overwrite: true });
   }, [hover]);
-
-  // The section dot inches along: it stretches to reach the next link, then lets go of the last.
-  useEffect(() => {
-    const d = dot.current;
-    if (!d) return;
-    const current = home ? section : page;
-    const link = current ? links.current?.querySelector<HTMLElement>(`a[href="${linkTo(current)}"]`) : null;
-    if (!link) {
-      gsap.to(d, { opacity: 0, scale: 0, duration: reduced() ? 0 : 0.25, overwrite: true });
-      return;
-    }
-    const to = link.offsetLeft + link.offsetWidth / 2 - 2;
-    const from = +gsap.getProperty(d, "x");
-    if (reduced() || +gsap.getProperty(d, "opacity") < 0.05) {
-      gsap.set(d, { x: to, width: 4, scale: reduced() ? 1 : 0 });
-      gsap.to(d, { opacity: 1, scale: 1, duration: reduced() ? 0 : 0.5, ease: "back.out(3)", overwrite: true });
-      return;
-    }
-    gsap
-      .timeline({ overwrite: true })
-      .to(d, { x: Math.min(from, to), width: Math.abs(to - from) + 4, duration: 0.2, ease: "power2.in" })
-      .to(d, { x: to, width: 4, duration: 0.45, ease: "expo.out" });
-  }, [section, home, page]);
 
   // The menu closes on Escape, on a click outside it, and when the screen grows past it.
   useEffect(() => {
@@ -181,9 +160,7 @@ export function SiteNav() {
       className="nav-shell"
       ref={shell}
       data-scrolled={scrolled || undefined}
-      data-away={(away && !menu) || undefined}
       data-menu={menu || undefined}
-      onFocusCapture={() => setAway(false)}
     >
       <nav className="nav" aria-label="Main">
         <a className="brand" href="/" onPointerEnter={() => sweep(false)}>
@@ -211,7 +188,6 @@ export function SiteNav() {
               {label}
             </a>
           ))}
-          <span className="nav-dot" ref={dot} aria-hidden="true" />
         </div>
         <div className="nav-end">
           <a className="nav-cta" href={DOWNLOAD_PAGE} aria-current={pathname === DOWNLOAD_PAGE ? "page" : undefined}>
@@ -231,6 +207,7 @@ export function SiteNav() {
           <span />
           <span />
         </button>
+        <progress className="reading-progress" ref={progress} max={1} value={0} aria-label="Page scroll progress" />
       </nav>
       <div className="nav-menu" id="nav-menu" inert={!menu}>
         {LINKS.map(({ href, label }, i) => (
