@@ -184,14 +184,17 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section wrap home-platforms" id="downloads" aria-labelledby="downloads-heading">
-          <div>
-            <h2 id="downloads-heading">Get Pocket for your device</h2>
-            <p>Free for macOS 14 or later and available as a Windows 11 preview. Use the web app after setting up sync.</p>
-          </div>
-          <div className="home-platform-links">
-            <a className="pill pill-dark" href={DOWNLOAD_PAGE}><DownloadIcon />All download options</a>
-            <a className="feature-guide" id="windows" href={DOWNLOAD_PAGE + "#windows"}>Windows preview and setup</a>
+        <section className="wrap home-platforms" id="downloads" aria-labelledby="downloads-heading">
+          <div className="download-invitation">
+            <div>
+              <h2 id="downloads-heading">Start with today’s balance</h2>
+              <p>Get Pocket for macOS 14 or later, or try the Windows 11 preview. Enter your starting amount and you’re ready for your next purchase.</p>
+              <div className="home-platform-links">
+                <a className="pill pill-dark" href={DOWNLOAD_PAGE}><DownloadIcon />Choose a download</a>
+                <a className="feature-guide" id="windows" href={DOWNLOAD_PAGE + "#windows"}>Windows preview and setup</a>
+              </div>
+            </div>
+            <img src="/pocket-sculpture.webp" width={180} height={180} loading="lazy" alt="" />
           </div>
         </section>
       </main>

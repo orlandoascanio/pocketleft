@@ -95,10 +95,23 @@
 .product-story, #waiting, #faq, .home-help > div, .home-platform-links > a { scroll-margin-top: 104px; }
 .home-help { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 52px; }
 .home-help > div { border-top: 1px solid var(--line); padding-top: 20px; }
-.home-help h2, .home-platforms h2 { font-size: clamp(25px, 4vw, 38px); }
+.home-help h2 { font-size: clamp(25px, 4vw, 38px); }
 .home-help .feature-guide { display: flex; width: fit-content; }
-.home-platforms { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; border-top: 1px solid var(--line); }
-.home-platform-links { display: flex; flex-direction: column; align-items: flex-start; }
+.home-platforms { padding-block: clamp(48px, 7vw, 96px); }
+.download-invitation {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  gap: 24px; padding: clamp(28px, 5vw, 64px); border-radius: 24px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.download-invitation h2 { margin: 0; }
+.download-invitation p { max-width: 52ch; }
+.download-invitation img { display: block; width: clamp(110px, 15vw, 180px); height: auto; }
+.home-platform-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; margin-top: 22px; }
+.home-platform-links .feature-guide { margin-top: 0; }
+@media (max-width: 620px) {
+  .download-invitation { grid-template-columns: 1fr; }
+  .download-invitation img { grid-row: 1; width: 84px; }
+}
 @media (max-width: 740px) {
   .product-story, .tour-intro, .home-help { grid-template-columns: 1fr; }
   .story-reverse .story-copy, .story-reverse .story-screen { grid-column: auto; grid-row: auto; }
@@ -230,6 +243,7 @@
 .printer-paper pre { margin: 9px 0; text-align: center; font: 700 10px/.95 var(--mono); }
 .receipt-row { display: flex; justify-content: space-between; }
 .receipt-total { border-block: 1px dashed #8b9c89; margin: 8px 0; padding: 8px 0 6px; }
+.pocket-scene[data-spent="false"] .receipt-total { text-align: center; padding-block: 23px; margin-block: 14px; }
 .receipt-total small { display: block; }
 .receipt-total b { display: block; font: 700 31px/1.12 var(--mono); letter-spacing: -.075em; }
 .receipt-barcode { height: 13px; width: 60%; margin: 9px auto 0; background: repeating-linear-gradient(90deg, #344537 0 1px, transparent 1px 3px, #344537 3px 6px, transparent 6px 8px, #344537 8px 10px, transparent 10px 13px); }

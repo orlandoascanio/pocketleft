@@ -5,16 +5,6 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } fr
 const INITIAL_CENTS = 33703;
 const COFFEE_CENTS = 650;
 
-const COINS = [
-  "    .-======-.      ",
-  "   (  .----.  )     ",
-  "   |='------'=|     ",
-  "  .|==========|-.   ",
-  " (  '--------'   )  ",
-  " |='----------'=|   ",
-  "  '------------'    ",
-].join("\n");
-
 const COFFEE = [
   "      (  )  )       ",
   "       )(  (        ",
@@ -97,10 +87,14 @@ export function HeroScene() {
             <div className="printer-slot" />
             <div className="printer-paper" key={amount}>
               <div className="receipt-title">Balance receipt</div>
-              <pre>{spent ? COFFEE : COINS}</pre>
-              <div className="receipt-row"><span>Opening</span><span>$337.03</span></div>
-              <div className="receipt-row"><span>Coffee</span><span>{spent ? "−$6.50" : "—"}</span></div>
-              <div className="receipt-total"><small>Money left</small><b>${amount}</b></div>
+              {spent && (
+                <>
+                  <pre>{COFFEE}</pre>
+                  <div className="receipt-row"><span>Starting balance</span><span>${(INITIAL_CENTS / 100).toFixed(2)}</span></div>
+                  <div className="receipt-row"><span>Coffee</span><span>−$6.50</span></div>
+                </>
+              )}
+              <div className="receipt-total"><small>{spent ? "Money left" : "Starting balance"}</small><b>${amount}</b></div>
               <div className="receipt-barcode" />
             </div>
           </div>
