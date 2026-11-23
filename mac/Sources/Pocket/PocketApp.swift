@@ -200,7 +200,7 @@ struct Onboarding: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             VStack(alignment: .leading, spacing: 8) {
-                Text("How much money do you have right now?").font(.headline)
+                Text("What’s the balance you want to track?").font(.headline)
                 Picker("Balance direction", selection: $inTheRed) {
                     Text("I have").tag(false)
                     Text("I'm below zero by").tag(true)
@@ -230,7 +230,7 @@ struct Onboarding: View {
                     .labelsHidden()
                     .frame(width: 90)
                 }
-                Text("Use the money you have now. Leave this empty to start at zero.")
+                Text("Use today’s balance for the money you want to track, such as your everyday spending account. Leave it empty to start at zero.")
                     .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 if let amountError { Text(amountError).font(.caption).foregroundStyle(Palette.negative) }
             }
@@ -265,10 +265,10 @@ struct Onboarding: View {
             }
             Text(store.hasRecordedEntries
                  ? "Click your balance at the top of your screen whenever you spend or receive money."
-                 : "Add an expense to see your balance update. After that, click the balance at the top of your screen for quick entries.")
+                 : "Record your next expense or income to see your balance update. For quick entries, click your balance in the menu bar.")
                 .multilineTextAlignment(.center).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button(store.hasRecordedEntries ? "Open Pocket" : "Add My First Expense") {
+            Button(store.hasRecordedEntries ? "Open Pocket" : "Add My First Entry") {
                 store.windowRequest = store.hasRecordedEntries ? .section(.overview) : .firstEntry
                 dismissWindow(id: "welcome")
                 openWindow(id: "main")

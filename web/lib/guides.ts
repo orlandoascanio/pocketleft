@@ -68,16 +68,15 @@ export const GUIDES: Guide[] = [
         ],
         steps: [
           "Download Pocket from pocketleft.app, open the disk image and drag Pocket into Applications. Open the app.",
-          "Enter your current amount. Choose “I'm below zero by” if you are starting with a negative balance. An empty amount starts at zero.",
-          "Choose your currency. Pocket uses one currency at a time. Changing it later changes the label without converting the amounts.",
-          "Choose whether Pocket should open when you log in, then click Start. Your recorded balance appears in the menu bar.",
+          "Enter the current balance of the money you want to track. Choose “I'm below zero by” for a negative balance, or leave the amount empty to start at zero.",
+          "Pick a currency and click Set My Balance. Your recorded balance appears in the menu bar. You can enable Open at login later in Settings.",
         ],
         note: "If today's balance already includes an old purchase or paycheck, entering that transaction again changes the balance twice. Start from today and record changes from that point onward.",
       },
       {
         id: "first-entry",
         title: "Record one purchase and check the balance",
-        paragraphs: ["Click the menu bar balance to open Pocket, or use the entry field in Overview. Keep the minus button selected for spending, then enter the amount and describe the purchase. Choose a category from the icon to the left of the description. Press Return to save."],
+        paragraphs: ["After setting your balance, choose the button to add your first entry. This opens the entry field in Overview. You can also click your balance in the menu bar. Keep the minus button selected for spending, enter the amount and describe the purchase. Choose a category if you want, then press Return. Check your updated balance in the menu bar."],
         table: {
           label: "Balance after each entry",
           headings: ["Entry", "Change", "Recorded balance"],

@@ -818,6 +818,7 @@
 
   function addLedgerControls() {
     const lock = document.getElementById("lock");
+    for (const element of lock.querySelectorAll("[data-browser-onboarding]")) element.hidden = true;
     lock.querySelector("h1").textContent = "Set up Pocket";
     const isLocal = ledgerMode === "local";
     const exists = isLocal || localStorage.getItem(readyKey) === "yes";
@@ -828,11 +829,14 @@
       <p>Record expenses and income on this PC.</p>
       <label class="cap" for="pocketOpeningBalance">Starting balance (USD)</label>
       <input id="pocketOpeningBalance" inputmode="decimal" placeholder="0.00" autocomplete="off">
+      <p class="fine-print" id="pocketOpeningBalanceHelp">Use today’s balance for the money you want to track. Leave it empty to start at zero.</p>
       <button class="btn wide" type="submit"></button>
       <p class="form-msg" role="alert"></p>`;
     const input = form.querySelector("input");
+    input.setAttribute("aria-describedby", "pocketOpeningBalanceHelp");
     input.hidden = exists;
     form.querySelector("label").hidden = exists;
+    form.querySelector("#pocketOpeningBalanceHelp").hidden = exists;
     const submit = form.querySelector("button");
     submit.textContent = exists ? "Open local ledger" : "Start local ledger";
     lock.querySelector("h1").after(form);

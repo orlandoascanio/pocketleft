@@ -56,11 +56,37 @@ export function PlatformDownloadLink({ className, compact, shown, children }: {
 
 export function HeroPlatformHeadline() {
   const platform = useDownloadPlatform();
+  const balanceDescription = platform === "mac"
+    ? "Pocket keeps your balance in the Mac menu bar, even offline."
+    : platform === "windows"
+      ? "See your balance beside the Windows clock, even offline."
+      : "See what’s left after each purchase in Pocket for Mac or Windows.";
   return (
     <>
       <h1>Know what’s<br /><span>left.</span></h1>
-      <p className="lead">Enter income and expenses by hand. {platform === "windows" ? "See your balance beside the Windows clock, even offline." : "Pocket keeps your balance in the Mac menu bar, even offline."}</p>
+      <p className="lead">Enter income and expenses by hand. {balanceDescription}</p>
     </>
+  );
+}
+
+export function HeroActions({ downloadIcon }: { downloadIcon: ReactNode }) {
+  const platform = useDownloadPlatform();
+  return (
+    <div className="cta" id="hero-cta">
+      {platform ? (
+        <>
+          <PlatformDownloadLink className="pill pill-dark">{downloadIcon}</PlatformDownloadLink>
+          <a className="pill pill-soft" href={platform === "mac" ? "#tour" : "#windows"}>
+            {platform === "mac" ? "Take the tour" : "Windows setup"}
+          </a>
+        </>
+      ) : (
+        <>
+          <a className="pill pill-dark" href="#try-pocket">Try the sample ledger</a>
+          <PlatformDownloadLink className="pill pill-soft">{downloadIcon}</PlatformDownloadLink>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -83,9 +109,9 @@ export function HeroDownloadDetails() {
         </> : <li><a href="#windows">Windows 11 preview</a></li>}
       </ul>
       {platform ? (
-        <a className="hero-downloads-link" href="#downloads">Download details <span aria-hidden="true">↓</span></a>
+        platform === "mac" && <a className="hero-downloads-link" href="#downloads">Download details <span aria-hidden="true">↓</span></a>
       ) : (
-        <a className="hero-downloads-link" href={WEB_APP_URL}>Pair a device or open your ledger <span aria-hidden="true">↗</span></a>
+        <a className="hero-downloads-link" href={WEB_APP_URL}>Already have a synced ledger? Open it <span aria-hidden="true">↗</span></a>
       )}
     </>
   );

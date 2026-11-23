@@ -15,13 +15,14 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=12">
+<link rel="stylesheet" href="app.css?v=13">
 </head>
 <body>
 <main>
   <section id="lock" class="lock" hidden>
     <div id="lockPocket"></div>
     <h1>Open your Pocket</h1>
+    <p data-browser-onboarding>The browser app opens a ledger you’ve already set up with Pocket Sync.</p>
     <ol class="steps">
       <li><span>On a device that's already connected, open <b>Settings</b>. <span class="hint-inline">(On a Mac: Pocket → Settings → Sync.)</span></span></li>
       <li><span>Choose <b>Pair a new device</b>. A 6-digit code appears.</span></li>
@@ -57,6 +58,7 @@
         </div>
       </form>
     </details>
+    <div class="alt" data-browser-onboarding>New to Pocket? <a class="link" href="/#try-pocket">Try the sample ledger</a> or <a class="link" href="/#downloads">see desktop downloads</a>.</div>
   </section>
 
   <section id="home" hidden>
@@ -297,7 +299,7 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn" type="button" tabindex="-1"></button></div>
 
-<script src="subscriptions.js?v=12"></script>
-<script src="app.js?v=12"></script>
+<script src="subscriptions.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

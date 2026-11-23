@@ -197,13 +197,14 @@ export function DownloadDialog() {
             <div className="dl-step-copy">
               <span className="dl-step">03</span>
               <h3>Set your starting balance</h3>
-              <p>Open Pocket from Applications and enter your current amount. Your balance appears in the menu bar.</p>
+              <p>Open Pocket from Applications and set your balance. Record your next purchase to see the menu bar balance update.</p>
             </div>
           </li>
         </ol>
         <div className="dl-foot">
           <div>
             <a className="dl-retry" href={DOWNLOAD_URL} onClick={() => trackWebsiteEvent("install_help_retry", { action: "download_again" })}>Download again <span aria-hidden="true">↓</span></a>
+            <a href="/guides/getting-started/">Read the getting started guide <span aria-hidden="true">↗</span></a>
             <a className="dl-help" href={ISSUES_URL} target="_blank" rel="noopener noreferrer" onClick={() => trackWebsiteEvent("install_help_support", { action: "report_problem" })}>Report a problem <span aria-hidden="true">↗</span></a>
           </div>
           <button className="pill pill-dark" type="button" onClick={() => close("done")}>Got it</button>

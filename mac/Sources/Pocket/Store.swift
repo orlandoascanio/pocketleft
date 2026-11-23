@@ -27,7 +27,7 @@ enum WindowRequest: Equatable {
     case editRule(UUID)
     case section(AppSection)
     case newEntry(EntryDraft)
-    /// Open the simple Overview composer with the amount field ready for a first expense.
+    /// Open the Overview composer with the amount field ready for a first entry.
     case firstEntry
     /// A quick-add button that asks for its amount: fill the Overview entry and wait for the amount.
     case quickAdd(Preset)

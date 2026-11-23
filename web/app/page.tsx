@@ -10,7 +10,7 @@ import { Tour } from "@/components/Tour";
 import { HeroAnnounce } from "@/components/HeroAnnounce";
 import { RenewalPreview } from "@/components/RenewalPreview";
 import { HeroScene } from "@/components/HeroScene";
-import { ForDesktopPlatform, HeroDownloadDetails, HeroPlatformHeadline, PlatformDownloadLink } from "@/components/PlatformDownload";
+import { ForDesktopPlatform, HeroActions, HeroDownloadDetails, HeroPlatformHeadline, PlatformDownloadLink } from "@/components/PlatformDownload";
 import { SiteFooter } from "@/components/SiteFooter";
 import { FAQ } from "@/lib/faq";
 import { ALTERNATE_NAMES, AUTHOR, DISAMBIGUATION, PROFILES, PUBLISHER } from "@/lib/schema";
@@ -127,12 +127,7 @@ export default function Home() {
               </a>
             </HeroAnnounce>
             <HeroPlatformHeadline />
-            <div className="cta" id="hero-cta">
-              <DownloadButton />
-              <a className="pill pill-soft" href="#tour">
-                Take the tour
-              </a>
-            </div>
+            <HeroActions downloadIcon={<DownloadIcon />} />
             <HeroDownloadDetails />
           </div>
           <HeroScene />
@@ -357,7 +352,7 @@ export default function Home() {
                 </div>
                 <p className="desktop-download-note">v{WINDOWS_VERSION} preview · Windows 11 · Intel, AMD, and ARM</p>
               </div>
-              <p className="desktop-download-note desktop-install">Choose an install folder on your SSD or HDD in Pocket Setup. To start offline, choose <strong>Start local ledger</strong> when Pocket opens. This preview is unsigned.</p>
+              <p className="desktop-download-note desktop-install">Run <strong>Pocket-Setup.exe</strong> and choose an install folder. When Pocket opens, enter a starting balance and choose <strong>Start local ledger</strong>. Record your next purchase from the Pocket icon near the clock. This preview is unsigned.</p>
             </section>
           </ForDesktopPlatform>
         </div>

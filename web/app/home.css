@@ -33,7 +33,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.download-options, .desktop-download { scroll-margin-top: 96px; }
+.download-options, .desktop-download, #try-pocket { scroll-margin-top: 96px; }
 .download-options { margin-top: clamp(56px, 8vw, 90px); }
 .wrap.desktop-download {
   display: grid;

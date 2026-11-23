@@ -84,7 +84,7 @@ export function HeroScene() {
   }
 
   return (
-    <div className="pocket-scene" ref={scene} onPointerMove={move} onPointerLeave={resetTilt} data-moving={moving} data-active="true" data-spent={spent}>
+    <div id="try-pocket" className="pocket-scene" ref={scene} onPointerMove={move} onPointerLeave={resetTilt} data-moving={moving} data-active="true" data-spent={spent}>
       <div className="printer-stage">
         <div className="engraving" aria-hidden="true">
           {Array.from({ length: 32 }, (_, i) => (

@@ -2157,7 +2157,7 @@ scheduleBlink();
 
 // Browsers sometimes keep an old copy of this page. Ask for the current version (never cached)
 // and reload into it when it changed, so nobody gets stuck on an old release.
-const APP_VERSION = "12";
+const APP_VERSION = "13";
 async function checkForUpdate() {
   try {
     const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
