@@ -120,6 +120,8 @@ struct PendingOp: Codable, Identifiable, Equatable {
     /// The request may or may not have arrived (a timeout, or the account refused it). Retrying could add it twice.
     var needsReview = false
     var message: String?
+    /// Undo of an in-flight add waits for the server's transaction ID.
+    var undoOf: UUID?
 }
 
 /// Outbox and id translations, saved next to the account copy.

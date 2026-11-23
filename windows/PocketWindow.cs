@@ -27,11 +27,18 @@ internal sealed class PocketWindow : Form
     private PocketView mode;
     private bool initializing;
     private bool pageReady;
+    private bool hideQuickBalance;
     private Rectangle? fullBounds;
 
     public event Action<ClockBalance?>? BalanceChanged;
     public event Action<string, string>? ReminderRequested;
     public event Action? QuitRequested;
+
+    public void SetQuickBalanceHidden(bool hidden)
+    {
+        hideQuickBalance = hidden;
+        if (pageReady) SendMode();
+    }
 
     public PocketWindow(Icon icon)
     {
@@ -271,7 +278,10 @@ internal sealed class PocketWindow : Form
     {
         var core = browser.CoreWebView2;
         if (core is not null && IsClient(core.Source))
+        {
+            core.PostWebMessageAsJson(hideQuickBalance ? "\"hide-balance\"" : "\"show-balance\"");
             core.PostWebMessageAsJson(mode == PocketView.Quick ? "\"quick\"" : "\"full\"");
+        }
     }
 
     private static bool IsClient(string? source) => Uri.TryCreate(source, UriKind.Absolute, out var uri)

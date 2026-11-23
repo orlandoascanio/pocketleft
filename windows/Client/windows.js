@@ -18,8 +18,13 @@
   let focusHistory = false;
   let writeWork = Promise.resolve();
   let journalAccount;
+  let undoableQueuedAdd;
   window.PocketDesktop = {
     ledgerMode,
+    isQuickEntry: () => document.documentElement.dataset.pocketView === "quick",
+    isQuickBalanceHidden() {
+      return this.isQuickEntry() && document.documentElement.hasAttribute("data-pocket-hide-balance");
+    },
     currency: currencies.includes(savedCurrency) ? savedCurrency : "USD",
     lastMonth: localStorage.getItem("pocket.windows.categoryMonth"),
     showCategoryMonth(month, first, last, all) {
@@ -67,6 +72,7 @@
       return Math.floor((totals[Math.floor(weeks / 2)] + totals[Math.floor((weeks - 1) / 2)]) / 2);
     },
     onRender: (entries) => {
+      renderPayday();
       const note = document.getElementById("pocket-spending-note");
       if (!note) return;
       const weekly = window.PocketDesktop.everyday(entries, todayISO());
@@ -77,9 +83,65 @@
     async readSyncCopy(url, token) { return (await localModule()).cachedSyncState(await cacheId(url, token)); },
     isLedgerWrite: (name) => ledgerWrites.has(name),
     queueWrite,
+    cancelQueuedAdd,
     flushWrites,
     localRpc: async (name, args) => (await localModule()).rpc(name, args),
   };
+
+  const paydayKey = `${currencyKey}.payday`;
+  const cushionKey = `${currencyKey}.cushion`;
+
+  function renderPayday() {
+    const date = document.getElementById("pocketPayday");
+    if (!date || !proj) return;
+    const today = todayISO();
+    date.min = addDays(today, 1);
+    date.max = addDays(today, 30);
+    const saved = ls.get(paydayKey);
+    const suggested = upcoming.find((item) => Number(item.amount) > 0 && item.due_on >= date.min && item.due_on <= date.max);
+    date.value = saved >= date.min && saved <= date.max ? saved : suggested?.due_on || "";
+    const cushion = document.getElementById("pocketPaydayCushion");
+    const result = document.getElementById("pocketPaydayResult");
+    const detail = document.getElementById("pocketPaydayDetail");
+    if (!date.value || !cushion.validity.valid) {
+      result.textContent = !date.value ? "Choose your next payday within 30 days." : "Enter a cushion of zero or more.";
+      result.classList.remove("warn");
+      detail.textContent = "";
+      return;
+    }
+    const days = Math.round((asDate(date.value) - asDate(today)) / 86400000) - 1;
+    const p = project(proj.start, { days, beforePayday: true });
+    const extra = Math.round(p.low.bal * 100) - Math.round(Number(cushion.value) * 100);
+    result.textContent = extra < 0 ? `${fmt(-extra / 100)} short of your cushion` : `${fmt(extra / 100)} available to spend today`;
+    result.classList.toggle("warn", extra < 0);
+    const usual = p.daily > 0 ? `Includes ${fmt(p.daily / 100)} per day of usual spending.` : "Usual spending needs more history.";
+    detail.textContent = `Lowest projected balance is ${fmt(p.low.bal)} on ${shortFmt.format(asDate(p.low.date))}. ${usual} Income awaiting confirmation is excluded.`;
+  }
+
+  function addPaydayCard() {
+    const card = document.createElement("section");
+    card.className = "section card pocket-payday";
+    card.innerHTML = `<h2>Available until payday</h2>
+      <div class="fields2">
+        <label>Payday<input id="pocketPayday" type="date"></label>
+        <label>Keep at least<input id="pocketPaydayCushion" type="number" min="0" max="999999999.99" step="0.01"></label>
+      </div>
+      <div id="pocketPaydayResult" class="plan-title" role="status"></div>
+      <p id="pocketPaydayDetail" class="fine-print"></p>`;
+    const date = card.querySelector("#pocketPayday");
+    date.addEventListener("change", () => {
+      if (date.validity.valid) ls.set(paydayKey, date.value);
+      renderPayday();
+    });
+    const cushion = card.querySelector("#pocketPaydayCushion");
+    cushion.value = ls.get(cushionKey) || "0";
+    cushion.addEventListener("input", () => {
+      if (cushion.validity.valid) ls.set(cushionKey, cushion.value);
+      renderPayday();
+    });
+    document.getElementById("panel-plan").prepend(card);
+    renderPayday();
+  }
 
   async function cacheId(url, token) {
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${url}\n${token}`));
@@ -124,6 +186,7 @@
       if (entry.dependsOn) throw new Error("The previous change needs review.");
       const result = await rpc(entry.fn, entry.args, { fromQueue: true });
       if (current()) {
+        if (undoableQueuedAdd?.id === entry.id) undoableQueuedAdd.remoteID = result?.id;
         for (const dependent of journal.filter((item) => item.dependsOn === entry.id)) {
           if (typeof result?.id !== "string") {
             dependent.state = "review";
@@ -145,8 +208,10 @@
     }
   }
 
-  function queueWrite(fn, args) {
+  function queueWrite(fn, args, { quickEntry = false } = {}) {
+    const access = key, target = server;
     return serializeWrite(async () => {
+      if (access !== key || target !== server) throw new Error("Pocket changed accounts.");
       const context = await currentJournal();
       const { journal, account } = context;
       const existing = journal.find((entry) => args.p_id && entry.account === account && entry.args.p_id === args.p_id);
@@ -158,6 +223,10 @@
       writeJournal(journal);
       if (!navigator.onLine || journal.some((item) => item !== entry && item.account === account)) {
         setSync("off", `${journal.length} waiting to sync`);
+        if (quickEntry) {
+          undoableQueuedAdd = { id: entry.id, account };
+          return { queued: true, queueID: entry.id };
+        }
         toast("Change saved on this PC. It will sync when Pocket can connect.");
         return { queued: true };
       }
@@ -167,6 +236,21 @@
         toast("Check the pending change in Settings before retrying.");
       }
       return result;
+    });
+  }
+
+  function cancelQueuedAdd(id) {
+    return serializeWrite(async () => {
+      const { journal, account } = await currentJournal();
+      if (undoableQueuedAdd?.id !== id || undoableQueuedAdd.account !== account) {
+        throw new Error("This entry is no longer available to undo.");
+      }
+      const entry = journal.find((item) => item.id === id && item.account === account);
+      if (entry?.state === "review") {
+        throw new Error("Check this entry in Sync settings before undoing it.");
+      }
+      if (entry) writeJournal(journal.filter((item) => item.id !== id));
+      return undoableQueuedAdd.remoteID;
     });
   }
 
@@ -856,6 +940,11 @@
     document.querySelector("#home .top-right").prepend(expand);
 
     host.addEventListener("message", ({ data }) => {
+      if (data === "hide-balance" || data === "show-balance") {
+        root.toggleAttribute("data-pocket-hide-balance", data === "hide-balance");
+        if (shownBalance !== null) document.title = window.PocketDesktop.isQuickBalanceHidden() ? "Pocket" : `${fmt(shownBalance)} · Pocket`;
+        return;
+      }
       if (data === "refresh-balance") {
         // Leave queued writes to the visible window so a background read can't replay them.
         if (document.hidden && !refreshing && (ledgerMode === "local" || readQueue().length === 0)) {
@@ -868,6 +957,7 @@
       const changed = data !== root.dataset.pocketView;
       const focusExpand = document.activeElement === expand;
       root.dataset.pocketView = data;
+      if (shownBalance !== null) document.title = window.PocketDesktop.isQuickBalanceHidden() ? "Pocket" : `${fmt(shownBalance)} · Pocket`;
       expand.hidden = data !== "quick";
       if (changed) window.scrollTo({ top: 0, behavior: "instant" });
       if (focusExpand && data === "full") document.querySelector("#settingsBtn").focus();
@@ -887,6 +977,7 @@
     addLedgerControls();
     addHistoryControls();
     addPresetControls();
+    addPaydayCard();
     document.querySelector("#panel-subscriptions > .fine-print").textContent =
       "Use Renewal reminders on a subscription to change when Pocket notifies you. To cancel a subscription, contact the provider.";
     const spending = document.createElement("div");

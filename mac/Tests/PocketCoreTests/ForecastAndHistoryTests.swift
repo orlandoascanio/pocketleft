@@ -105,6 +105,30 @@ final class ForecastAndHistoryTests: XCTestCase {
         XCTAssertNil(Ledger.monthsLeft(balance: 0, everyday: 500, repeating: []), "nothing left")
     }
 
+    func testPaydayEstimateUsesTheLowestBalanceBeforePayday() throws {
+        let today = day("2026-11-23")
+        let payday = day("2026-11-27")
+        var ledger = Ledger(entries: [Entry(cents: 82_000, label: "Opening balance", day: today)])
+        func schedule(_ cents: Cents, _ name: String, _ date: String, auto: Bool) {
+            ledger.addRule(Rule(cents: cents, label: name, cadence: .monthly, anchor: day(date),
+                                total: 1, auto: auto), today: today)
+        }
+        schedule(-45_000, "Rent", "2026-11-26", auto: true)
+        schedule(500_000, "Client invoice", "2026-11-24", auto: false)
+        schedule(25_000, "Bonus", "2026-11-26", auto: true)
+        schedule(100_000, "Paycheck", "2026-11-27", auto: true)
+
+        let projection = try XCTUnwrap(ledger.projectBeforePayday(today: today, payday: payday, everyday: 4_000))
+        XCTAssertEqual(projection.end, day("2026-11-26"))
+        XCTAssertEqual(projection.lowDay, day("2026-11-26"))
+        XCTAssertEqual(projection.lowBalance, 21_000)
+        XCTAssertEqual(projection.endBalance, 46_000)
+        XCTAssertEqual(projection.steps.map(\.occurrence.label), ["Rent", "Bonus"])
+        ledger.add(Entry(cents: -3_000, label: "Groceries", day: today))
+        XCTAssertEqual(ledger.projectBeforePayday(today: today, payday: payday, everyday: 4_000)?.lowBalance, 21_000)
+        XCTAssertNil(ledger.projectBeforePayday(today: today, payday: today, everyday: 4_000))
+    }
+
     private func searchLedger() -> Ledger {
         var l = Ledger()
         l.add(Entry(cents: 5_000, label: "Starting balance", day: day("2026-09-01"), category: Categories.start))

@@ -107,14 +107,20 @@ struct QuickAddCommands: Commands {
     }
 }
 
-/// The menubar shows just the balance.
+/// A hidden balance still leaves a menu bar button for Quick Entry.
 struct MenuLabel: View {
     @EnvironmentObject var store: Store
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Text(store.menuTitle)
-            .monospacedDigit()
+        Group {
+            if store.hideDesktopBalance && store.loadError == nil && store.onboarded {
+                Image(systemName: "wallet.pass")
+                    .accessibilityLabel("Pocket, balance hidden")
+            } else {
+                Text(store.menuTitle).monospacedDigit()
+            }
+        }
             .onReceive(NotificationCenter.default.publisher(for: .pocketReminderOpened)) { notification in
                 store.windowRequest = notification.userInfo?["subscriptions"] as? Bool == true ? .section(.subscriptions) : .waiting
                 openWindow(id: "main")

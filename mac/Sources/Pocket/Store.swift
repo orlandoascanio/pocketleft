@@ -78,6 +78,9 @@ final class Store: ObservableObject {
     @Published var range: Int { didSet { defaults.set(range, forKey: "range") } }
     /// Whether the forecast counts everyday spending, not only scheduled payments.
     @Published var includeEveryday: Bool { didSet { defaults.set(includeEveryday, forKey: "includeEveryday") } }
+    @Published var hideDesktopBalance: Bool { didSet { defaults.set(hideDesktopBalance, forKey: "hideDesktopBalance") } }
+    @Published var paydayCushion: Cents { didSet { defaults.set(paydayCushion, forKey: "paydayCushion") } }
+    @Published var paydayDate: String { didSet { defaults.set(paydayDate, forKey: "paydayDate") } }
     @Published var reminders: Bool {
         didSet {
             defaults.set(reminders, forKey: "reminders")
@@ -128,11 +131,17 @@ final class Store: ObservableObject {
     @Published private(set) var syncState: SyncState = .offline
     @Published private(set) var journal = SyncJournal()
     private var syncInFlight = false
+    private var sendingOpID: UUID?
     private var syncAgain = false
     private var subscriptionSyncAvailable = false
     var connected: Bool { accountKey != nil }
     /// Changes still on their way to the account, and ones that need a look before retrying.
     var outbox: [PendingOp] { journal.outbox }
+    private var nextSyncWrite: PendingOp? {
+        journal.outbox.first { op in
+            !op.needsReview && (op.undoOf.map { journal.ids[$0] != nil } ?? true)
+        }
+    }
 
     var money: Money { Money(currency: ledger.currency) }
     var balance: Cents { ledger.balance }
@@ -147,7 +156,7 @@ final class Store: ObservableObject {
     var monthsLeft: Double? { ledger.monthsLeft(everyday: forecastEveryday) }
     var menuTitle: String {
         if loadError != nil { return "Pocket ⚠︎" }
-        guard onboarded else { return "Pocket" }
+        guard onboarded && !hideDesktopBalance else { return "Pocket" }
         return money.string(balance) + (syncState == .badKey ? " ⚠︎" : "")
     }
 
@@ -207,6 +216,9 @@ final class Store: ObservableObject {
         let r = defaults.integer(forKey: "range")
         range = [30, 91, 182, 365].contains(r) ? r : 91
         includeEveryday = defaults.object(forKey: "includeEveryday") as? Bool ?? true
+        hideDesktopBalance = defaults.bool(forKey: "hideDesktopBalance")
+        paydayCushion = defaults.integer(forKey: "paydayCushion")
+        paydayDate = defaults.string(forKey: "paydayDate") ?? ""
         reminders = defaults.object(forKey: "reminders") as? Bool ?? true
         subscriptionReminders = defaults.bool(forKey: "subscriptionReminders")
         let previousTiming = defaults.data(forKey: "renewalReminderTiming")
@@ -370,12 +382,12 @@ final class Store: ObservableObject {
 
     @discardableResult
     private func mutate(deleted: Bool = false, category: String? = nil, _ body: (inout Ledger) -> Void) -> Bool {
-        receipt = nil
         let before = ledger.balance
         var candidate = ledger
         body(&candidate)
         candidate.postDue(today: today)
         guard persist(candidate) else { return false }
+        receipt = nil
         ledger = candidate
         let diff = ledger.balance - before
         if diff != 0 { announce(diff: diff, before: before, category: category, deleted: deleted) }
@@ -425,6 +437,27 @@ final class Store: ObservableObject {
         guard mutate(deleted: true, { $0.removeEntry(id) }) else { return false }
         send("pocket_delete", ["p_id": id.uuidString], label: label)
         return true
+    }
+
+    func undoEntryReceipt(_ id: UUID) -> String? {
+        guard receipt?.target == .editEntry(id) else { return nil }
+        guard let entry = ledger.entries.first(where: { $0.id == id }) else {
+            receipt = nil
+            return nil
+        }
+        let pendingAdd = journal.outbox.first { $0.function == "pocket_add" && $0.localID == id }
+        if pendingAdd?.needsReview == true {
+            return "Check this entry in Sync settings before undoing it."
+        }
+        guard mutate(deleted: true, { $0.removeEntry(id) }) else { return "Couldn't undo. Try again." }
+        if let pendingAdd, pendingAdd.id != sendingOpID {
+            journal.outbox.removeAll { $0.id == pendingAdd.id }
+            saveJournal()
+        } else {
+            send("pocket_delete", ["p_id": id.uuidString], label: entry.label, undoOf: pendingAdd?.localID)
+        }
+        say("Entry undone", face: .happy)
+        return nil
     }
 
     @discardableResult
@@ -642,9 +675,10 @@ final class Store: ObservableObject {
     private func dollars(_ cents: Cents) -> Double { Double(cents) / 100 }
 
     /// Queues a change for the account (only while connected) and starts sending it.
-    private func send(_ fn: String, _ args: [String: Any], label: String, localID: UUID? = nil, start: Bool = true) {
+    private func send(_ fn: String, _ args: [String: Any], label: String, localID: UUID? = nil, start: Bool = true,
+                      undoOf: UUID? = nil) {
         guard connected, let data = try? JSONSerialization.data(withJSONObject: args) else { return }
-        journal.outbox.append(PendingOp(function: fn, arguments: data, label: label, localID: localID))
+        journal.outbox.append(PendingOp(function: fn, arguments: data, label: label, localID: localID, undoOf: undoOf))
         saveJournal()
         if start { Task { await syncNow() } }
     }
@@ -678,13 +712,13 @@ final class Store: ObservableObject {
             do {
                 try await flush(key)
                 guard key == accountKey else { return }
-                guard !journal.outbox.contains(where: { !$0.needsReview }) else { syncState = .offline; return }
+                guard nextSyncWrite == nil else { syncState = .offline; return }
                 let data = try await client.rpc("pocket_state", ["p_today": Day.today.iso, "p_days": 1], key: key)
                 let state = try Store.decoder().decode(ServerState.self, from: data)
                 subscriptionSyncAvailable = state.subscription_tracking == true
                 guard key == accountKey else { return }
                 // A change made while the request was out goes first; the next round picks up the result.
-                if journal.outbox.contains(where: { !$0.needsReview }) { syncAgain = true; continue }
+                if nextSyncWrite != nil { syncAgain = true; continue }
                 guard adopt(state.ledger(currency: ledger.currency)) else {
                     recordSyncFailure()
                     syncState = .offline
@@ -755,12 +789,14 @@ final class Store: ObservableObject {
     }
 
     private func flush(_ key: String) async throws {
-        while let op = journal.outbox.first(where: { !$0.needsReview }) {
+        while let op = nextSyncWrite {
             var args = (try JSONSerialization.jsonObject(with: op.arguments)) as? [String: Any] ?? [:]
             // Something added on this Mac moments ago is known to the account by the account's id.
             if let id = (args["p_id"] as? String).flatMap(UUID.init(uuidString:)), let mapped = journal.ids[id] {
                 args["p_id"] = mapped.uuidString
             }
+            sendingOpID = op.id
+            defer { sendingOpID = nil }
             do {
                 let data = try await client.rpc(op.function, args, key: key)
                 guard key == accountKey else { return }
@@ -772,6 +808,12 @@ final class Store: ObservableObject {
                 journal.outbox.removeAll { $0.id == op.id }
                 saveJournal()
             } catch let e as URLError {
+                // A canceled add that never reached the server needs no follow-up deletion.
+                if key == accountKey, AccountClient.safeToRetry.contains(e.code), let localID = op.localID,
+                   journal.outbox.contains(where: { $0.undoOf == localID }) {
+                    journal.outbox.removeAll { $0.id == op.id || $0.undoOf == localID }
+                    saveJournal()
+                }
                 if !AccountClient.safeToRetry.contains(e.code), let i = journal.outbox.firstIndex(where: { $0.id == op.id }) {
                     journal.outbox[i].needsReview = true
                     journal.outbox[i].message = "It may have reached your account. Check before retrying."
@@ -938,7 +980,8 @@ final class Store: ObservableObject {
 
     /// Drops a change that didn't sync. The account's version comes back on the next sync.
     func discard(_ id: UUID) {
-        journal.outbox.removeAll { $0.id == id }
+        let localID = journal.outbox.first { $0.id == id }?.localID
+        journal.outbox.removeAll { $0.id == id || (localID != nil && $0.undoOf == localID) }
         saveJournal()
         Task { await syncNow() }
     }

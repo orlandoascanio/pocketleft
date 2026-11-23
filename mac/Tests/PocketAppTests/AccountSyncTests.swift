@@ -224,6 +224,44 @@ final class AccountSyncTests: XCTestCase {
         XCTAssertEqual(MockAccount.txs.count, 2, "syncing again never re-sends")
     }
 
+    func testUndoOfflineEntryCancelsThePendingAdd() async throws {
+        MockAccount.reset(balance: 100)
+        let store = try makeStore()
+        try await store.connect(key: MockAccount.key)
+        MockAccount.failure = .notConnectedToInternet
+        let id = try XCTUnwrap(store.addEntry(cents: -650, label: "Coffee", day: .today, category: "food"))
+        await store.syncNow()
+        XCTAssertEqual(store.outbox.count, 1)
+
+        XCTAssertNil(store.undoEntryReceipt(id))
+        XCTAssertTrue(store.outbox.isEmpty)
+        XCTAssertEqual(store.balance, 10_000)
+
+        MockAccount.failure = nil
+        MockAccount.calls = []
+        await store.syncNow()
+        XCTAssertEqual(MockAccount.serverBalance, 10_000)
+        XCTAssertEqual(MockAccount.calls, ["pocket_state"])
+    }
+
+    func testUndoSyncedEntryUsesTheServerTransactionID() async throws {
+        MockAccount.reset(balance: 100)
+        let store = try makeStore()
+        try await store.connect(key: MockAccount.key)
+        let local = try XCTUnwrap(store.addEntry(cents: -650, label: "Coffee", day: .today, category: "food"))
+        await store.syncNow()
+        guard case .editEntry(let remote) = store.receipt?.target else {
+            return XCTFail("Expected a receipt for the synced entry")
+        }
+        XCTAssertNotEqual(local, remote)
+        XCTAssertNil(store.undoEntryReceipt(remote))
+        await store.syncNow()
+
+        XCTAssertEqual(MockAccount.serverBalance, 10_000)
+        XCTAssertEqual(store.balance, 10_000)
+        XCTAssertTrue(store.outbox.isEmpty)
+    }
+
     func testEditingAnEntryBeforeItSyncsUpdatesTheAccountCopy() async throws {
         MockAccount.reset(balance: 100)
         let store = try makeStore()

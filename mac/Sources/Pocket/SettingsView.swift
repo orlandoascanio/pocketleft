@@ -59,6 +59,7 @@ struct SettingsView: View {
             }
 
             Section("General") {
+                Toggle("Hide balance in the menu bar and Quick Entry", isOn: $store.hideDesktopBalance)
                 Toggle("Remind me when a payment I'm waiting for is due", isOn: $store.reminders)
                 Button("Send Test Reminder") { Task { await store.sendTestReminder() } }
                     .disabled(!store.notificationServicesAvailable || !store.reminders || store.sendingTestReminder)

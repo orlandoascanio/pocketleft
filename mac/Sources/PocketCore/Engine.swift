@@ -160,27 +160,41 @@ extension Ledger {
     /// The balance from today to `today + days`: scheduled payments land on their day, and `everyday` (cents a day)
     /// goes out every day after today.
     public func project(today: Day, days: Int, everyday: Cents = 0, includeOverdueIncome: Bool = true) -> Projection {
+        project(today: today, days: days, everyday: everyday, includeOverdueIncome: includeOverdueIncome, beforePayday: false)
+    }
+
+    private func project(today: Day, days: Int, everyday: Cents, includeOverdueIncome: Bool, beforePayday: Bool) -> Projection {
         let end = today.adding(days: days)
         let unconfirmedIncome = Set(rules.lazy.filter { !$0.auto && $0.cents > 0 }.map(\.id))
         var overdueIncome: Cents = 0
         var events: [Occurrence] = []
         for var occurrence in upcoming(today: today, days: days) {
-            if occurrence.day < today && unconfirmedIncome.contains(occurrence.ruleID) {
-                overdueIncome += occurrence.cents
-                if !includeOverdueIncome { continue }
+            if unconfirmedIncome.contains(occurrence.ruleID) {
+                if occurrence.day < today {
+                    overdueIncome += occurrence.cents
+                    if !includeOverdueIncome { continue }
+                }
+                if beforePayday { continue }
             }
             if occurrence.overdue { occurrence.day = today }
             events.append(occurrence)
         }
-        events.sort { ($0.day, $0.label) < ($1.day, $1.label) }
+        events.sort {
+            if beforePayday && $0.day == $1.day && ($0.cents < 0) != ($1.cents < 0) { return $0.cents < 0 }
+            return ($0.day, $0.label) < ($1.day, $1.label)
+        }
         let start = balance
-        var bal = start
+        // An extra purchase today still has to leave room for today's usual spending.
+        let spentToday = beforePayday ? entries.lazy
+            .filter { $0.day == today && $0.cents < 0 && $0.ruleID == nil && $0.category != Categories.start }
+            .reduce(0) { $0 - $1.cents } : 0
+        var bal = beforePayday ? start - max(0, everyday - spentToday) : start
         var spentThrough = today
-        var points = [Projection.Point(day: today, before: start, balance: start, events: [])]
+        var points = [Projection.Point(day: today, before: start, balance: bal, events: [])]
         var steps: [Projection.Step] = []
-        var hitZero: Day?
+        var hitZero: Day? = start >= 0 && bal < 0 ? today : nil
         var backAbove: Occurrence?
-        var low = (day: today, balance: start)
+        var low = (day: today, balance: bal)
         // Everyday spending up to `day`, noting the day it first takes the balance below zero.
         func spend(through day: Day) {
             guard day > spentThrough else { return }
@@ -210,6 +224,12 @@ extension Ledger {
         spend(through: end)
         return Projection(today: today, end: end, days: days, everyday: everyday, start: start, endBalance: bal, points: points,
                           steps: steps, overdueIncome: overdueIncome, hitZero: hitZero, backAbove: backAbove, lowDay: low.day, lowBalance: low.balance)
+    }
+
+    public func projectBeforePayday(today: Day, payday: Day, everyday: Cents) -> Projection? {
+        guard payday > today else { return nil }
+        return project(today: today, days: today.days(until: payday) - 1, everyday: everyday,
+                       includeOverdueIncome: false, beforePayday: true)
     }
 
     /// Roughly how many months the balance lasts at the usual pace: `everyday` spending plus repeating money

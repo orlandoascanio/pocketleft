@@ -26,6 +26,7 @@ struct PlanView: View {
                     .font(.callout)
                 }
                 SaveFailureView()
+                PaydayCard()
                 Card {
                     ForecastChart(projection: p, money: store.money)
                         .frame(height: 240)
@@ -186,6 +187,78 @@ struct PlanView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+private struct PaydayCard: View {
+    @EnvironmentObject var store: Store
+    @State private var cushionText = ""
+
+    private var maxPayday: Day { store.today.adding(days: 365) }
+    private var suggestedPayday: Day? {
+        store.ledger.upcoming(today: store.today, days: 365).first {
+            $0.cents > 0 && $0.day > store.today
+        }?.day
+    }
+    private var payday: Day? {
+        if let chosen = Day(iso: store.paydayDate), chosen > store.today, chosen <= maxPayday { return chosen }
+        return suggestedPayday
+    }
+    private var cushion: Cents? {
+        let text = cushionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.contains("-") && !text.contains("−") else { return nil }
+        return text.isEmpty ? 0 : Money.parse(text, allowZero: true)
+    }
+
+    var body: some View {
+        if store.loadError == nil {
+            Card {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Available until payday").font(.headline)
+                    if let payday {
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 16) { inputs(payday) }
+                            VStack(alignment: .leading, spacing: 8) { inputs(payday) }
+                        }
+                        if let cushion, let projection = store.ledger.projectBeforePayday(
+                            today: store.today, payday: payday, everyday: store.everyday?.perDay ?? 0
+                        ) {
+                            let extra = projection.lowBalance - cushion
+                            Text(extra < 0 ? "\(store.money.string(-extra)) short of your cushion" : "\(store.money.string(extra)) available to spend today")
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(extra < 0 ? Palette.negative : Color.primary)
+                            Text("Lowest projected balance before payday is \(store.money.string(projection.lowBalance)) on \(projection.lowDay.localDate.formatted(.dateTime.month(.abbreviated).day())).")
+                                .font(.callout).foregroundStyle(.secondary)
+                            Text((projection.everyday > 0 ? "Includes \(store.money.string(projection.everyday)) per day of usual spending. " :
+                                  "Usual spending is unavailable until there’s enough history. ") + "Income awaiting confirmation is excluded.")
+                                .font(.callout).foregroundStyle(.secondary)
+                        } else {
+                            Text("Enter a cushion of zero or more.").font(.callout).foregroundStyle(Palette.negative)
+                        }
+                    } else {
+                        Text("Choose your next payday to see what you can spend before then.")
+                            .font(.callout).foregroundStyle(.secondary)
+                        Button("Set Payday…") { store.paydayDate = store.today.adding(days: 7).iso }
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .onAppear { cushionText = Money.edit(store.paydayCushion) }
+            .onChange(of: cushionText) { if let cushion { store.paydayCushion = cushion } }
+        }
+    }
+
+    @ViewBuilder private func inputs(_ payday: Day) -> some View {
+        DatePicker("Payday", selection: Binding(get: { payday.localDate }, set: { store.paydayDate = Day($0).iso }),
+                   in: store.today.adding(days: 1).localDate...maxPayday.localDate, displayedComponents: .date)
+        HStack(spacing: 6) {
+            Text("Keep at least \(store.money.symbol)")
+            TextField("Cushion", text: $cushionText).frame(width: 95)
+        }
+        if !store.paydayDate.isEmpty, suggestedPayday != nil {
+            Button("Use Next Scheduled Income") { store.paydayDate = "" }.buttonStyle(.link)
         }
     }
 }

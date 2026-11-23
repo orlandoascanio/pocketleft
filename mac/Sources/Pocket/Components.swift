@@ -249,29 +249,42 @@ struct SharePromptView: View {
     }
 }
 
-/// "Added −$6.50 · Coffee", with Edit, and Save as Button while it isn't one yet.
+/// "Added −$6.50 · Coffee", with entry actions.
 struct EntryReceiptView: View {
     @EnvironmentObject var store: Store
+    @State private var undoError: String?
     var onEdit: (WindowRequest) -> Void
     var body: some View {
         if let receipt = store.receipt {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Label(receipt.text, systemImage: "checkmark.circle")
-                    .font(.callout).lineLimit(2)
-                Spacer(minLength: 0)
-                if case .editEntry(let id) = receipt.target,
-                   let entry = store.ledger.entries.first(where: { $0.id == id }), store.canSaveAsPreset(entry) {
-                    Button("Save as Button") { store.saveAsPreset(id) }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Label(receipt.text, systemImage: "checkmark.circle")
+                        .font(.callout).lineLimit(2)
+                    Spacer(minLength: 0)
+                    if case .editEntry(let id) = receipt.target,
+                       let entry = store.ledger.entries.first(where: { $0.id == id }) {
+                        Button("Undo") { undoError = store.undoEntryReceipt(id) }
+                            .buttonStyle(.link)
+                            .fixedSize()
+                            .help("Undo the entry just added")
+                        if store.canSaveAsPreset(entry) {
+                            Button("Save as Button") { store.saveAsPreset(id) }
+                                .buttonStyle(.link)
+                                .fixedSize()
+                                .help("Make a quick-add button for “\(entry.label)”, so next time it's one click or ⌘-number")
+                        }
+                    }
+                    Button("Edit") { onEdit(receipt.target) }
                         .buttonStyle(.link)
                         .fixedSize()
-                        .help("Make a quick-add button for “\(entry.label)”, so next time it's one click or ⌘-number")
+                        .accessibilityLabel(receipt.target == .section(.settings) ? "Edit quick-add buttons" : "Edit the entry just saved")
                 }
-                Button("Edit") { onEdit(receipt.target) }
-                    .buttonStyle(.link)
-                    .fixedSize()
-                    .accessibilityLabel(receipt.target == .section(.settings) ? "Edit quick-add buttons" : "Edit the entry just saved")
+                if let undoError {
+                    Text(undoError).font(.caption).foregroundStyle(Palette.negative)
+                }
             }
             .foregroundStyle(Palette.accent)
+            .onChange(of: receipt.target) { undoError = nil }
         }
     }
 }

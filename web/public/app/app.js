@@ -445,9 +445,9 @@ function setServer(next) {
 }
 
 // ---------- network ----------
-async function rpc(fn, args = {}, { noKey = false, fromQueue = false } = {}) {
+async function rpc(fn, args = {}, { noKey = false, fromQueue = false, quickEntry = false } = {}) {
   if (localLedger) return desktop.localRpc(fn, args);
-  if (desktop && key && !noKey && !fromQueue && desktop.isLedgerWrite(fn)) return desktop.queueWrite(fn, args);
+  if (desktop && key && !noKey && !fromQueue && desktop.isLedgerWrite(fn)) return desktop.queueWrite(fn, args, { quickEntry });
   const res = await fetch(`${server.url}/rest/v1/rpc/${fn}`, {
     method: "POST",
     headers: { apikey: server.key, "Content-Type": "application/json" },
@@ -467,8 +467,8 @@ function readQueue() { try { return JSON.parse(ls.get(QUEUE_STORE) || "[]"); } c
 function saveQueue(q) { if (q.length) ls.set(QUEUE_STORE, JSON.stringify(q)); else ls.del(QUEUE_STORE); }
 
 // New entries survive being offline: they wait here and go out on the next sync.
-async function rpcAdd(fn, args) {
-  if (desktop) return rpc(fn, args);
+async function rpcAdd(fn, args, options) {
+  if (desktop) return rpc(fn, args, options);
   try { return await rpc(fn, args); }
   catch (e) {
     if (!isNetErr(e)) throw e;
@@ -610,17 +610,21 @@ function greet() {
 }
 
 // ---------- forecast ----------
-function project(total) {
-  const today = todayISO(), end = addDays(today, range);
+function project(total, { days = range, beforePayday = false } = {}) {
+  const today = todayISO(), end = addDays(today, days);
   const ev = upcoming
+    .filter((u) => !beforePayday || Number(u.amount) < 0 || u.auto === true)
     .map((u) => ({ date: u.overdue ? today : u.due_on, amount: Number(u.amount), label: u.label, id: u.recurring_id, overdue: u.overdue }))
     .filter((e) => e.date <= end)
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    .sort((a, b) => a.date.localeCompare(b.date) || (beforePayday ? Number(b.amount < 0) - Number(a.amount < 0) : 0));
   const start = Math.round(total * 100) / 100;
-  let bal = start;
-  const daily = desktop?.everyday && desktop.includeEveryday ? Math.round(desktop.everyday(txs, today) / 7) : 0;
-  const pts = [{ date: today, before: bal, bal, events: [] }];
-  let hitZero = null, backAbove = null, backAboveBy = null, low = { date: today, bal };
+  const daily = desktop?.everyday && (desktop.includeEveryday || beforePayday) ? Math.round(desktop.everyday(txs, today) / 7) : 0;
+  const spentToday = beforePayday ? txs
+    .filter((tx) => tx.occurred_on === today && tx.amount < 0 && !tx.recurring_id && tx.category !== "start")
+    .reduce((sum, tx) => sum - Math.round(Number(tx.amount) * 100), 0) : 0;
+  let bal = start - Math.max(0, beforePayday ? daily - spentToday : 0) / 100;
+  const pts = [{ date: today, before: start, bal, events: [] }];
+  let hitZero = start >= 0 && bal < 0 ? today : null, backAbove = null, backAboveBy = null, low = { date: today, bal };
   let spentThrough = today;
   function spendThrough(date) {
     const days = Math.round((asDate(date) - asDate(spentThrough)) / 86400000);
@@ -792,7 +796,7 @@ function row({ id, title, iconName, hue, amount, noteLeft, noteRight, noteRightN
 function render() {
   if (!loaded) return;
   const total = txs.reduce((s, t) => s + Number(t.amount), 0);
-  document.title = `${fmt(total)} · Pocket`;
+  document.title = desktop?.isQuickBalanceHidden() ? "Pocket" : `${fmt(total)} · Pocket`;
 
   const month = todayISO().slice(0, 7);
   const monthTx = txs.filter((t) => t.occurred_on.startsWith(month) && t.category !== "start");
@@ -1482,6 +1486,10 @@ async function onSubmit(e) {
     // so it only counts once its day arrives.
     const once = cadence === "once";
     const planned = !once || date > today;
+    const quickEntry = !editing && !planned && desktop?.isQuickEntry();
+    const entryAccount = key;
+    const entryServer = server;
+    const signedAmount = sign * amount;
     const auto = !$("confirmBox").checked;
     const saveAsPreset = !editing && !planned && $("presetBox").checked;
     const choice = sign < 0 && !once ? subscriptionChoice : subscriptionChoice == null ? null : false;
@@ -1500,7 +1508,7 @@ async function onSubmit(e) {
         p_today: today, p_times: once ? 1 : times, p_category: cat, p_auto: auto, ...membership,
       });
     } else {
-      res = await rpcAdd("pocket_add", { p_amount: sign * amount, p_label: label, p_on: date, p_category: cat });
+      res = await rpcAdd("pocket_add", { p_amount: signedAmount, p_label: label, p_on: date, p_category: cat }, { quickEntry });
     }
     if (saveAsPreset) {
       await rpcAdd("pocket_preset_save", { p_label: label, p_sign: sign, p_amount: amount, p_category: cat });
@@ -1508,6 +1516,10 @@ async function onSubmit(e) {
     if (res?.queued) {
       resetForm();
       face("hope", 1500);
+      if (quickEntry) {
+        showTrayEntryReceipt(res, label, signedAmount, entryAccount, entryServer);
+        return;
+      }
       toast("You're offline. Saved here, and it'll sync when you're back.");
       setSync("off", `${readQueue().length} waiting to sync`);
       return;
@@ -1516,7 +1528,8 @@ async function onSubmit(e) {
     resetForm();
     flashDone(btn);
     await load({ quiet: true });
-    if (saveAsPreset) toast(`"${label}" is now a quick-add button`);
+    if (quickEntry) showTrayEntryReceipt(res, label, signedAmount, entryAccount, entryServer);
+    else if (saveAsPreset) toast(`"${label}" is now a quick-add button`);
     $("amount").focus({ preventScroll: true });
   } catch (err) {
     pendingFlight = null;
@@ -1571,6 +1584,48 @@ async function onPause() {
 }
 
 // ---------- quick add ----------
+function showTrayEntryReceipt(result, label, amount, entryAccount, entryServer) {
+  if (key !== entryAccount || server !== entryServer) return;
+  if (result?.review) {
+    toast("Check the pending entry in Sync settings.");
+    return;
+  }
+  if (!result?.id && !result?.queueID) return;
+  const message = `Added ${label} ${signed(amount)}`;
+  toast(result.queued ? `${label} ${signed(amount)} · Waiting to sync` : message, "Undo", async () => {
+    if (key !== entryAccount || server !== entryServer) return;
+    let id = result.id;
+    try {
+      if (result.queueID) id = await desktop.cancelQueuedAdd(result.queueID);
+    } catch (error) {
+      toast(error.message || "Couldn't undo the pending entry.");
+      return;
+    }
+    if (key !== entryAccount || server !== entryServer) return;
+    try {
+      if (id) {
+        pendingReason = "undo";
+        const deletion = await rpc("pocket_delete", { p_id: id });
+        if (deletion?.review) {
+          pendingReason = null;
+          toast("Check the pending undo in Sync settings.");
+          return;
+        }
+        if (deletion?.queued) {
+          pendingReason = null;
+          toast("Undo is waiting to sync.");
+          return;
+        }
+      }
+      await load({ quiet: true });
+      toast("Entry undone");
+    } catch {
+      pendingReason = null;
+      toast("Couldn't undo. Check History and try again.");
+    }
+  }, 10000);
+}
+
 async function usePreset(p, chip) {
   if (p.amount == null) {
     // Different price every time: fill the form and ask for the amount.
@@ -1585,16 +1640,27 @@ async function usePreset(p, chip) {
     return;
   }
   const amount = p.sign * Number(p.amount);
+  const quickEntry = desktop?.isQuickEntry();
+  const entryAccount = key;
+  const entryServer = server;
   chip.disabled = true;
   try {
-    const res = await rpcAdd("pocket_add", { p_amount: amount, p_label: p.label, p_on: todayISO(), p_category: p.category });
+    const res = await rpcAdd("pocket_add", { p_amount: amount, p_label: p.label, p_on: todayISO(), p_category: p.category }, { quickEntry });
     if (res?.queued) {
+      if (quickEntry) {
+        showTrayEntryReceipt(res, p.label, amount, entryAccount, entryServer);
+        return;
+      }
       toast(`You're offline. ${p.label} is saved here and will sync later.`);
       setSync("off", `${readQueue().length} waiting to sync`);
       return;
     }
     pendingFlight = { amount, from: chip.getBoundingClientRect(), scheduled: false };
     await load({ quiet: true });
+    if (quickEntry) {
+      showTrayEntryReceipt(res, p.label, amount, entryAccount, entryServer);
+      return;
+    }
     toast(`Added ${p.label} ${signed(amount)}`, "Undo", async () => {
       try {
         pendingReason = "undo";
@@ -1617,11 +1683,17 @@ function toast(msg, actionLabel, onAction, ms = 5200) {
   const b = $("toastBtn");
   b.textContent = actionLabel || "";
   b.onclick = actionLabel ? () => { hideToast(); onAction(); } : null;
+  b.tabIndex = 0;
   $("toast").classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(hideToast, ms);
 }
-function hideToast() { $("toast").classList.remove("show"); }
+function hideToast() {
+  $("toast").classList.remove("show");
+  const button = $("toastBtn");
+  button.onclick = null;
+  button.tabIndex = -1;
+}
 
 // ---------- loading skeletons ----------
 function skelRows(n) {
@@ -1860,6 +1932,7 @@ function startPolling() {
 function shake(el) { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
 
 function lock(msg = "") {
+  hideToast();
   key = null;
   loaded = false; lastSig = ""; shownBalance = null; knownTx = null; knownRules = null;
   if (!localLedger && desktop?.ledgerMode !== "setup") ls.del(KEY_STORE);
@@ -2084,7 +2157,7 @@ scheduleBlink();
 
 // Browsers sometimes keep an old copy of this page. Ask for the current version (never cached)
 // and reload into it when it changed, so nobody gets stuck on an old release.
-const APP_VERSION = "11";
+const APP_VERSION = "12";
 async function checkForUpdate() {
   try {
     const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });

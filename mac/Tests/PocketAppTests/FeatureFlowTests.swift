@@ -115,6 +115,27 @@ final class FeatureFlowTests: XCTestCase {
         XCTAssertEqual(store.windowRequest, .quickAdd(groceries))
     }
 
+    func testUndoQuickAddRemovesOnlyTheEntryOnTheReceipt() throws {
+        let store = try isolatedStore()
+        XCTAssertTrue(store.start(currency: "USD", cents: 10_000, openAtLogin: false))
+        let coffee = Preset(label: "Coffee", cents: 650, sign: -1, category: "food")
+        XCTAssertTrue(store.savePreset(coffee))
+        store.useQuickAdd(coffee)
+        let first = try XCTUnwrap(store.ledger.entries.first { $0.label == coffee.label })
+        store.useQuickAdd(coffee)
+        guard case .editEntry(let second) = store.receipt?.target else {
+            return XCTFail("Expected a receipt for the second coffee")
+        }
+        XCTAssertNotEqual(first.id, second)
+        XCTAssertNil(store.undoEntryReceipt(second))
+        XCTAssertNil(store.receipt)
+        XCTAssertEqual(store.balance, 9_350)
+        XCTAssertEqual(store.ledger.entries.filter { $0.label == coffee.label }, [first])
+        XCTAssertEqual(store.ledger.presets, [coffee])
+        XCTAssertNil(store.undoEntryReceipt(second))
+        XCTAssertEqual(store.balance, 9_350)
+    }
+
     func testIncomeIsBrokenDownByCategoryToo() {
         let day = Day(iso: "2026-10-05")!
         var l = Ledger()

@@ -9,7 +9,7 @@ internal sealed class TrayApplication : ApplicationContext
     private const string PreferencesKey = @"Software\PocketLeft";
     private const string BalanceModeValue = "BalanceDisplay";
     private const int RefreshIntervalMs = 60_000;
-    private enum BalanceDisplay { Hover, Panel }
+    private enum BalanceDisplay { Hover, Panel, Hidden }
 
     private readonly Icon icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath) ?? (Icon)SystemIcons.Application.Clone();
     private readonly ContextMenuStrip menu = new();
@@ -34,6 +34,7 @@ internal sealed class TrayApplication : ApplicationContext
         var displayMenu = new ToolStripMenuItem("Balance display");
         AddMode(BalanceDisplay.Hover, "Balance on hover");
         AddMode(BalanceDisplay.Panel, "Floating panel");
+        AddMode(BalanceDisplay.Hidden, "Hide balance");
         menu.Items.Add(displayMenu);
         var launch = new ToolStripMenuItem("Start at sign-in");
         launch.Click += (_, _) => ToggleStartup(launch);
@@ -89,7 +90,8 @@ internal sealed class TrayApplication : ApplicationContext
             return key?.GetValue(BalanceModeValue) switch
             {
                 "Panel" => BalanceDisplay.Panel,
-                "Hover" or "TrayNumber" or "IconOnly" => BalanceDisplay.Hover,
+                "Hidden" or "IconOnly" => BalanceDisplay.Hidden,
+                "Hover" or "TrayNumber" => BalanceDisplay.Hover,
                 _ => key?.GetValue("ShowClockBalance") is 0 ? BalanceDisplay.Hover : BalanceDisplay.Panel
             };
         }
@@ -101,6 +103,7 @@ internal sealed class TrayApplication : ApplicationContext
 
     private void ApplyBalanceDisplay()
     {
+        window.SetQuickBalanceHidden(balanceDisplay == BalanceDisplay.Hidden);
         UpdateBalanceDisplay();
         clockTimer.Stop();
         clockTimer.Interval = balanceDisplay == BalanceDisplay.Panel ? 2_000 : RefreshIntervalMs;
@@ -134,7 +137,7 @@ internal sealed class TrayApplication : ApplicationContext
     private void UpdateBalanceDisplay()
     {
         var balance = clockBalance;
-        string tooltip = balance is null ? "Pocket"
+        string tooltip = balance is null || balanceDisplay == BalanceDisplay.Hidden ? "Pocket"
             : balance.Stale ? $"Pocket · {balance.Amount} · Last known" : $"Pocket · {balance.Amount}";
         if (tray.Text != tooltip) tray.Text = tooltip;
 

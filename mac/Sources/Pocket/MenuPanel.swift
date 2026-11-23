@@ -51,8 +51,10 @@ struct MenuPanel: View {
                     .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
             }
             if store.showSharePrompt { SharePromptView().padding(.horizontal, 10).padding(.top, 8) }
-            if !store.waiting.isEmpty { waitingRow.padding(.horizontal, 10).padding(.top, 8) }
-            recent.padding(.top, 14)
+            if !store.hideDesktopBalance {
+                if !store.waiting.isEmpty { waitingRow.padding(.horizontal, 10).padding(.top, 8) }
+                recent.padding(.top, 14)
+            }
         }
     }
 
@@ -66,8 +68,8 @@ struct MenuPanel: View {
             + (store.receipt == nil ? 0 : 30)
             + (store.saveError == nil ? 0 : 110)
             + (store.showSharePrompt ? 46 : 0)
-            + (store.waiting.isEmpty ? 0 : 44)
-            + 40 + CGFloat(max(1, min(3, store.ledger.entries.count))) * 46
+            + (store.hideDesktopBalance || store.waiting.isEmpty ? 0 : 44)
+            + (store.hideDesktopBalance ? 0 : 40 + CGFloat(max(1, min(3, store.ledger.entries.count))) * 46)
     }
 
     // ⌘O, ⌘, and ⌘Q without spending space on buttons.
@@ -94,24 +96,30 @@ struct MenuPanel: View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text("Money left").font(.subheadline).foregroundStyle(.secondary)
-                Text(store.loadError == nil ? store.money.string(store.balance) : "—")
-                    .font(.display(34, .semibold)).tracking(-0.6).monospacedDigit()
-                    .lineLimit(1).minimumScaleFactor(0.5)
-                    .accessibilityLabel("Money left").accessibilityValue(store.loadError == nil ? store.money.string(store.balance) : "Unavailable")
-                    .contentTransition(.numericText(value: Double(store.balance)))
-                    .foregroundStyle(store.balance < 0 ? Palette.negative : Color.primary)
-                    .animation(reduceMotion ? nil : .spring(duration: 0.4, bounce: 0), value: store.balance)
-                if store.loadError == nil, let runway = store.runway {
-                    Button { request(.section(.plan)) } label: {
-                        HStack(spacing: 4) {
-                            RunwayLine(runway: runway, range: store.range)
-                            Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(.tertiary)
+                if store.hideDesktopBalance {
+                    Text("Balance hidden").font(.headline)
+                    Button("Show Balance") { store.hideDesktopBalance = false }
+                        .buttonStyle(.link)
+                } else {
+                    Text(store.loadError == nil ? store.money.string(store.balance) : "—")
+                        .font(.display(34, .semibold)).tracking(-0.6).monospacedDigit()
+                        .lineLimit(1).minimumScaleFactor(0.5)
+                        .accessibilityLabel("Money left").accessibilityValue(store.loadError == nil ? store.money.string(store.balance) : "Unavailable")
+                        .contentTransition(.numericText(value: Double(store.balance)))
+                        .foregroundStyle(store.balance < 0 ? Palette.negative : Color.primary)
+                        .animation(reduceMotion ? nil : .spring(duration: 0.4, bounce: 0), value: store.balance)
+                    if store.loadError == nil, let runway = store.runway {
+                        Button { request(.section(.plan)) } label: {
+                            HStack(spacing: 4) {
+                                RunwayLine(runway: runway, range: store.range)
+                                Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(.tertiary)
+                            }
+                            .font(.callout)
+                            .contentShape(Rectangle())
                         }
-                        .font(.callout)
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain).padding(.top, 3)
+                        .help("Open Plan to see the forecast")
                     }
-                    .buttonStyle(.plain).padding(.top, 3)
-                    .help("Open Plan to see the forecast")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,7 +182,7 @@ struct MenuPanel: View {
                     SyncStatusLabel().font(.caption).padding(.horizontal, 6).frame(height: 26).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain).help("Sync now")
-            } else {
+            } else if !store.hideDesktopBalance {
                 Text(store.loadError == nil ? "\(store.money.string(store.spentThisMonth)) spent this month" : "Saved data unavailable")
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
                     .padding(.horizontal, 6)
@@ -188,6 +196,7 @@ struct MenuPanel: View {
             .accessibilityLabel("Open the Pocket window")
             Menu {
                 Button("Open Pocket") { open("main") }
+                Button(store.hideDesktopBalance ? "Show Balance" : "Hide Balance") { store.hideDesktopBalance.toggle() }
                 Button("Plan") { request(.section(.plan)) }
                 Button("Subscriptions") { request(.section(.subscriptions)) }
                 Button(AppSection.insights.title) { request(.section(.insights)) }
