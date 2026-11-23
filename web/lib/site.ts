@@ -1,6 +1,7 @@
 export const SITE_URL = "https://pocketleft.app";
 export const REPO_URL = "https://github.com/orlandoascanio/pocketleft";
 export const DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/Pocket.dmg`;
+export const DOWNLOAD_PAGE = "/download/";
 export const WINDOWS_VERSION = "0.1.4";
 export const WINDOWS_SETUP_URL = `${REPO_URL}/releases/download/windows-preview-6/Pocket-Setup.exe`;
 export const DESCRIPTION =

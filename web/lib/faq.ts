@@ -12,7 +12,7 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: "Does Pocket connect to my bank?",
-    a: "You enter income and spending by hand. Pocket can record repeating payments on their due dates. On Mac, use ⌘1 through ⌘9 to log purchases you’ve saved as quick-add buttons.",
+    a: "Pocket does not connect to banks. You enter income and spending by hand, and Pocket can record repeating payments on their due dates. On Mac, use ⌘1 through ⌘9 to log purchases you’ve saved as quick-add buttons.",
     link: { href: "/guides/manual-vs-bank-sync/", label: "Compare manual tracking with bank sync" },
   },
   {
@@ -54,5 +54,6 @@ export const FAQ: FaqItem[] = [
   {
     q: "Is there a Windows or iPhone app?",
     a: "Pocket has a Windows 11 preview. On iPhone, you can use the Pocket web app once you’ve set up sync and add it to your home screen.",
+    link: { href: "/download/", label: "See download and pairing options" },
   },
 ];

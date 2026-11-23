@@ -88,3 +88,8 @@
 }
 /* Comparison tables have short text in several columns: let cells wrap instead of scrolling sideways. */
 .guide-table-wrap table:has(thead th:nth-child(4)) td, .guide-table-wrap table:has(thead th:nth-child(4)) th { white-space: normal; min-width: 5em; padding-inline: 8px; }
+.guide-start { margin-top: 18px; }
+.guide-topics { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0 0 24px; }
+.guide-topics a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.guide-group { margin-bottom: 40px; scroll-margin-top: 104px; }
+.guide-group h2 { margin: 0 0 14px; font: 700 clamp(25px, 4vw, 38px)/1.15 var(--display); letter-spacing: -.03em; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore, type ReactNode } from "react";
-import { DOWNLOAD_URL, VERSION, WEB_APP_URL, WINDOWS_SETUP_URL, WINDOWS_VERSION } from "@/lib/site";
+import { DOWNLOAD_PAGE, DOWNLOAD_URL, VERSION, WEB_APP_URL, WINDOWS_SETUP_URL, WINDOWS_VERSION } from "@/lib/site";
 
 type Platform = "mac" | "windows" | null;
 
@@ -36,35 +36,29 @@ export function ForDesktopPlatform({ platform, children }: {
   return detected === null || detected === platform ? children : null;
 }
 
-export function PlatformDownloadLink({ className, compact, shown, children }: {
+export function PlatformDownloadLink({ className, children }: {
   className?: string;
-  compact?: boolean;
-  shown?: boolean;
   children?: ReactNode;
 }) {
   const platform = useDownloadPlatform();
-  const label = platform === "mac" ? "Download for Mac" : platform === "windows" ? "Download for Windows" : "Desktop downloads";
-  const href = platform === "mac" ? DOWNLOAD_URL : platform === "windows" ? WINDOWS_SETUP_URL : "/#downloads";
+  const label = platform === "mac" ? "Download for Mac" : platform === "windows" ? "Download for Windows" : "View desktop downloads";
+  const href = platform === "mac" ? DOWNLOAD_URL : platform === "windows" ? WINDOWS_SETUP_URL : DOWNLOAD_PAGE;
   return (
-    <a className={className} href={href} data-download={platform === "mac" || undefined} data-shown={shown || undefined}
-      aria-label={compact ? label : undefined}>
+    <a className={className} href={href} data-download={platform === "mac" || undefined}>
       {children}
-      {compact ? "Download" : label}
+      {label}
     </a>
   );
 }
 
 export function HeroPlatformHeadline() {
   const platform = useDownloadPlatform();
-  const balanceDescription = platform === "mac"
-    ? "Pocket keeps your balance in the Mac menu bar, even offline."
-    : platform === "windows"
-      ? "See your balance beside the Windows clock, even offline."
-      : "See what’s left after each purchase in Pocket for Mac or Windows.";
   return (
     <>
       <h1>Know what’s<br /><span>left.</span></h1>
-      <p className="lead">Enter income and expenses by hand. {balanceDescription}</p>
+      <p className="lead">{platform === "windows"
+        ? "PocketLeft is a free expense tracker for Windows. Log spending by hand and see your balance beside the clock, even offline."
+        : "PocketLeft is a free offline expense tracker for Mac and Windows. Log income and spending by hand and see your balance in the Mac menu bar or Windows tray."}</p>
     </>
   );
 }
@@ -76,8 +70,8 @@ export function HeroActions({ downloadIcon }: { downloadIcon: ReactNode }) {
       {platform ? (
         <>
           <PlatformDownloadLink className="pill pill-dark">{downloadIcon}</PlatformDownloadLink>
-          <a className="pill pill-soft" href={platform === "mac" ? "#tour" : "#windows"}>
-            {platform === "mac" ? "Take the tour" : "Windows setup"}
+          <a className="pill pill-soft" href={platform === "mac" ? "#tour" : DOWNLOAD_PAGE + "#windows"}>
+            {platform === "mac" ? "Take the Mac tour" : "See the Windows preview"}
           </a>
         </>
       ) : (
@@ -101,17 +95,17 @@ export function HeroDownloadDetails() {
           <li>macOS 14+</li>
           <li>Apple Silicon &amp; Intel</li>
           <li>Developer signed · Apple notarized</li>
-          <li><a href="/changelog/">v{VERSION}</a></li>
+          <li><a href="/changelog/#mac">v{VERSION}</a></li>
         </> : platform === "windows" ? <>
           <li>Windows 11</li>
           <li>Intel, AMD, and ARM</li>
-          <li><a href="#windows">v{WINDOWS_VERSION} preview</a></li>
-        </> : <li><a href="#windows">Windows 11 preview</a></li>}
+          <li><a href="/changelog/#windows">v{WINDOWS_VERSION} preview</a></li>
+        </> : <li><a href={DOWNLOAD_PAGE + "#windows"}>Windows 11 preview</a></li>}
       </ul>
       {platform ? (
-        platform === "mac" && <a className="hero-downloads-link" href="#downloads">Download details <span aria-hidden="true">↓</span></a>
+        <a className="hero-downloads-link" href={DOWNLOAD_PAGE}>All download options <span aria-hidden="true">↗</span></a>
       ) : (
-        <a className="hero-downloads-link" href={WEB_APP_URL}>Already have a synced ledger? Open it <span aria-hidden="true">↗</span></a>
+        <a className="hero-downloads-link" href={WEB_APP_URL}>Already synced? Open the web app <span aria-hidden="true">↗</span></a>
       )}
     </>
   );

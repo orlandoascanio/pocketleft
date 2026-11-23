@@ -1,8 +1,8 @@
 import { AT_A_GLANCE, FACTS } from "@/lib/facts";
 import { FAQ } from "@/lib/faq";
 import { GUIDES, guideUrl, textParts, type Guide } from "@/lib/guides";
-import { RELEASES } from "@/lib/releases";
-import { DESCRIPTION, ISSUES_URL, REPO_URL, SELF_HOSTING_URL, SITE_URL } from "@/lib/site";
+import { RELEASES, WINDOWS_RELEASES, type Release } from "@/lib/releases";
+import { DESCRIPTION, DOWNLOAD_PAGE, ISSUES_URL, REPO_URL, SELF_HOSTING_URL, SITE_URL } from "@/lib/site";
 
 // Plain-text summaries for AI systems (https://llmstxt.org), built from the same data as the pages
 // so they can't drift from what the site says.
@@ -16,7 +16,7 @@ const link = (title: string, url: string, note: string) => `- [${title}](${url})
 const facts = () => FACTS.map((f) => `- ${f.label}: ${plain(f.value)}`).join("\n");
 
 export function llmsTxt() {
-  return `# Pocket for Mac
+  return `# PocketLeft
 
 ${SUMMARY}
 
@@ -31,8 +31,10 @@ ${facts()}
 ## Product
 
 ${link("Home", `${SITE_URL}/`, "features, screenshots, FAQ and download")}
+${link("Download PocketLeft", absolute(DOWNLOAD_PAGE), "Mac and Windows installers, platform requirements, and web app pairing")}
 ${link("Pocket at a glance", `${SITE_URL}/about/`, "what Pocket is, key facts, and how it differs from other apps named Pocket")}
-${link("Changelog", `${SITE_URL}/changelog/`, "release notes for every version")}
+${link("Mac release notes", `${SITE_URL}/changelog/#mac`, "changes and guides for the Mac app")}
+${link("Windows preview release notes", `${SITE_URL}/changelog/#windows`, "changes for the Windows 11 preview")}
 ${link("Website privacy", `${SITE_URL}/privacy/`, "what this website collects (the app itself sends nothing by default)")}
 ${link("Full text for AI systems", `${SITE_URL}/llms-full.txt`, "every guide, FAQ answer and release note in one file")}
 
@@ -62,23 +64,30 @@ function guideText(g: Guide) {
   return `## ${g.title}\n\nURL: ${SITE_URL}${guideUrl(g.slug)}\nUpdated: ${g.updated}\n\n${g.description}\n\n${sections.join("\n\n")}`;
 }
 
-export function llmsFullTxt() {
-  const faq = FAQ.map(({ q, a, link }) => `### ${q}\n\n${a}${link ? ` ${link.label}: ${absolute(link.href)}` : ""}`).join("\n\n");
-  const releases = RELEASES.map((r) =>
+function releaseText(releases: Release[], platform: string) {
+  return releases.map((r) =>
     [
-      `### Pocket ${r.version} (${r.date}): ${r.title}`,
+      `### Pocket for ${platform} ${r.version} (${r.date}): ${r.title}`,
       r.summary,
       r.highlights.map((h) => `- ${h.title}: ${h.description}`).join("\n"),
       r.details.map((d) => `- ${d}`).join("\n"),
       `Release: ${r.source}`,
+      ...(r.guideLinks ?? []).map((g) => link(g.title, absolute(g.url), "setup and use")),
+      ...(r.relatedSources ?? []).map((s) => link(s.title, s.url, "previous preview")),
     ].join("\n\n"),
   ).join("\n\n");
+}
 
-  return `# Pocket for Mac: full reference
+export function llmsFullTxt() {
+  const faq = FAQ.map(({ q, a, link }) => `### ${q}\n\n${a}${link ? ` ${link.label}: ${absolute(link.href)}` : ""}`).join("\n\n");
+
+  return `# PocketLeft full reference
 
 ${SUMMARY}
 
-Source: ${SITE_URL}/ . Generated from the website's own content.
+Official website: ${SITE_URL}/
+
+${link("Download and installation", absolute(DOWNLOAD_PAGE), "Mac, Windows 11 preview and paired web access")}
 
 ## Key facts
 
@@ -90,8 +99,12 @@ ${faq}
 
 ${GUIDES.map(guideText).join("\n\n")}
 
-## Release notes
+## Mac release notes
 
-${releases}
+${releaseText(RELEASES, "Mac")}
+
+## Windows preview release notes
+
+${releaseText(WINDOWS_RELEASES, "Windows")}
 `;
 }

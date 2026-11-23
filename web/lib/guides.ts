@@ -165,7 +165,7 @@ export const GUIDES: Guide[] = [
     category: "Everyday spending",
     minutes: 3,
     published: "2026-10-13",
-    updated: "2026-10-13",
+    updated: "2026-11-22",
     image: "/media/quick-add-2026-10-12.jpg",
     imageAlt: "Pocket quick-add buttons above the spending entry field",
     video: "/media/quick-add-2026-10-12.mp4",
@@ -200,7 +200,15 @@ export const GUIDES: Guide[] = [
         title: "Use Command-1 through Command-9",
         paragraphs: [
           "Command-1 through Command-9 use the first nine quick-add buttons, from the menu bar panel or any page of the Pocket window. The Quick Add menu at the top of the screen lists every button with its shortcut.",
-          "Drag buttons in Settings to change their order. If you press the wrong shortcut, click Edit in the confirmation, or find the new entry in History and edit or delete it.",
+          "Drag buttons in Settings to change their order.",
+        ],
+      },
+      {
+        id: "undo",
+        title: "Undo an accidental quick entry",
+        paragraphs: [
+          "In Pocket for Mac 1.5.5 or later, click Undo on the confirmation below the entry field. It removes the entry you just added and reverses the balance change. If it is waiting to sync, Undo cancels the pending entry.",
+          "If the confirmation is gone, open History, select the entry, and edit or delete it.",
         ],
       },
       {
@@ -285,7 +293,7 @@ export const GUIDES: Guide[] = [
     category: "Start here",
     minutes: 3,
     published: "2026-10-13",
-    updated: "2026-10-13",
+    updated: "2026-11-22",
     image: "/screenshot-overview.png",
     imageAlt: "Pocket for Mac with the recorded balance that also appears in the menu bar",
     related: ["getting-started", "mac-menu-bar-money-apps", "manual-vs-bank-sync"],
@@ -339,7 +347,7 @@ export const GUIDES: Guide[] = [
         id: "screen-sharing",
         title: "When other people can see your screen",
         paragraphs: [
-          "The amount is visible to anyone who can see your menu bar. Pocket has no setting to hide it. Before presenting or sharing your screen, choose Quit Pocket from the ⋯ menu in the panel. Your entries are saved, and the balance comes back when you open Pocket again.",
+          "In Pocket for Mac 1.5.5 or later, open the menu bar panel, click the ⋯ menu, and choose Hide Balance. Pocket replaces the amount in the menu bar with an icon and hides the balance in the panel. Click the icon to keep recording entries. Choose Show Balance when you want the amount back.",
         ],
       },
     ],
@@ -543,6 +551,14 @@ export const GUIDES: Guide[] = [
           ],
         },
         note: "When the client gives you a new date, go to Plan → Repeating & expected, open the one-time invoice’s ⋯ menu and choose Edit. Change Expected on and click Save. This updates the saved schedule. In this example, moving the invoice to November 20 reveals a $230 shortfall on rent day.",
+      },
+      {
+        id: "before-payday",
+        title: "See what you can spend before payday",
+        paragraphs: [
+          "In Pocket for Mac 1.5.5 or later, open Plan and find Available until payday. Choose a payday and enter the minimum balance you want to keep. Pocket uses the lowest projected balance before payday. It includes usual spending when it has enough history and leaves out income awaiting confirmation.",
+          "If you have $820, expect $450 in bills and $120 in usual spending before payday, and want to keep $100, you have $150 for an extra purchase. A Friday paycheck is outside the estimate for Thursday’s rent.",
+        ],
       },
       {
         id: "weekly",

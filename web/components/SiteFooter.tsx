@@ -1,6 +1,6 @@
 import { AnalyticsPreferences } from "@/components/WebsiteAnalytics";
-import { PlatformDownloadLink } from "@/components/PlatformDownload";
 import {
+  DOWNLOAD_PAGE,
   ISSUES_URL,
   RELEASES_URL,
   REPO_URL,
@@ -33,17 +33,14 @@ export function SiteFooter() {
         </div>
         <nav className="foot-col" aria-label="Product">
           <h3>Product</h3>
-          <PlatformDownloadLink compact />
           <a href="/#tour">Features</a>
-          <a href="/#plan">Plan ahead</a>
-          <a href="/#subscriptions">Subscriptions</a>
+          <a href={DOWNLOAD_PAGE}>Download</a>
           <a href={WEB_APP_URL}>Web app</a>
         </nav>
         <nav className="foot-col" aria-label="Help">
           <h3>Help</h3>
           <a href="/guides/">Guides</a>
-          <a href="/#faq">Questions</a>
-          <a href={SELF_HOSTING_GUIDE_URL}>Self-hosting</a>
+          <a href={SELF_HOSTING_GUIDE_URL}>Phone pairing and sync</a>
           <a href={ISSUES_URL}>Report a bug</a>
         </nav>
         <nav className="foot-col" aria-label="Project">
@@ -66,9 +63,6 @@ export function SiteFooter() {
           <a href="/privacy/">Website privacy</a>
           <AnalyticsPreferences />
         </nav>
-      </div>
-      <div className="foot-word" aria-hidden="true">
-        Pocket
       </div>
     </footer>
   );

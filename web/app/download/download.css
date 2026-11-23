@@ -1,0 +1,23 @@
+.download-page { max-width: 1060px; padding-block: clamp(60px, 9vw, 118px) 72px; }
+.download-intro { max-width: 760px; margin-bottom: clamp(32px, 6vw, 62px); }
+.download-intro h1 { margin: 0; font: 750 clamp(42px, 7.2vw, 84px)/.99 var(--display); letter-spacing: -.048em; text-wrap: balance; }
+.download-intro p { font-size: clamp(16px, 2vw, 20px); color: var(--muted); line-height: 1.65; max-width: 62ch; }
+.download-intro nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.download-intro nav a { min-height: 44px; }
+.download-card {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px clamp(28px, 6vw, 64px);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  padding: clamp(20px, 3.7vw, 40px); margin-bottom: 18px; scroll-margin-top: 100px;
+}
+.download-card h2 { margin: 0; font: 700 clamp(28px, 4vw, 40px)/1.1 var(--display); letter-spacing: -.03em; }
+.download-card h3 { margin: 0; font-size: 17px; }
+.download-card p, .download-card ol { color: var(--muted); line-height: 1.6; margin: 10px 0 0; }
+.download-card ol { padding-inline-start: 22px; }
+.download-card li + li { margin-top: 4px; }
+.download-card .pill { margin-top: 16px; }
+.download-card .download-file { font-size: 13px; }
+.download-related { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px; }
+.download-related a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+@media (max-width: 680px) {
+  .download-card { grid-template-columns: 1fr; }
+}

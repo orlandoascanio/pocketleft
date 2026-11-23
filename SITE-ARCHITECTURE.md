@@ -1,160 +1,137 @@
-# Pocket website: site architecture
+# PocketLeft website architecture
 
-Prepared October 13, 2026, from the `web/` source (Next.js App Router, `trailingSlash: true`). Site: https://pocketleft.app. Companion to [CONTENT-STRATEGY.md](CONTENT-STRATEGY.md) and [web/SEO-SETUP.md](web/SEO-SETUP.md).
+Architecture and implementation · November 22, 2026
 
-**Status, October 13:** header, shared footer, breadcrumbs, FAQ links, homepage→guide links, inline guide links, changelog start link and `/guides/self-hosting/` are implemented locally (not deployed). Still open: guide → homepage feature links (item 4 below) and release-note → guide links as releases change workflows.
+Implemented in the local worktree and verified with a production build. The live observations below describe the baseline. See the [SEO and AI search audit](docs/SITE-SEO-AUDIT.md) for the verification results.
 
-Site type: small product marketing site with a help-content section. Goal order: download intent (`download_clicked`), search discovery through guides, and support for existing users. Ten public URLs today. Keep it flat: two levels, plus guide detail pages at level three.
+Keep the homepage focused on what Pocket does and how to try it. Add one permanent download page that explains the Mac app, the Windows preview, and the paired web app. Use Guides for setup and recurring tasks, and Changelog for release history.
 
-## 1. Page hierarchy
+The site serves prospective Mac and Windows users, people arriving from search, and existing users looking for setup, recovery, or updates. Prioritize downloads, then product understanding, then self-service support.
 
-Current pages are unmarked. `+` = recommended addition. `→` = existing redirect.
+## What the live site showed
+
+| Finding | Impact |
+| --- | --- |
+| The homepage header mixes five jumps down the homepage with links to Guides and Changelog. Download details start about 8,100 pixels down on a 1280 × 900 Mac viewport and 10,100 pixels down on a 390 × 844 phone viewport. | The hero download is easy to reach on a recognized desktop. A phone visitor choosing Desktop downloads jumps about twelve viewport heights down. |
+| The Windows hero offers the Windows installer. Its “Take the tour” link opens a Mac video and screenshots, and the announcement highlights the Mac release. | Visitors can download the right file while reading about a different platform. The Windows release history already has its own section and can provide the correct destination. |
+| A Mac visitor opening `/#windows` has no visible Windows section after platform detection. | The shared link depends on the visitor’s device. |
+| Guides shows ten articles in one list. The Mac menu bar guide still says to quit Pocket to hide the balance. | Setup, troubleshooting, and comparison guides compete for attention. The screen-sharing instructions lag behind the app. |
+| All 15 sitemap pages returned HTTP 200. All 159 unique fragment references in the audited server-rendered HTML resolved, and every indexed page had an inbound link. | The existing URL and link structure is a strong base. The main work is clarifying each destination and making platform links reliable after the page loads. |
+
+The viewport measurements are layout snapshots from Chromium with platform settings for Mac, Windows, and iPhone. They measure page length and element positions. Traffic, click-through, and download conversion were outside this audit. [Homepage](https://pocketleft.app/) · [Guides](https://pocketleft.app/guides/) · [Changelog](https://pocketleft.app/changelog/) · [Menu bar guide](https://pocketleft.app/guides/menu-bar-balance/#screen-sharing)
+
+## Page hierarchy
+
+The new page is `/download/`. Guide groups are sections on the existing index. Existing article URLs stay flat.
 
 ```text
-Homepage (/)
-├── #tour, #plan, #waiting, #quick-add, #categories, #private, #guides, #faq   (in-page sections)
+PocketLeft (/)
+├── Features (/#tour)
+│   ├── Mac demo (/#video)
+│   ├── Plan and forecast (/#plan)
+│   ├── Subscriptions (/#subscriptions)
+│   └── Data storage and sync (/#private)
+├── Download (/download/)                       new
+│   ├── Mac (/download/#mac)
+│   ├── Windows preview (/download/#windows)
+│   └── Web app and pairing (/download/#web)
 ├── Guides (/guides/)
-│   ├── Get started with Pocket for Mac (/guides/getting-started/)
-│   ├── Track everyday spending with quick-add buttons (/guides/quick-add-spending/)
-│   ├── Track expected income before it arrives (/guides/expected-income/)
-│   ├── Back up Pocket and move to a new Mac (/guides/back-up-your-data/)
-│   ├── + Pair Pocket with your phone using your own server (/guides/self-hosting/)
-│   └── + Record a month of subscriptions (/guides/subscriptions/)
+│   ├── Setup and data (/guides/#setup)
+│   │   ├── /guides/getting-started/
+│   │   ├── /guides/back-up-your-data/
+│   │   └── /guides/self-hosting/
+│   ├── Tracking and planning (/guides/#tracking)
+│   │   ├── /guides/menu-bar-balance/
+│   │   ├── /guides/quick-add-spending/
+│   │   ├── /guides/track-subscriptions/
+│   │   ├── /guides/expected-income/
+│   │   └── /guides/freelance-income/
+│   └── Comparisons (/guides/#comparisons)
+│       ├── /guides/manual-vs-bank-sync/
+│       └── /guides/mac-menu-bar-money-apps/
 ├── Changelog (/changelog/)
-├── Website privacy (/privacy/)
-└── Web app (/app/)   noindex, outside sitemap: keep as is
+│   ├── Mac (/changelog/#mac)
+│   └── Windows (/changelog/#windows)
+├── About (/about/)
+└── Website privacy (/privacy/)
 
-/mac/ → /   (301, keep)
+Web app (/app/)              Paired ledger entry point · noindex
+Shared homepage (/share/)    Existing share link · noindex · canonical /
+Former Mac URL (/mac/)       Existing permanent redirect to /
 ```
 
-Do not nest guides by category (`/guides/start-here/...`). With 4–8 guides a category level adds clicks and longer URLs for no gain. Revisit at about 15 guides: add filter chips on `/guides/` first, and category URLs only if each category has enough guides to be a useful landing page.
-
-## 2. Visual sitemap
+## Visual sitemap
 
 ```mermaid
 graph TD
-    subgraph Header
-        HOME[Home /]
-        FEAT[Features #tour]
-        PLAN[Plan ahead #plan]
-        GUIDES[Guides /guides/]
-        PRIV[Privacy #private]
-        FAQ[FAQ #faq]
-        CL[Changelog /changelog/]
-        DL[[Download]]
-    end
-
-    GUIDES --> G1[getting-started]
-    GUIDES --> G2[quick-add-spending]
-    GUIDES --> G3[expected-income]
-    GUIDES --> G4[back-up-your-data]
-    GUIDES -.-> G5[+ self-hosting]
-    GUIDES -.-> G6[+ subscriptions]
-
-    G1 <--> G2
-    G1 <--> G3
-    G2 <--> G3
-    G1 --> G4
-    G4 -.-> G5
-    FAQ -.->|"+ move to new Mac"| G4
-    FAQ -.->|"+ phone"| G5
-
-    subgraph Footer
-        WP[Website privacy /privacy/]
-        SRC[Source ↗]
-        SH[Self-hosting ↗]
-        WEB[Web app /app/]
-    end
+    Home["Homepage /"] --> Tour["Features /#tour"]
+    Home --> Download["Download /download/"]
+    Home --> Guides["Guides /guides/"]
+    Home --> Changes["Changelog /changelog/"]
+    Tour --> Demo["Mac demo /#video"]
+    Tour --> Guides
+    Download --> Mac["Mac installer and setup"]
+    Download --> Win["Windows installer and setup"]
+    Download --> Pair["Phone pairing and web app"]
+    Pair --> Sync["Self-hosting guide"]
+    Pair --> Ledger["Paired ledger /app/"]
+    Guides --> Setup["Setup and data"]
+    Guides --> Tracking["Tracking and planning"]
+    Guides --> Compare["Comparisons"]
+    Changes --> MacChanges["Mac release history"]
+    Changes --> WinChanges["Windows release history"]
+    MacChanges --> Tracking
+    WinChanges --> Win
+    Home --> Footer["Footer"]
+    Footer --> About["About /about/"]
+    Footer --> Privacy["Website privacy /privacy/"]
 ```
 
-## 3. URL map
+## URL map
 
-| Page | URL | Parent | Nav location | Priority |
+| Page | URL | Parent | Navigation location | Priority |
 | --- | --- | --- | --- | --- |
-| Homepage | `/` | — | Logo, header sections | High |
-| Guides index | `/guides/` | Home | Header, footer, homepage `#guides` | High |
-| Get started | `/guides/getting-started/` | Guides | Homepage cards, index | High |
-| Quick-add spending | `/guides/quick-add-spending/` | Guides | Homepage cards, index | Medium |
-| Expected income | `/guides/expected-income/` | Guides | Homepage cards, index | Medium |
-| Back up your data | `/guides/back-up-your-data/` | Guides | Index, FAQ (+) | Medium |
-| + Self-hosting | `/guides/self-hosting/` | Guides | Index, FAQ, `#private` CTA | Medium |
-| + Subscriptions | `/guides/subscriptions/` | Guides | Index, `#plan` | Low (build after setup questions) |
-| Changelog | `/changelog/` | Home | Header, hero announce, footer | Medium |
-| Website privacy | `/privacy/` | Home | Footer | Low |
-| Web app | `/app/` | — | Footer only | Not indexed |
+| Homepage | `/` | — | Logo | High |
+| Features and demo | `/#tour`, `/#video` | Home | Header Features, hero, footer | High |
+| Download and install | `/download/` | Home | Header CTA, hero secondary link, footer | High |
+| Mac | `/download/#mac` | Download | Platform links and Mac releases | High |
+| Windows preview | `/download/#windows` | Download | Windows hero, download page, Windows releases | High |
+| Phone and web | `/download/#web`, `/app/` | Download | Phone hero and footer | High |
+| Guides and guide articles | `/guides/`, `/guides/<slug>/` | Home, Guides | Header, footer, feature and release context | High |
+| Release history | `/changelog/#mac`, `/changelog/#windows` | Changelog | Header, platform announcements, download panels | Medium |
+| About and policy | `/about/`, `/privacy/` | Home | Footer | Low |
 
-URL rules already met: lowercase, hyphenated, short slugs, no dates or IDs, one trailing-slash policy. Keep slugs stable once guides are live; renaming one needs a 301 in `next.config.ts` `redirects()`.
+Use the existing trailing slash policy. Preserve homepage fragments `#tour`, `#video`, `#subscriptions`, `#plan`, `#waiting`, `#quick-add`, `#categories`, `#private`, `#guides`, `#faq`, `#downloads`, and `#windows` when content moves within the page. Keep the last two as visible, compact shortcuts to installation details, with a stable Windows shortcut across devices. Retain merged release aliases such as `/changelog/#v1-5-4` and `/changelog/#v1-2-0`. Add `/download/` to the sitemap when it launches.
 
-## 4. Navigation spec
+## Navigation and page layout
 
-### Header
+**Header** · Features → Guides → Changelog → **Download**. The logo returns home. Use the same order on desktop and in the mobile menu. Features jumps to the homepage tour, and the rightmost Download button opens the platform chooser. Recognized desktop visitors still get the direct installer as the primary button in the hero.
 
-Seven items, `components/SiteNav.tsx`. Recommended order and labels:
+| Visitor | Primary homepage action | Next action |
+| --- | --- | --- |
+| Mac | Download for Mac | Take the Mac tour, with a visible link to all download options |
+| Windows | Download for Windows | See the Windows preview, with a link to Windows release notes |
+| Phone or unknown platform | Try the sample ledger | View desktop downloads or open an existing synced ledger. The download page explains pairing. |
 
-1. Features (`#tour`)
-2. Plan ahead (`#plan`)
-3. **Data & privacy** (`#private`): renamed from "Privacy"
-4. FAQ (`#faq`)
-5. Guides (`/guides/`)
-6. Changelog (`/changelog/`)
-7. Download (CTA, rightmost)
+**Homepage reading order**
 
-Why:
-- **"Privacy" collides with `/privacy/`.** The header link goes to the app's data-storage section, while the footer's "Website privacy" covers analytics. Someone looking for the website policy clicks the header and lands somewhere else. "Data & privacy" (or "Your data") states what the section actually covers.
-- **Group same-page anchors before page links.** The first four items scroll on the homepage; the last two open other pages. Mixing them, as now, makes it harder to predict what a click will do, especially on guide pages where every anchor becomes a full navigation to `/#…`.
-- Six links is the upper limit. If a link is added later, drop "Plan ahead": the Features tour and bento already reach `#plan`.
+1. **Hero.** Explain manual tracking and the balance at a glance. Show the right primary action and one secondary action. Link the release announcement to the matching platform’s notes.
+2. **Product tour.** Keep the existing video at `/#video` and the tabbed screenshots inside `/#tour`. Use the tour as the main place to see the product.
+3. **Three core workflows.** Show how to record an expense, how to see what’s available before payday, and how to track renewals. Link each to the relevant guide. Fold the current standalone waits-for-payment and spending-comparison explanations into this section while retaining their anchors.
+4. **Privacy, help, and downloads.** Summarize local storage and optional sync, surface getting started, and keep the purchase and setup questions easy to scan. Follow with a compact download row that links to the platform chooser.
 
-### Footer
+**Download page.** Show both desktop installers regardless of the visitor’s operating system. Platform detection can highlight a card. Give each card version, requirements, the matching installer, concise installation steps, and a release history link. Identify Windows as a preview and explain the unsigned installer there. Add the web app as a third option with the pairing guide. Use the same version and installer constants that drive the homepage.
 
-There are four footers today: full homepage footer, `GuideFooter` (guides), a changelog footer and a privacy footer. Off the homepage, visitors lose links to the changelog, source, self-hosting and releases, and `/privacy/` has no link to guides at all.
+**Footer.** Group Features, Download, and the web app under Product. Group Guides, pairing, and Report a bug under Help. Group About, Changelog, and GitHub under Project. Keep Website privacy and Analytics preferences in the legal row.
 
-Recommendation: one shared `SiteFooter` used on every public page, based on the homepage's columns:
+**Guide and release navigation.** Keep the existing guide breadcrumbs and align their text with the structured breadcrumb. Group the index with a prominent Get started link and the three section anchors. Keep the Mac and Windows release jump links and version sidebars. The new download page is one level from home and can use the shared header.
 
-| Product | Help | Project | Legal |
-| --- | --- | --- | --- |
-| Download for Mac | Guides | Source code ↗ | Website privacy |
-| Features (`/#tour`) | Questions (`/#faq`) | Changelog | Analytics preferences |
-| Plan ahead (`/#plan`) | Self-hosting (→ `/guides/self-hosting/` once built) | All releases ↗ | |
-| Web app | Report a bug ↗ | Made by Orlando Ascanio ↗ | |
+## Internal links and rollout
 
-Pages can drop to a compact variant on narrow screens, but the link set stays the same.
+| Order | Work | Verification |
+| --- | --- | --- |
+| 1 | Add the platform chooser, simplify the header, and route Windows announcements and tour links to Windows content. | Walk through direct Mac and Windows installs, viewing the other installer from each desktop, and the phone pairing path. Verify the installer links and platform labels in the browser. |
+| 2 | Consolidate homepage demos. Add one contextual guide link to each core workflow. Group the Guides index and correct the screen-sharing instructions. | Check keyboard navigation, desktop and mobile widths, and every existing homepage fragment. Confirm the video still plays through the original link. |
+| 3 | Link setup and release notes to workflows. Point Mac 1.5.5 to quick-add and screen-sharing help, then add the payday steps to the existing planning guide. Point Windows releases to the Windows setup card. | Re-run the public URL and fragment audit, including aliases and both platform release sections. Confirm each guide still has an inbound link from the index and a relevant product or guide page. |
 
-### Breadcrumbs
-
-- Guide pages: the visible trail is `Pocket / Guides / {category}`, but the BreadcrumbList schema ends in the guide **title**. Visible trail and schema should agree, and the last segment should name the current page. Change the last visible crumb to the guide title (a short title field if the full title wraps on mobile), and keep category in the eyebrow where it already appears.
-- `/guides/`, `/changelog/` and `/privacy/` are one level deep; the logo is enough. No breadcrumbs needed.
-
-## 5. Internal linking plan
-
-### Hub and spokes
-
-Hub: `/guides/`. Primary spoke: `/guides/getting-started/` (links to all others). Each guide's "Keep going" cards already link back to setup.
-
-Inbound guide links today (excluding the index and the hub's own cards):
-
-| Guide | Linked from |
-| --- | --- |
-| getting-started | homepage, quick-add, expected-income, back-up |
-| quick-add-spending | homepage, getting-started, expected-income |
-| expected-income | homepage, getting-started, quick-add, back-up |
-| back-up-your-data | getting-started only |
-
-`back-up-your-data` is the weakest page, yet it answers an existing FAQ question.
-
-### Changes, in priority order
-
-1. **FAQ → guides.** Add a `link` to "How do I move Pocket to a new Mac?" pointing to `/guides/back-up-your-data/` (anchor: "Read the backup and move guide"). This is the cheapest, highest-value fix.
-2. **Homepage feature sections → matching guides.** Under each feature, one text link: `#quick-add` → quick-add guide, `#waiting` → expected-income guide, `#private` → back-up guide (next to the existing self-hosting CTA). These feature blocks are where intent is highest.
-3. **Inline links inside guide bodies.** Guides currently link to each other only through end cards. Add contextual links where a step mentions another workflow, for example setup's "Add one upcoming bill" → expected-income, and setup's "Record one purchase" → quick-add. Needs a link-capable paragraph format in `lib/guides.ts` (e.g. a small `[text](/guides/slug/)` parser); about 1–3 links per guide.
-4. **Guide pages → homepage features.** One link per guide to the relevant homepage section (`/#quick-add`, `/#plan`, `/#private`). Gives visitors who arrive from search a path to the product tour, not only to the download.
-5. **Changelog → guides.** When a release changes a documented workflow, link the release note to that guide. Add a "New to Pocket? Start with the setup guide" line beside the changelog header CTAs.
-6. **Move self-hosting on-site.** `#private`, the FAQ phone answer, the back-up guide and footers all send people to `SELF-HOSTING.md` on GitHub. An on-site `/guides/self-hosting/` (adapted from that file, per the content strategy) keeps those visitors on the site with a download CTA, and can be indexed under the site's domain. Keep a "Full reference on GitHub" link inside it.
-
-### Orphan check
-
-No orphaned public pages: all ten sitemap URLs have at least one inbound link, and `/app/` is intentionally reachable only from the footer. Re-check whenever a guide is added: it must appear in `GUIDES` (which drives the index, sitemap and static params) and in at least one other guide's `related`.
-
-## Open questions
-
-- Is "Plan ahead" in the header earning its click? Measuring it would need a nav event; the current analytics contract tracks only downloads and outbound links.
-- Comparison pages (`/compare/...`) are a common pattern for small Mac utilities. Not recommended yet: no competitor research or search data supports it.
+Treat this as a website update. Compare the existing consented download-click event by platform before and after the rollout when sufficient data is available. Pair that with short sessions asking visitors to find the correct installer, locate the Mac demo, and open the setup instructions for their device.

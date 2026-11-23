@@ -9,6 +9,7 @@ export type Release = {
   details: string[];
   source: string;
   relatedSources?: { title: string; url: string }[];
+  guideLinks?: { title: string; url: string }[];
 };
 
 // Curated from the published GitHub releases. Add a new entry here when shipping,
@@ -30,6 +31,11 @@ export const RELEASES: Release[] = [
       "Pocket leaves out income awaiting confirmation and ends the estimate the day before your selected payday.",
     ],
     source: "https://github.com/orlandoascanio/pocketleft/releases/tag/v1.5.5",
+    guideLinks: [
+      { title: "Set your payday and cushion", url: "/guides/freelance-income/#before-payday" },
+      { title: "Undo a quick entry", url: "/guides/quick-add-spending/#undo" },
+      { title: "Hide the menu bar balance", url: "/guides/menu-bar-balance/#screen-sharing" },
+    ],
   },
   {
     version: "1.5.4",

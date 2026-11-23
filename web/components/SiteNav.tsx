@@ -3,15 +3,11 @@
 import { gsap } from "gsap";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BalanceChip } from "@/components/BalanceChip";
-import { PlatformDownloadLink, useDownloadPlatform } from "@/components/PlatformDownload";
+import { useDownloadPlatform } from "@/components/PlatformDownload";
+import { DOWNLOAD_PAGE } from "@/lib/site";
 
 const LINKS = [
   { href: "#tour", label: "Features" },
-  { href: "#plan", label: "Plan ahead" },
-  { href: "#subscriptions", label: "Subscriptions" },
-  { href: "#private", label: "Data & privacy" },
-  { href: "#faq", label: "FAQ" },
   { href: "/guides/", label: "Guides" },
   { href: "/changelog/", label: "Changelog" },
 ];
@@ -19,8 +15,7 @@ const LINKS = [
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // A floating pill. It firms up once the page scrolls, steps out of the way while you read down,
-// and comes back as soon as you scroll up. The Download button joins it once the hero's own
-// button has scrolled away. On wide screens a grey highlight follows the pointer across the links
+// and comes back as soon as you scroll up. On wide screens a grey highlight follows the pointer across the links
 // and a green dot marks the section you're in; on narrow ones the links move into a menu.
 export function SiteNav() {
   const pathname = usePathname();
@@ -29,7 +24,6 @@ export function SiteNav() {
   // Guide articles sit under the Guides link.
   const page = LINKS.find((l) => !l.href.startsWith("#") && pathname.startsWith(l.href))?.href ?? null;
   const linkTo = (href: string) => !home && href.startsWith("#") ? `/${href}` : href;
-  const [past, setPast] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [away, setAway] = useState(false);
   const [section, setSection] = useState<string | null>(null);
@@ -81,17 +75,6 @@ export function SiteNav() {
   }
 
   useLayoutEffect(() => sweep(true), []);
-
-  useEffect(() => {
-    const target = document.getElementById("hero-cta");
-    if (!target) { setPast(true); return; }
-    // The top margin is the nav's height, so the button counts as gone once it slides under the nav.
-    const io = new IntersectionObserver(([e]) => setPast(!e.isIntersecting && e.boundingClientRect.top < 80), {
-      rootMargin: "-80px 0px 0px 0px",
-    });
-    io.observe(target);
-    return () => io.disconnect();
-  }, []);
 
   useEffect(() => {
     // Small jitters don't count: it takes a deliberate 10px either way to hide or bring it back.
@@ -231,10 +214,10 @@ export function SiteNav() {
           <span className="nav-dot" ref={dot} aria-hidden="true" />
         </div>
         <div className="nav-end">
-          <BalanceChip off={past} />
-          <PlatformDownloadLink className="nav-cta" compact shown={past}>
+          <a className="nav-cta" href={DOWNLOAD_PAGE} aria-current={pathname === DOWNLOAD_PAGE ? "page" : undefined}>
             <DownloadIcon />
-          </PlatformDownloadLink>
+            Download
+          </a>
         </div>
         <button
           className="nav-toggle"

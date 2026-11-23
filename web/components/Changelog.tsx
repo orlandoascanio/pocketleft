@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import { DownloadIcon } from "@/components/SiteNav";
-import { DOWNLOAD_URL, SELF_HOSTING_URL, WINDOWS_SETUP_URL } from "@/lib/site";
+import { DOWNLOAD_PAGE, DOWNLOAD_URL, SELF_HOSTING_GUIDE_URL, WINDOWS_SETUP_URL } from "@/lib/site";
 import { RELEASES, WINDOWS_RELEASES, groupReleasesByDay, releaseDate, releaseId, type Release } from "@/lib/releases";
 
 function LinkIcon({ check = false }: { check?: boolean }) {
@@ -125,7 +125,10 @@ function ReleaseHistory({ platform, groups }: { platform: "Mac" | "Windows"; gro
         {release.relatedSources && <ul className="release-related">
           {release.relatedSources.map(source => <li key={source.url}><a className="release-text-link" href={source.url}>{source.title} <span aria-hidden="true">↗</span></a></li>)}
         </ul>}
-        <div className="release-actions">{i === 0 ? <><a className="pill pill-dark" href={windows ? WINDOWS_SETUP_URL : DOWNLOAD_URL} data-download><DownloadIcon />Download v{release.version}</a>{!windows && <a className="release-text-link" href={SELF_HOSTING_URL}>Set up sync <span aria-hidden="true">↗</span></a>}</> : i === groups.length - 1 ? <span className="release-first">The first chapter.</span> : null}<a className="release-source" href={release.source}>On GitHub <span aria-hidden="true">↗</span></a></div>
+        {release.guideLinks && <ul className="release-related" aria-label="Guides for this release">
+          {release.guideLinks.map(guide => <li key={guide.url}><a className="release-text-link" href={guide.url}>{guide.title}</a></li>)}
+        </ul>}
+        <div className="release-actions">{i === 0 ? <><a className="pill pill-dark" href={windows ? WINDOWS_SETUP_URL : DOWNLOAD_URL} data-download={!windows || undefined}><DownloadIcon />Download v{release.version}</a><a className="release-text-link" href={windows ? DOWNLOAD_PAGE + "#windows" : SELF_HOSTING_GUIDE_URL}>{windows ? "Windows installation help" : "Set up sync"} <span aria-hidden="true">↗</span></a></> : i === groups.length - 1 ? <span className="release-first">The first chapter.</span> : null}<a className="release-source" href={release.source}>On GitHub <span aria-hidden="true">↗</span></a></div>
       </article>)}
     </div>
   </section>;
