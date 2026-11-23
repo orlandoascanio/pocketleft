@@ -106,9 +106,9 @@ export default function Home() {
         <section className="section wrap" id="tour">
           <div className="tour-intro">
             <div className="story-copy" id="waiting">
-              <h2>Inside Pocket for Mac</h2>
-              <p>Overview puts your balance, recent purchases, and payments you’re waiting for in one window.</p>
-              <p>If a client pays late or sends a different amount, choose <strong>Got it</strong> when the money arrives. Enter the amount and date to update your balance.</p>
+              <h2>Where does that coffee show up?</h2>
+              <p>Log a coffee from the Mac menu bar and you’ll see it in Overview, alongside your other purchases and your updated balance.</p>
+              <p>Money you’re expecting has its own spot. When a client pays, choose <strong>Got it</strong> to record what arrived.</p>
               <a className="feature-guide" href="/guides/expected-income/">Track expected income <span aria-hidden="true">→</span></a>
             </div>
             <figure className="pocket-film" id="video">
@@ -119,7 +119,10 @@ export default function Home() {
               </video>
             </figure>
           </div>
-          <Tour initialView="overview" />
+          <div className="tour-gallery">
+            <h3>Explore the Mac app</h3>
+            <Tour initialView="overview" />
+          </div>
         </section>
 
         <div className="wrap product-stories">
