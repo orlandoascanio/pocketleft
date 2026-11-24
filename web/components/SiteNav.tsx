@@ -4,25 +4,29 @@ import { gsap } from "gsap";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDownloadPlatform } from "@/components/PlatformDownload";
+import { HOMEPAGE_PATHS, type Locale } from "@/lib/locale";
 import { DOWNLOAD_PAGE } from "@/lib/site";
 
 const LINKS = [
-  { href: "#tour", label: "Features" },
-  { href: "#plan", label: "Plan ahead" },
-  { href: "#subscriptions", label: "Subscriptions" },
-  { href: "/guides/", label: "Guides" },
-  { href: "/changelog/", label: "Changelog" },
+  { href: "#tour", label: { en: "Features", es: "Funciones" } },
+  { href: "#plan", label: { en: "Plan ahead", es: "Planifica" } },
+  { href: "#subscriptions", label: { en: "Subscriptions", es: "Suscripciones" } },
+  { href: "/guides/", label: { en: "Guides", es: "Guías" } },
+  { href: "/changelog/", label: { en: "Changelog", es: "Novedades" } },
 ];
 
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function SiteNav() {
+export function SiteNav({ locale = "en" }: { locale?: Locale }) {
   const pathname = usePathname();
   const platform = useDownloadPlatform();
-  const home = pathname === "/";
+  const spanish = locale === "es";
+  const homePath = HOMEPAGE_PATHS[locale];
+  const home = pathname === homePath || `${pathname}/` === homePath;
+  const otherLocale = spanish ? "en" : "es";
   // Guide articles sit under the Guides link.
   const page = LINKS.find((l) => !l.href.startsWith("#") && pathname.startsWith(l.href))?.href ?? null;
-  const linkTo = (href: string) => !home && href.startsWith("#") ? `/${href}` : href;
+  const linkTo = (href: string) => !home && href.startsWith("#") ? `${homePath}${href}` : href;
   const [scrolled, setScrolled] = useState(false);
   const [section, setSection] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
@@ -162,8 +166,8 @@ export function SiteNav() {
       data-scrolled={scrolled || undefined}
       data-menu={menu || undefined}
     >
-      <nav className="nav" aria-label="Main">
-        <a className="brand" href="/" onPointerEnter={() => sweep(false)}>
+      <nav className="nav" aria-label={spanish ? "Principal" : "Main"}>
+        <a className="brand" href={homePath} onPointerEnter={() => sweep(false)}>
           <img src="/pocket-icon.webp" alt="" width={28} height={28} />
           <span className="brand-name" ref={name}>
             <span className="brand-was" aria-hidden="true">
@@ -185,14 +189,17 @@ export function SiteNav() {
               onFocus={() => setHover(href)}
               onBlur={() => setHover(null)}
             >
-              {label}
+              {label[locale]}
             </a>
           ))}
         </div>
         <div className="nav-end">
+          <a className="nav-language" href={HOMEPAGE_PATHS[otherLocale]} lang={otherLocale} hrefLang={otherLocale}>
+            {spanish ? "English" : "Español"}
+          </a>
           <a className="nav-cta" href={DOWNLOAD_PAGE} aria-current={pathname === DOWNLOAD_PAGE ? "page" : undefined}>
             <DownloadIcon />
-            Download
+            <span className="nav-cta-label">{spanish ? "Descargar" : "Download"}</span>
           </a>
         </div>
         <button
@@ -201,13 +208,13 @@ export function SiteNav() {
           type="button"
           aria-expanded={menu}
           aria-controls="nav-menu"
-          aria-label={menu ? "Close menu" : "Open menu"}
+          aria-label={menu ? (spanish ? "Cerrar menú" : "Close menu") : (spanish ? "Abrir menú" : "Open menu")}
           onClick={() => setMenu(!menu)}
         >
           <span />
           <span />
         </button>
-        <progress className="reading-progress" ref={progress} max={1} value={0} aria-label="Page scroll progress" />
+        <progress className="reading-progress" ref={progress} max={1} value={0} aria-label={spanish ? "Progreso de lectura" : "Page scroll progress"} />
       </nav>
       <div className="nav-menu" id="nav-menu" inert={!menu}>
         {LINKS.map(({ href, label }, i) => (
@@ -218,7 +225,7 @@ export function SiteNav() {
             aria-current={href === pathname ? "page" : href === page || href === section ? "location" : undefined}
             onClick={() => setMenu(false)}
           >
-            {label}
+            {label[locale]}
             <span aria-hidden="true">{href.startsWith("#") && home ? "↓" : "↗"}</span>
           </a>
         ))}

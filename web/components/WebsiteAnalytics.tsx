@@ -3,22 +3,24 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ANALYTICS_CONFIGURED, ANALYTICS_PREFERENCE, MEASUREMENT_ID, analyticsEnabledForHost, pageLocation, readAnalyticsConsent, saveAnalyticsConsent, removeAnalyticsCookies, trackWebsiteEvent, type AnalyticsConsent, type AnalyticsChoice } from "@/lib/analytics";
+import { HOMEPAGE_PATHS, type Locale } from "@/lib/locale";
 import { DOWNLOAD_URL, REPO_URL, SELF_HOSTING_GUIDE_URL, SELF_HOSTING_URL, WINDOWS_SETUP_URL } from "@/lib/site";
 import "./website-analytics.css";
 
 const OPEN_PREFERENCES = "pocket:analytics-preferences";
 
-export function AnalyticsPreferences() {
+export function AnalyticsPreferences({ locale }: { locale: Locale }) {
   const [enabled, setEnabled] = useState(false);
   useEffect(() => { setEnabled(analyticsEnabledForHost(window.location.hostname)); }, []);
   if (!enabled) return null;
   return <button className="analytics-preferences" type="button" aria-controls="website-consent"
     onClick={(event) => window.dispatchEvent(new CustomEvent(OPEN_PREFERENCES, { detail: event.currentTarget }))}>
-    Analytics preferences
+    {locale === "es" ? "Preferencias de analítica" : "Analytics preferences"}
   </button>;
 }
 
-export function WebsiteAnalytics() {
+export function WebsiteAnalytics({ locale }: { locale: Locale }) {
+  const spanish = locale === "es";
   const route = usePathname();
   const pathname = route === "/" ? "/" : `${route.replace(/\/$/, "")}/`;
   const [consent, setConsent] = useState<AnalyticsConsent | null>(null);
@@ -29,7 +31,7 @@ export function WebsiteAnalytics() {
   const lastPage = useRef("");
   const opener = useRef<HTMLElement | null>(null);
   const firstChoice = useRef<HTMLButtonElement>(null);
-  const marketing = pathname === "/" || pathname === "/changelog/" || pathname === "/privacy/" || pathname === "/share/";
+  const marketing = pathname === HOMEPAGE_PATHS[locale] || pathname === "/changelog/" || pathname === "/privacy/" || pathname === "/share/";
 
   useEffect(() => {
     function refresh() {
@@ -147,13 +149,13 @@ export function WebsiteAnalytics() {
 
   return <>
     {prompt && <aside id="website-consent" className="website-consent" aria-labelledby="website-consent-title">
-      <p id="website-consent-title">Allow website analytics?</p>
-      <span>Help us understand visits and download clicks. Your Pocket balances and entries aren’t collected. <a href="/privacy/">Details</a></span>
-      <small>We’ll remember your choice for 180 days.</small>
+      <p id="website-consent-title">{spanish ? "¿Permites la analítica del sitio?" : "Allow website analytics?"}</p>
+      <span>{spanish ? "Ayúdanos a entender las visitas y los clics de descarga. No recopilamos tus saldos ni movimientos de Pocket." : "Help us understand visits and download clicks. Your Pocket balances and entries aren’t collected."} <a href="/privacy/">{spanish ? "Más información" : "Details"}</a></span>
+      <small>{spanish ? "Guardaremos tu elección durante 180 días." : "We’ll remember your choice for 180 days."}</small>
       <div>
-        <button ref={firstChoice} className="pill pill-line" type="button" onClick={() => choose("rejected")}>No thanks</button>
-        <button className="pill pill-line" type="button" onClick={() => choose("accepted")}>Allow analytics</button>
-        {editing && <button className="website-consent-cancel" type="button" onClick={dismiss}>Cancel</button>}
+        <button ref={firstChoice} className="pill pill-line" type="button" onClick={() => choose("rejected")}>{spanish ? "No, gracias" : "No thanks"}</button>
+        <button className="pill pill-line" type="button" onClick={() => choose("accepted")}>{spanish ? "Permitir analítica" : "Allow analytics"}</button>
+        {editing && <button className="website-consent-cancel" type="button" onClick={dismiss}>{spanish ? "Cancelar" : "Cancel"}</button>}
       </div>
     </aside>}
   </>;

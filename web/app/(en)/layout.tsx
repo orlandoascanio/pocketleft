@@ -1,15 +1,6 @@
-import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque } from "next/font/google";
+import type { Metadata } from "next";
 import { DESCRIPTION, SITE_URL } from "@/lib/site";
-import { WebsiteAnalytics } from "@/components/WebsiteAnalytics";
-import "./globals.css";
-
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
-  weight: "variable",
-  axes: ["opsz"],
-  variable: "--display-font",
-});
+import { SiteDocument } from "@/components/SiteDocument";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -29,18 +20,8 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-export const viewport: Viewport = {
-  viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f5f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#121212" },
-  ],
-};
+export { viewport } from "@/lib/site-viewport";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en" className={display.variable}>
-      <body>{children}<WebsiteAnalytics /></body>
-    </html>
-  );
+  return <SiteDocument locale="en">{children}</SiteDocument>;
 }

@@ -26,3 +26,29 @@ export const FAQ: FaqItem[] = [
     link: { href: "/guides/back-up-your-data/", label: "Read the backup and move guide" },
   },
 ];
+
+export const FAQ_ES: FaqItem[] = [
+  {
+    q: "¿Qué saldo inicial debo ingresar?",
+    a: "Usa el saldo de hoy de la cuenta o el efectivo que quieras controlar. A partir de ahí, registra tus compras e ingresos. Los movimientos anteriores ya están incluidos en el saldo inicial.",
+  },
+  {
+    q: "¿Qué hago si el saldo de Pocket no coincide con el de mi banco?",
+    a: "Compara los movimientos recientes del historial con los de tu banco. Agrega la compra que falte, corrige el monto o elimina un duplicado.",
+    link: { href: "/guides/manual-vs-bank-sync/", label: "Lee la guía de registro manual (en inglés)" },
+  },
+  {
+    q: "¿Puedo usar Pocket en mi celular?",
+    a: "Sí. Configura tu propio proyecto de Supabase y luego vincula el celular para abrir el mismo registro en la app web de Pocket.",
+    link: { href: "/guides/self-hosting/", label: "Mira los pasos para vincularlo (en inglés)" },
+  },
+  {
+    q: "¿Qué monedas admite?",
+    a: "Puedes elegir una moneda para cada registro. Si cambias la moneda, se actualiza el símbolo y se conservan los montos que ingresaste.",
+  },
+  {
+    q: "¿Cómo transfiero mis datos de Pocket a otra Mac?",
+    a: "Exporta tus datos desde la configuración de Pocket en la Mac anterior e importa ese archivo en la nueva.",
+    link: { href: "/guides/back-up-your-data/", label: "Lee la guía de copias de seguridad (en inglés)" },
+  },
+];

@@ -42,11 +42,15 @@
 }
 .tour-gallery { margin-top: clamp(36px, 6vw, 76px); }
 .tour-gallery > h3 { margin: 0; font: 650 clamp(24px, 3vw, 36px)/1.15 var(--display); letter-spacing: -.03em; }
+.tour-language-note { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
 #tour .tour-gallery .tour { margin-top: 16px; }
 #tour h2 { max-width: 650px; font-size: clamp(38px, 5vw, 60px); }
 @media (max-width: 480px) {
   .tour-tabs { max-width: 100%; }
   .tour-tabs button { padding: 8px 9px; font-size: 12px; }
+}
+@media (max-width: 360px) {
+  html[lang="es"] .hero-dimensional h1 { font-size: 54px; }
 }
 #tour .tour-stage { background: #dce6d6; border-radius: 16px; }
 .pocket-film { margin: 26px 0 32px; scroll-margin-top: 108px; }

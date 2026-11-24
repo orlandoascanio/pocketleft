@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 
+import type { Locale } from "@/lib/locale";
+
 const INITIAL_CENTS = 33703;
 const COFFEE_CENTS = 650;
 
@@ -20,7 +22,9 @@ function CoffeeIcon() {
 }
 
 /** A small, local-only demo. The illustrated balance never reads or writes a ledger. */
-export function HeroScene() {
+export function HeroScene({ locale }: { locale: Locale }) {
+  const spanish = locale === "es";
+  const startingBalance = spanish ? "Saldo inicial" : "Starting balance";
   const [spent, setSpent] = useState(false);
   const [moving, setMoving] = useState(true);
   const scene = useRef<HTMLDivElement>(null);
@@ -86,31 +90,32 @@ export function HeroScene() {
             <div className="printer-top"><b>Pocket</b><i className="printer-vents" /></div>
             <div className="printer-slot" />
             <div className="printer-paper" key={amount}>
-              <div className="receipt-title">Balance receipt</div>
+              <div className="receipt-title">{spanish ? "Recibo de saldo" : "Balance receipt"}</div>
               {spent && (
                 <>
                   <pre>{COFFEE}</pre>
-                  <div className="receipt-row"><span>Starting balance</span><span>${(INITIAL_CENTS / 100).toFixed(2)}</span></div>
-                  <div className="receipt-row"><span>Coffee</span><span>−$6.50</span></div>
+                  <div className="receipt-row"><span>{startingBalance}</span><span>${(INITIAL_CENTS / 100).toFixed(2)}</span></div>
+                  <div className="receipt-row"><span>{spanish ? "Café" : "Coffee"}</span><span>−$6.50</span></div>
                 </>
               )}
-              <div className="receipt-total"><small>{spent ? "Money left" : "Starting balance"}</small><b>${amount}</b></div>
+              <div className="receipt-total"><small>{spent ? (spanish ? "Saldo restante" : "Money left") : startingBalance}</small><b>${amount}</b></div>
               <div className="receipt-barcode" />
             </div>
           </div>
         </div>
-        <span className="stage-caption">{spent ? "After coffee" : "Before coffee"}</span>
-        <button className="scene-motion" type="button" aria-label={moving ? "Pause scene motion" : "Resume scene motion"} onClick={() => { setMoving(!moving); resetTilt(); }}>
+        <span className="stage-caption">{spent ? (spanish ? "Después del café" : "After coffee") : (spanish ? "Antes del café" : "Before coffee")}</span>
+        <button className="scene-motion" type="button" aria-label={moving ? (spanish ? "Pausar animación" : "Pause scene motion") : (spanish ? "Reanudar animación" : "Resume scene motion")} onClick={() => { setMoving(!moving); resetTilt(); }}>
           {moving ? <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5v10m6-10v10" /></svg> : <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 8 6-8 6Z" /></svg>}
         </button>
       </div>
       <div className="scene-controls">
-        <span>Example ledger</span>
+        <span>{spanish ? "Registro de ejemplo" : "Example ledger"}</span>
         <button className="scene-coffee" type="button" onClick={() => setSpent(!spent)}>
-          <CoffeeIcon />{spent ? "Undo coffee" : "Add a coffee"}<span>{spent ? "+$6.50" : "−$6.50"}</span>
+          <CoffeeIcon />{spent ? (spanish ? "Deshacer café" : "Undo coffee") : (spanish ? "Agrega un café" : "Add a coffee")}<span>{spent ? "+$6.50" : "−$6.50"}</span>
         </button>
       </div>
-      <span className="sr-only" role="status">{spent ? "Coffee added. " : ""}Example balance: ${amount}.</span>
+      <span className="sr-only" role="status">{spent && (spanish ? "Café registrado. " : "Coffee added. ")}
+        {spanish ? "Saldo de ejemplo" : "Example balance"}: ${amount}.</span>
     </div>
   );
 }

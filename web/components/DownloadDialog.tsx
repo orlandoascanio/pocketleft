@@ -1,5 +1,6 @@
 "use client";
 
+import type { Locale } from "@/lib/locale";
 import { useEffect, useRef } from "react";
 import { DMG_SIZE, DOWNLOAD_URL, ISSUES_URL } from "@/lib/site";
 import { MenuBarStrip } from "@/components/MenuBar";
@@ -10,7 +11,8 @@ const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Any link marked `data-download` still downloads as usual; this also opens the install steps.
 // The dialog moves gently toward the button that was pressed when it opens and closes.
 // Closing mid-open (or opening mid-close) turns around from wherever it is.
-export function DownloadDialog() {
+export function DownloadDialog({ locale = "en" }: { locale?: Locale }) {
+  const spanish = locale === "es";
   const ref = useRef<HTMLDialogElement>(null);
   const origin = useRef<{ x: number; y: number } | null>(null);
   const anim = useRef<Animation | null>(null);
@@ -148,11 +150,11 @@ export function DownloadDialog() {
       <div className="dl-inner">
         <div className="dl-head">
           <div>
-            <span className="dl-eyebrow">Pocket for Mac</span>
-            <h2 id="dl-title">Install Pocket.</h2>
-            <p id="dl-description">After Pocket.dmg downloads, follow these three steps.</p>
+            <span className="dl-eyebrow">{spanish ? "Pocket para Mac" : "Pocket for Mac"}</span>
+            <h2 id="dl-title">{spanish ? "Instala Pocket." : "Install Pocket."}</h2>
+            <p id="dl-description">{spanish ? "Cuando se descargue Pocket.dmg, sigue estos tres pasos." : "After Pocket.dmg downloads, follow these three steps."}</p>
           </div>
-          <button ref={closeButton} className="dl-close" type="button" aria-label="Close installation guide" onClick={() => close("close_button")}>
+          <button ref={closeButton} className="dl-close" type="button" aria-label={spanish ? "Cerrar la guía de instalación" : "Close installation guide"} onClick={() => close("close_button")}>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M6 6l12 12M18 6 6 18" />
             </svg>
@@ -169,8 +171,8 @@ export function DownloadDialog() {
             </div>
             <div className="dl-step-copy">
               <span className="dl-step">01</span>
-              <h3>Open the download</h3>
-              <p>Find Pocket.dmg in your Downloads folder and open it.</p>
+              <h3>{spanish ? "Abre el archivo descargado" : "Open the download"}</h3>
+              <p>{spanish ? "Busca Pocket.dmg en la carpeta Descargas y ábrelo." : "Find Pocket.dmg in your Downloads folder and open it."}</p>
             </div>
           </li>
           <li>
@@ -186,28 +188,28 @@ export function DownloadDialog() {
             </div>
             <div className="dl-step-copy">
               <span className="dl-step">02</span>
-              <h3>Move to Applications</h3>
-              <p>Drag the Pocket icon into the Applications folder.</p>
+              <h3>{spanish ? "Mueve Pocket a Aplicaciones" : "Move to Applications"}</h3>
+              <p>{spanish ? "Arrastra el ícono de Pocket a la carpeta Aplicaciones." : "Drag the Pocket icon into the Applications folder."}</p>
             </div>
           </li>
           <li>
             <div className="dl-art" aria-hidden="true">
-              <MenuBarStrip amount="$337.03" />
+              <MenuBarStrip locale={locale} amount="$337.03" />
             </div>
             <div className="dl-step-copy">
               <span className="dl-step">03</span>
-              <h3>Set your starting balance</h3>
-              <p>Open Pocket from Applications and set your balance. Record your next purchase to see the menu bar balance update.</p>
+              <h3>{spanish ? "Ingresa tu saldo inicial" : "Set your starting balance"}</h3>
+              <p>{spanish ? "Abre Pocket desde Aplicaciones e ingresa tu saldo. Después, registra una compra para ver cómo se actualiza el saldo en la barra de menús." : "Open Pocket from Applications and set your balance. Record your next purchase to see the menu bar balance update."}</p>
             </div>
           </li>
         </ol>
         <div className="dl-foot">
           <div>
-            <a className="dl-retry" href={DOWNLOAD_URL} onClick={() => trackWebsiteEvent("install_help_retry", { action: "download_again" })}>Download again <span aria-hidden="true">↓</span></a>
-            <a href="/guides/getting-started/">Read the getting started guide <span aria-hidden="true">↗</span></a>
-            <a className="dl-help" href={ISSUES_URL} target="_blank" rel="noopener noreferrer" onClick={() => trackWebsiteEvent("install_help_support", { action: "report_problem" })}>Report a problem <span aria-hidden="true">↗</span></a>
+            <a className="dl-retry" href={DOWNLOAD_URL} onClick={() => trackWebsiteEvent("install_help_retry", { action: "download_again" })}>{spanish ? "Descargar de nuevo" : "Download again"} <span aria-hidden="true">↓</span></a>
+            <a href="/guides/getting-started/">{spanish ? "Lee la guía de inicio (en inglés)" : "Read the getting started guide"} <span aria-hidden="true">↗</span></a>
+            <a className="dl-help" href={ISSUES_URL} target="_blank" rel="noopener noreferrer" onClick={() => trackWebsiteEvent("install_help_support", { action: "report_problem" })}>{spanish ? "Reportar un problema" : "Report a problem"} <span aria-hidden="true">↗</span></a>
           </div>
-          <button className="pill pill-dark" type="button" onClick={() => close("done")}>Got it</button>
+          <button className="pill pill-dark" type="button" onClick={() => close("done")}>{spanish ? "Entendido" : "Got it"}</button>
         </div>
       </div>
     </dialog>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore, type ReactNode } from "react";
+import type { Locale } from "@/lib/locale";
 import { DOWNLOAD_PAGE, DOWNLOAD_URL, VERSION, WEB_APP_URL, WINDOWS_SETUP_URL, WINDOWS_VERSION } from "@/lib/site";
 
 type Platform = "mac" | "windows" | null;
@@ -36,12 +37,29 @@ export function ForDesktopPlatform({ platform, children }: {
   return detected === null || detected === platform ? children : null;
 }
 
-export function PlatformDownloadLink({ className, children }: {
+const downloadLabels = {
+  en: { mac: "Download for Mac", windows: "Download for Windows", desktop: "View desktop downloads" },
+  es: { mac: "Descargar para Mac", windows: "Descargar para Windows", desktop: "Ver descargas" },
+};
+
+const descriptions = {
+  en: {
+    windows: "A free offline expense tracker for Windows. Enter purchases by hand and see your balance beside the clock. Your bank account stays unlinked.",
+    desktop: "A free offline expense tracker for Mac and Windows. Enter purchases by hand and see your balance in the menu bar or tray. Your bank account stays unlinked.",
+  },
+  es: {
+    windows: "Controla tus gastos en Windows gratis y sin conexión. Registra tus compras a mano y consulta tu saldo junto al reloj, sin vincular tu cuenta bancaria.",
+    desktop: "Controla tus gastos en Mac y Windows gratis y sin conexión. Registra tus compras a mano y consulta tu saldo en la barra de menús o la bandeja del sistema, sin vincular tu cuenta bancaria.",
+  },
+};
+
+export function PlatformDownloadLink({ className, children, locale }: {
+  locale: Locale;
   className?: string;
   children?: ReactNode;
 }) {
   const platform = useDownloadPlatform();
-  const label = platform === "mac" ? "Download for Mac" : platform === "windows" ? "Download for Windows" : "View desktop downloads";
+  const label = downloadLabels[locale][platform ?? "desktop"];
   const href = platform === "mac" ? DOWNLOAD_URL : platform === "windows" ? WINDOWS_SETUP_URL : DOWNLOAD_PAGE;
   return (
     <a className={className} href={href} data-download={platform === "mac" || undefined}>
@@ -51,61 +69,63 @@ export function PlatformDownloadLink({ className, children }: {
   );
 }
 
-export function HeroPlatformHeadline() {
+export function HeroPlatformHeadline({ locale }: { locale: Locale }) {
   const platform = useDownloadPlatform();
   return (
     <>
-      <h1>Know what’s<br /><span>left.</span></h1>
-      <p className="lead">{platform === "windows"
-        ? "A free offline expense tracker for Windows. Enter purchases by hand and see your balance beside the clock. Your bank account stays unlinked."
-        : "A free offline expense tracker for Mac and Windows. Enter purchases by hand and see your balance in the menu bar or tray. Your bank account stays unlinked."}</p>
+      <h1>{locale === "es" ? "Mira cuánto" : "Know what’s"}<br /><span>{locale === "es" ? "te queda." : "left."}</span></h1>
+      <p className="lead">{descriptions[locale][platform === "windows" ? "windows" : "desktop"]}</p>
     </>
   );
 }
 
-export function HeroActions({ downloadIcon }: { downloadIcon: ReactNode }) {
+export function HeroActions({ downloadIcon, locale }: { downloadIcon: ReactNode; locale: Locale }) {
+  const spanish = locale === "es";
   const platform = useDownloadPlatform();
   return (
     <div className="cta" id="hero-cta">
       {platform ? (
         <>
-          <PlatformDownloadLink className="pill pill-dark">{downloadIcon}</PlatformDownloadLink>
+          <PlatformDownloadLink locale={locale} className="pill pill-dark">{downloadIcon}</PlatformDownloadLink>
           <a className="pill pill-soft" href={platform === "mac" ? "#tour" : DOWNLOAD_PAGE + "#windows"}>
-            {platform === "mac" ? "Take the Mac tour" : "See the Windows preview"}
+            {platform === "mac"
+              ? (spanish ? "Explora la app para Mac" : "Take the Mac tour")
+              : (spanish ? "Ver la versión para Windows" : "See the Windows preview")}
           </a>
         </>
       ) : (
         <>
-          <a className="pill pill-dark" href="#try-pocket">Try the sample ledger</a>
-          <PlatformDownloadLink className="pill pill-soft">{downloadIcon}</PlatformDownloadLink>
+          <a className="pill pill-dark" href="#try-pocket">{spanish ? "Prueba el registro de ejemplo" : "Try the sample ledger"}</a>
+          <PlatformDownloadLink locale={locale} className="pill pill-soft">{downloadIcon}</PlatformDownloadLink>
         </>
       )}
     </div>
   );
 }
 
-export function HeroDownloadDetails() {
+export function HeroDownloadDetails({ locale }: { locale: Locale }) {
+  const spanish = locale === "es";
   const platform = useDownloadPlatform();
   return (
     <>
       <ul className="meta">
-        <li>Free</li>
-        <li>No account</li>
+        <li>{spanish ? "Gratis" : "Free"}</li>
+        <li>{spanish ? "Sin cuenta" : "No account"}</li>
         {platform === "mac" ? <>
           <li>macOS 14+</li>
-          <li>Apple Silicon &amp; Intel</li>
-          <li>Developer signed · Apple notarized</li>
+          <li>{spanish ? "Apple Silicon e Intel" : "Apple Silicon & Intel"}</li>
+          <li>{spanish ? "Firma del desarrollador · Notarización de Apple" : "Developer signed · Apple notarized"}</li>
           <li><a href="/changelog/#mac">v{VERSION}</a></li>
         </> : platform === "windows" ? <>
           <li>Windows 11</li>
-          <li>Intel, AMD, and ARM</li>
-          <li><a href="/changelog/#windows">v{WINDOWS_VERSION} preview</a></li>
-        </> : <li><a href={DOWNLOAD_PAGE + "#windows"}>Windows 11 preview</a></li>}
+          <li>{spanish ? "Intel, AMD y ARM" : "Intel, AMD, and ARM"}</li>
+          <li><a href="/changelog/#windows">v{WINDOWS_VERSION} {spanish ? "preliminar" : "preview"}</a></li>
+        </> : <li><a href={DOWNLOAD_PAGE + "#windows"}>{spanish ? "Versión preliminar para Windows 11" : "Windows 11 preview"}</a></li>}
       </ul>
       {platform ? (
-        <a className="hero-downloads-link" href={DOWNLOAD_PAGE}>All download options <span aria-hidden="true">↗</span></a>
+        <a className="hero-downloads-link" href={DOWNLOAD_PAGE}>{spanish ? "Todas las opciones de descarga" : "All download options"} <span aria-hidden="true">↗</span></a>
       ) : (
-        <a className="hero-downloads-link" href={WEB_APP_URL}>Already synced? Open the web app <span aria-hidden="true">↗</span></a>
+        <a className="hero-downloads-link" href={WEB_APP_URL}>{spanish ? "¿Ya vinculaste tu dispositivo? Abre la app web" : "Already synced? Open the web app"} <span aria-hidden="true">↗</span></a>
       )}
     </>
   );
