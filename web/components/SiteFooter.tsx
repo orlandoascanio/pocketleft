@@ -1,7 +1,6 @@
-import { HOMEPAGE_PATHS, type Locale } from "@/lib/locale";
+import { ABOUT_PATHS, DOWNLOAD_PATHS, HOMEPAGE_PATHS, type Locale } from "@/lib/locale";
 import { AnalyticsPreferences } from "@/components/WebsiteAnalytics";
 import {
-  DOWNLOAD_PAGE,
   ISSUES_URL,
   RELEASES_URL,
   REPO_URL,
@@ -37,7 +36,7 @@ export function SiteFooter({ locale = "en" }: { locale?: Locale }) {
         <nav className="foot-col" aria-label={spanish ? "Producto" : "Product"}>
           <h3>{spanish ? "Producto" : "Product"}</h3>
           <a href={`${home}#tour`}>{spanish ? "Funciones" : "Features"}</a>
-          <a href={DOWNLOAD_PAGE}>{spanish ? "Descargar" : "Download"}</a>
+          <a href={DOWNLOAD_PATHS[locale]}>{spanish ? "Descargar" : "Download"}</a>
           <a href={WEB_APP_URL}>{spanish ? "App web" : "Web app"}</a>
         </nav>
         <nav className="foot-col" aria-label={spanish ? "Ayuda" : "Help"}>
@@ -48,7 +47,7 @@ export function SiteFooter({ locale = "en" }: { locale?: Locale }) {
         </nav>
         <nav className="foot-col" aria-label={spanish ? "Proyecto" : "Project"}>
           <h3>{spanish ? "Proyecto" : "Project"}</h3>
-          <a href="/about/">{spanish ? "Acerca de Pocket" : "About Pocket"}</a>
+          <a href={ABOUT_PATHS[locale]}>{spanish ? "Acerca de Pocket" : "About Pocket"}</a>
           <a href={REPO_URL}>{spanish ? "Código fuente" : "Source code"}</a>
           <a href={REPO_URL} data-star>
             {spanish ? "Dale una estrella en GitHub" : "Star on GitHub"}

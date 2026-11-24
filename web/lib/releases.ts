@@ -1,3 +1,4 @@
+import type { Locale } from "@/lib/locale";
 export type Release = {
   version: string;
   date: string;
@@ -316,6 +317,6 @@ export const WINDOWS_RELEASES: Release[] = [
   },
 ];
 
-export const releaseDate = (date: string) => new Intl.DateTimeFormat("en", {
+export const releaseDate = (date: string, locale: Locale = "en") => new Intl.DateTimeFormat(locale, {
   month: "long", day: "numeric", year: "numeric", timeZone: "UTC",
 }).format(new Date(`${date}T12:00:00Z`));

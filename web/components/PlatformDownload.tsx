@@ -1,8 +1,8 @@
 "use client";
 
 import { useSyncExternalStore, type ReactNode } from "react";
-import type { Locale } from "@/lib/locale";
-import { DOWNLOAD_PAGE, DOWNLOAD_URL, VERSION, WEB_APP_URL, WINDOWS_SETUP_URL, WINDOWS_VERSION } from "@/lib/site";
+import { DOWNLOAD_PATHS, type Locale } from "@/lib/locale";
+import { DOWNLOAD_URL, VERSION, WEB_APP_URL, WINDOWS_SETUP_URL, WINDOWS_VERSION } from "@/lib/site";
 
 type Platform = "mac" | "windows" | null;
 
@@ -60,7 +60,7 @@ export function PlatformDownloadLink({ className, children, locale }: {
 }) {
   const platform = useDownloadPlatform();
   const label = downloadLabels[locale][platform ?? "desktop"];
-  const href = platform === "mac" ? DOWNLOAD_URL : platform === "windows" ? WINDOWS_SETUP_URL : DOWNLOAD_PAGE;
+  const href = platform === "mac" ? DOWNLOAD_URL : platform === "windows" ? WINDOWS_SETUP_URL : DOWNLOAD_PATHS[locale];
   return (
     <a className={className} href={href} data-download={platform === "mac" || undefined}>
       {children}
@@ -87,7 +87,7 @@ export function HeroActions({ downloadIcon, locale }: { downloadIcon: ReactNode;
       {platform ? (
         <>
           <PlatformDownloadLink locale={locale} className="pill pill-dark">{downloadIcon}</PlatformDownloadLink>
-          <a className="pill pill-soft" href={platform === "mac" ? "#tour" : DOWNLOAD_PAGE + "#windows"}>
+          <a className="pill pill-soft" href={platform === "mac" ? "#tour" : DOWNLOAD_PATHS[locale] + "#windows"}>
             {platform === "mac"
               ? (spanish ? "Explora la app para Mac" : "Take the Mac tour")
               : (spanish ? "Ver la versión para Windows" : "See the Windows preview")}
@@ -120,10 +120,10 @@ export function HeroDownloadDetails({ locale }: { locale: Locale }) {
           <li>Windows 11</li>
           <li>{spanish ? "Intel, AMD y ARM" : "Intel, AMD, and ARM"}</li>
           <li><a href="/changelog/#windows">v{WINDOWS_VERSION} {spanish ? "preliminar" : "preview"}</a></li>
-        </> : <li><a href={DOWNLOAD_PAGE + "#windows"}>{spanish ? "Versión preliminar para Windows 11" : "Windows 11 preview"}</a></li>}
+        </> : <li><a href={DOWNLOAD_PATHS[locale] + "#windows"}>{spanish ? "Versión preliminar para Windows 11" : "Windows 11 preview"}</a></li>}
       </ul>
       {platform ? (
-        <a className="hero-downloads-link" href={DOWNLOAD_PAGE}>{spanish ? "Todas las opciones de descarga" : "All download options"} <span aria-hidden="true">↗</span></a>
+        <a className="hero-downloads-link" href={DOWNLOAD_PATHS[locale]}>{spanish ? "Todas las opciones de descarga" : "All download options"} <span aria-hidden="true">↗</span></a>
       ) : (
         <a className="hero-downloads-link" href={WEB_APP_URL}>{spanish ? "¿Ya vinculaste tu dispositivo? Abre la app web" : "Already synced? Open the web app"} <span aria-hidden="true">↗</span></a>
       )}

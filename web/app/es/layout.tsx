@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteDocument } from "@/components/SiteDocument";
-import { HOMEPAGE_PATHS, SPANISH_DESCRIPTION } from "@/lib/locale";
+import { HOMEPAGE_PATHS, SPANISH_DESCRIPTION, alternateLanguages } from "@/lib/locale";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   applicationName: "Pocket",
   alternates: {
     canonical: HOMEPAGE_PATHS.es,
-    languages: { ...HOMEPAGE_PATHS, "x-default": HOMEPAGE_PATHS.en },
+    languages: alternateLanguages(HOMEPAGE_PATHS),
   },
   icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
   openGraph: {

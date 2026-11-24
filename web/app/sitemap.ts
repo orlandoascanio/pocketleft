@@ -1,18 +1,22 @@
 import type { MetadataRoute } from "next";
-import { DOWNLOAD_PAGE, SITE_URL } from "@/lib/site";
-import { HOMEPAGE_PATHS } from "@/lib/locale";
+import { SITE_URL } from "@/lib/site";
+import { ABOUT_PATHS, DOWNLOAD_PATHS, HOMEPAGE_PATHS, alternateLanguages } from "@/lib/locale";
 import { GUIDES, guideUrl } from "@/lib/guides";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const en = SITE_URL + HOMEPAGE_PATHS.en;
-  const es = SITE_URL + HOMEPAGE_PATHS.es;
-  const alternates = { languages: { en, es, "x-default": en } };
+  const localizedPages = [
+    { paths: HOMEPAGE_PATHS, priority: 1 },
+    { paths: DOWNLOAD_PATHS, priority: 0.9 },
+    { paths: ABOUT_PATHS, priority: 0.8 },
+  ] as const;
 
   return [
-    { url: en, alternates, changeFrequency: "monthly", priority: 1 },
-    { url: es, alternates, changeFrequency: "monthly", priority: 1 },
-    { url: `${SITE_URL}${DOWNLOAD_PAGE}`, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${SITE_URL}/about/`, changeFrequency: "monthly", priority: 0.8 },
+    ...localizedPages.flatMap(({ paths, priority }) => Object.values(paths).map((path) => ({
+      url: SITE_URL + path,
+      alternates: { languages: alternateLanguages(paths, SITE_URL) },
+      changeFrequency: "monthly" as const,
+      priority,
+    }))),
     { url: `${SITE_URL}/changelog/`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/privacy/` },
     { url: `${SITE_URL}/guides/`, changeFrequency: "monthly", priority: 0.8 },

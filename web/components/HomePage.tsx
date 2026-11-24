@@ -11,13 +11,12 @@ import { ForDesktopPlatform, HeroActions, HeroDownloadDetails, HeroPlatformHeadl
 import { SiteFooter } from "@/components/SiteFooter";
 import { FAQ, FAQ_ES } from "@/lib/faq";
 import { HOME_COPY } from "@/lib/home-copy";
-import { HOMEPAGE_PATHS, SPANISH_DESCRIPTION, type Locale } from "@/lib/locale";
+import { DOWNLOAD_PATHS, HOMEPAGE_PATHS, SPANISH_DESCRIPTION, type Locale } from "@/lib/locale";
 import { ALTERNATE_NAMES, AUTHOR, DISAMBIGUATION, PROFILES, PUBLISHER } from "@/lib/schema";
 import "@/app/home.css";
 import { RELEASES, releaseId } from "@/lib/releases";
 import {
   DESCRIPTION,
-  DOWNLOAD_PAGE,
   DOWNLOAD_URL,
   SELF_HOSTING_GUIDE_URL,
   SITE_URL,
@@ -77,6 +76,7 @@ const englishJsonLd = [
 export function HomePage({ locale }: { locale: Locale }) {
   const copy = HOME_COPY[locale];
   const spanish = locale === "es";
+  const downloadPage = DOWNLOAD_PATHS[locale];
   const faq = spanish ? FAQ_ES : FAQ;
   const url = SITE_URL + HOMEPAGE_PATHS[locale];
   const [website, software] = englishJsonLd;
@@ -140,7 +140,6 @@ export function HomePage({ locale }: { locale: Locale }) {
           </div>
           <div className="tour-gallery">
             <h3>{copy.tourGallery}</h3>
-            {spanish && <p className="tour-language-note">Las capturas, el video y las guías enlazadas están en inglés.</p>}
             <Tour initialView="overview" locale={locale} />
           </div>
         </section>
@@ -213,8 +212,8 @@ export function HomePage({ locale }: { locale: Locale }) {
               <h2 id="downloads-heading">{copy.downloadHeading}</h2>
               <p>{copy.downloadBody}</p>
               <div className="home-platform-links">
-                <a className="pill pill-dark" href={DOWNLOAD_PAGE}><DownloadIcon />{copy.downloadChoose}</a>
-                <a className="feature-guide" id="windows" href={DOWNLOAD_PAGE + "#windows"}>{copy.windowsSetup}</a>
+                <a className="pill pill-dark" href={downloadPage}><DownloadIcon />{copy.downloadChoose}</a>
+                <a className="feature-guide" id="windows" href={downloadPage + "#windows"}>{copy.windowsSetup}</a>
               </div>
             </div>
             <img src="/pocket-sculpture.webp" width={180} height={180} loading="lazy" alt="" />

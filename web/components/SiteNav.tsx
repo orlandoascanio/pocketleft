@@ -4,8 +4,7 @@ import { gsap } from "gsap";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDownloadPlatform } from "@/components/PlatformDownload";
-import { HOMEPAGE_PATHS, type Locale } from "@/lib/locale";
-import { DOWNLOAD_PAGE } from "@/lib/site";
+import { DOWNLOAD_PATHS, HOMEPAGE_PATHS, LOCALIZED_PAGES, type Locale } from "@/lib/locale";
 
 const LINKS = [
   { href: "#tour", label: { en: "Features", es: "Funciones" } },
@@ -22,7 +21,10 @@ export function SiteNav({ locale = "en" }: { locale?: Locale }) {
   const platform = useDownloadPlatform();
   const spanish = locale === "es";
   const homePath = HOMEPAGE_PATHS[locale];
-  const home = pathname === homePath || `${pathname}/` === homePath;
+  const path = pathname.endsWith("/") ? pathname : `${pathname}/`;
+  const home = path === homePath;
+  const downloadPage = DOWNLOAD_PATHS[locale];
+  const localizedPage = LOCALIZED_PAGES.find((paths) => paths[locale] === path) ?? HOMEPAGE_PATHS;
   const otherLocale = spanish ? "en" : "es";
   // Guide articles sit under the Guides link.
   const page = LINKS.find((l) => !l.href.startsWith("#") && pathname.startsWith(l.href))?.href ?? null;
@@ -194,10 +196,10 @@ export function SiteNav({ locale = "en" }: { locale?: Locale }) {
           ))}
         </div>
         <div className="nav-end">
-          <a className="nav-language" href={HOMEPAGE_PATHS[otherLocale]} lang={otherLocale} hrefLang={otherLocale}>
+          <a className="nav-language" href={localizedPage[otherLocale]} lang={otherLocale} hrefLang={otherLocale}>
             {spanish ? "English" : "Español"}
           </a>
-          <a className="nav-cta" href={DOWNLOAD_PAGE} aria-current={pathname === DOWNLOAD_PAGE ? "page" : undefined}>
+          <a className="nav-cta" href={downloadPage} aria-current={path === downloadPage ? "page" : undefined}>
             <DownloadIcon />
             <span className="nav-cta-label">{spanish ? "Descargar" : "Download"}</span>
           </a>
