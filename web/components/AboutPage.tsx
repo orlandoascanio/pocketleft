@@ -38,26 +38,26 @@ const aboutCopy = {
     download: "Download for Mac",
   },
   es: {
-    title: "¿Qué es Pocket para Mac? Conoce PocketLeft",
-    description: "Pocket (PocketLeft) es una app gratuita que muestra tu saldo en la barra de menús de Mac. Conoce sus requisitos, dónde guarda tus datos y cómo funciona.",
+    title: "Acerca de Pocket para Mac | PocketLeft",
+    description: "Pocket muestra tu saldo en la barra de menús de la Mac. Anota tus ingresos y gastos a mano. La app es gratis, funciona sin conexión y guarda tus datos en tu Mac por defecto.",
     imageAlt: "Vista de resumen de Pocket para Mac",
     breadcrumb: "Ruta de navegación",
-    atAGlance: "Pocket de un vistazo",
-    heading: "¿Qué es Pocket para Mac?",
+    atAGlance: "Acerca de Pocket",
+    heading: "Pocket para Mac",
     updated: "Actualizado el",
     by: "Por",
-    facts: "Datos clave",
-    features: "¿Qué hace Pocket?",
-    featuresIntro: "Pocket te muestra cuánto dinero te queda. Primero ingresas el saldo de hoy. A partir de ahí, cada compra y cada pago que registras actualiza el monto de la barra de menús.",
-    featuresBody: "Puedes programar pagos, suscripciones y cobros recurrentes. Los ingresos pendientes se suman al saldo cuando confirmas cuánto recibiste. La vista Plan estima cuándo podría agotarse tu saldo con las fechas y los montos que ingresaste. Las estadísticas muestran en qué gastaste tu dinero cada mes.",
-    audience: "¿Para quién es Pocket?",
-    audienceIntro: "Pocket es para quienes tienen una Mac y quieren saber cuánto les queda sin vincular una cuenta bancaria. Como ingresas cada movimiento a mano, puedes usarlo con cualquier banco, en cualquier país y con cualquier moneda.",
-    audienceBody: "Es especialmente práctico cuando tus ingresos llegan en fechas variables, como los [cobros por trabajo independiente](/guides/freelance-income/). Si prefieres importar los movimientos de forma automática, te conviene una app con sincronización bancaria. Lee la [comparación entre el registro manual y la sincronización bancaria](/guides/manual-vs-bank-sync/) para decidir.",
-    which: "¿Cuál de todas las apps Pocket es esta?",
-    maker: "¿Quién desarrolla Pocket?",
+    facts: "Precio, requisitos y funciones",
+    features: "Pagos y saldo previsto",
+    featuresIntro: "Puedes programar pagos, suscripciones y cobros recurrentes. Pocket suma los ingresos pendientes al saldo cuando confirmas cuánto recibiste.",
+    featuresBody: "Con las fechas y los montos que ingresas, la vista Plan estima cuánto te quedará después de tus próximos pagos y cobros. También te muestra cuándo podría agotarse tu saldo. Las estadísticas muestran en qué gastaste tu dinero cada mes.",
+    audience: "Si cobras en fechas distintas",
+    audienceIntro: "Si trabajas por tu cuenta, puedes anotar [lo que te deben tus clientes](/guides/freelance-income/) para tener a mano los cobros pendientes. Como registras cada movimiento tú mismo, puedes usar Pocket con cualquier banco, en cualquier país y en cualquier moneda.",
+    audienceBody: "Si prefieres que una app importe tus movimientos, compara el [registro manual y la sincronización bancaria](/guides/manual-vs-bank-sync/).",
+    which: "Otras apps con nombres parecidos",
+    maker: "Quién desarrolla Pocket",
     safeDownload: "Descarga Pocket solo desde pocketleft.app o su página de GitHub.",
-    learn: "Más sobre Pocket",
-    downloadPitch: "Consulta tu saldo en la barra de menús.",
+    learn: "Guías de Pocket",
+    downloadPitch: "Descarga Pocket",
     availability: "Gratis para macOS 14 o posterior en Apple Silicon e Intel.",
     download: "Descargar para Mac",
   },
@@ -95,8 +95,8 @@ const relatedGuides = ["mac-menu-bar-money-apps", "getting-started", "manual-vs-
 const relatedGuidesSpanish = {
   "mac-menu-bar-money-apps": {
     category: "Elige una app",
-    title: "Comparación de apps de finanzas para la barra de menús de Mac",
-    description: "Compara qué saldo muestran simplebanking, Up Only y Pocket, cuánto cuestan y cuál se ajusta a lo que buscas.",
+    title: "Tres apps de finanzas para la barra de menús de Mac",
+    description: "Qué saldo muestran simplebanking, Up Only y Pocket y cuánto cuesta cada una.",
   },
   "getting-started": {
     category: "Empieza aquí",
@@ -106,7 +106,7 @@ const relatedGuidesSpanish = {
   "manual-vs-bank-sync": {
     category: "Elige cómo registrar tus gastos",
     title: "Registro manual o sincronización bancaria",
-    description: "Compara cuándo conviene cada método y aprende a mantener tu saldo al día sin vincular un banco.",
+    description: "Cuándo conviene importar tus movimientos y cómo mantener tu saldo al día si los anotas a mano.",
   },
 };
 
@@ -141,7 +141,7 @@ export function AboutPage({ locale }: { locale: Locale }) {
       <nav className="guide-breadcrumb" aria-label={copy.breadcrumb}><a href={home}>Pocket</a><span aria-hidden="true">/</span><span aria-current="page">{copy.atAGlance}</span></nav>
       <article>
         <header className="guide-header">
-          <p className="guide-eyebrow">{copy.atAGlance}</p>
+          {!spanish && <p className="guide-eyebrow">{copy.atAGlance}</p>}
           <h1>{copy.heading}</h1>
           <p className="guide-lead">{spanish ? AT_A_GLANCE_ES : AT_A_GLANCE}</p>
           <p className="guide-date">{copy.updated} <time dateTime={updated}>{releaseDate(updated, locale)}</time> · {copy.by} <a href={AUTHOR.url}>{AUTHOR.name}</a></p>
@@ -160,13 +160,13 @@ export function AboutPage({ locale }: { locale: Locale }) {
           </section>
           <section id="who-its-for">
             <h2>{copy.audience}</h2>
-            <p>{copy.audienceIntro}</p>
+            <p><Text>{copy.audienceIntro}</Text></p>
             <p><Text>{copy.audienceBody}</Text></p>
           </section>
           <section id="other-pockets">
             <h2>{copy.which}</h2>
             <p>{spanish
-              ? <>Pocket para Mac es la app de control de gastos de pocketleft.app, también conocida como PocketLeft o Pocket Left. Orlando Ascanio publica el código fuente en <a href={REPO_URL}>orlandoascanio/pocketleft</a>. Las siguientes apps tienen nombres parecidos y pertenecen a otros proyectos.</>
+              ? <>Pocket para Mac también se conoce como PocketLeft o Pocket Left. Su sitio es pocketleft.app y su repositorio es <a href={REPO_URL}>orlandoascanio/pocketleft</a>.</>
               : <>Pocket for Mac is the money tracker at pocketleft.app, also known as PocketLeft or Pocket Left. Orlando Ascanio publishes the source code as <a href={REPO_URL}>orlandoascanio/pocketleft</a>. These apps have similar names but are unrelated.</>}</p>
             <dl className="about-facts">
               {OTHER_POCKETS.map(([name, what]) => <div key={name}><dt>{name}</dt><dd>{what[locale]}</dd></div>)}
@@ -175,7 +175,7 @@ export function AboutPage({ locale }: { locale: Locale }) {
           <section id="maker">
             <h2>{copy.maker}</h2>
             <p><Text>{spanish
-              ? `[Orlando Ascanio](${AUTHOR.url}), desarrollador independiente. El código fuente de la app y este sitio está en [GitHub](${REPO_URL}). Consulta todas las versiones en las [notas de cambios](/changelog/) o [reporta un problema](${ISSUES_URL}).`
+              ? `[Orlando Ascanio](${AUTHOR.url}) desarrolla Pocket de forma independiente. Publica el código de la app y del sitio en [GitHub](${REPO_URL}). Puedes [reportar un problema](${ISSUES_URL}) en GitHub y consultar las [notas de cada versión](/changelog/) en este sitio.`
               : `[Orlando Ascanio](${AUTHOR.url}), an independent developer. The source code for the app and this website is on [GitHub](${REPO_URL}), every release is listed in the [changelog](/changelog/), and you can [report a bug](${ISSUES_URL}) there too.`}</Text></p>
             <p>{copy.safeDownload}</p>
           </section>
