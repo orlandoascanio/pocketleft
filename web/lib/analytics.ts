@@ -39,17 +39,25 @@ export function readAnalyticsConsent(now = Date.now()): AnalyticsConsent | null 
 }
 // The Measurement ID is public. An explicit env value overrides it; blank disables tracking.
 export const MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-6LLJJ52MDL";
-export const ANALYTICS_CONFIGURED = /^G-[A-Z0-9]+$/.test(MEASUREMENT_ID);
-const POSTHOG_CONFIGURED = Boolean(
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
-);
+const GA_CONFIGURED = /^G-[A-Z0-9]+$/.test(MEASUREMENT_ID);
+const POSTHOG_TOKEN = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+const SITE_HOST = new URL(SITE_URL).hostname;
+let postHogInitialized = false;
 type Gtag = (...args: unknown[]) => void;
 
-export function analyticsEnabledForHost(hostname: string) {
-  // Keep preview and localhost visits out of the live stream unless explicitly configured.
-  return ANALYTICS_CONFIGURED && (
-    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID !== undefined || hostname === new URL(SITE_URL).hostname
+export function googleAnalyticsEnabledForHost(hostname: string) {
+  return GA_CONFIGURED && (
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID !== undefined || hostname === SITE_HOST
   );
+}
+
+function postHogEnabledForHost(hostname: string) {
+  return Boolean(POSTHOG_TOKEN && POSTHOG_HOST && hostname === SITE_HOST);
+}
+
+export function analyticsEnabledForHost(hostname: string) {
+  return googleAnalyticsEnabledForHost(hostname) || postHogEnabledForHost(hostname);
 }
 
 declare global {
@@ -64,19 +72,78 @@ export function pageLocation(pathname: string) {
   return `${SITE_URL}${pathname}`;
 }
 
-export function trackWebsiteEvent(name: string, properties: Record<string, string>) {
+function hasWebsiteConsent() {
+  return !/^\/app(?:\/|$)/.test(window.location.pathname) && readAnalyticsConsent()?.choice === "accepted";
+}
+
+function cleanUrl(value: unknown, originOnly = false) {
+  if (typeof value !== "string") return undefined;
   try {
-    if (!analyticsEnabledForHost(window.location.hostname) || readAnalyticsConsent()?.choice !== "accepted") return;
-    const eventProperties = {
-      ...properties,
-      page_location: pageLocation(window.location.pathname),
-    };
-    window.gtag?.("event", name, {
+    const url = new URL(value);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return originOnly ? url.origin : url.origin + url.pathname;
+    }
+  } catch { /* Direct visits can have a non-URL referrer. */ }
+  return undefined;
+}
+
+function startPostHog() {
+  if (postHogInitialized || !POSTHOG_TOKEN || !POSTHOG_HOST) return;
+  posthog.init(POSTHOG_TOKEN, {
+    api_host: POSTHOG_HOST,
+    defaults: "2026-08-30",
+    person_profiles: "never",
+    persistence: "localStorage",
+    opt_out_persistence_by_default: true,
+    autocapture: false,
+    capture_pageview: false,
+    capture_pageleave: false,
+    capture_dead_clicks: false,
+    capture_exceptions: false,
+    capture_performance: false,
+    disable_session_recording: true,
+    disable_surveys: true,
+    disable_external_dependency_loading: true,
+    advanced_disable_flags: true,
+    enable_heatmaps: false,
+    mask_personal_data_properties: true,
+    property_denylist: ["$set", "$set_once"],
+    before_send: (event) => {
+      if (!event?.properties || !hasWebsiteConsent()) return null;
+      for (const key of ["$current_url", "$session_entry_url", "$referrer", "$session_entry_referrer"]) {
+        if (key in event.properties) event.properties[key] = cleanUrl(event.properties[key], key.endsWith("referrer"));
+      }
+      return event;
+    },
+  });
+  if (posthog.has_opted_out_capturing()) posthog.opt_in_capturing({ captureEventName: false });
+  postHogInitialized = true;
+}
+
+export function stopPostHog() {
+  if (postHogInitialized) posthog.opt_out_capturing();
+}
+
+export function trackWebsiteEvent(name: string, properties: Record<string, string>) {
+  if (!hasWebsiteConsent()) return;
+  const { hostname, pathname } = window.location;
+  const eventProperties = {
+    ...properties,
+    locale: /^\/es(?:\/|$)/.test(pathname) ? "es" : "en",
+    page_location: pageLocation(pathname),
+  };
+  try {
+    if (googleAnalyticsEnabledForHost(hostname)) window.gtag?.("event", name, {
       ...eventProperties,
       ...(process.env.NEXT_PUBLIC_GA_DEBUG === "true" ? { debug_mode: true } : {}),
     });
-    if (POSTHOG_CONFIGURED && name !== "page_view") posthog.capture(name, eventProperties);
-  } catch { /* Download and navigation always work, even with blocked storage or tags. */ }
+  } catch { /* A blocked Google tag should not affect the other provider. */ }
+  try {
+    if (!postHogEnabledForHost(hostname)) return;
+    startPostHog();
+    posthog.capture(name === "page_view" ? "$pageview" : name, eventProperties,
+      name === "page_view" ? undefined : { send_instantly: true, transport: "sendBeacon" });
+  } catch { /* Download and navigation work when analytics is unavailable. */ }
 }
 
 export function removeAnalyticsCookies() {

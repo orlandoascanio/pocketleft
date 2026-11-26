@@ -62,12 +62,25 @@ Pocket is an ordinary software download website. The AMP report in the supplied 
 | Event | Trigger | Parameters |
 | --- | --- | --- |
 | `page_view` | Accepted analytics, public page loaded or route changed | `page_title`, clean `page_location` |
-| `download_clicked` | Download anchor clicked, including the install-dialog fallback | `location`, `download_target=latest` |
+| `download_page_opened` | Link to the English or Spanish download page clicked from another page | `location` |
+| `download_clicked` | Mac or Windows installer link clicked, including the install-dialog fallback | `location`, `platform` (`mac` or `windows`), `download_target` (`latest` or `windows`) |
 | `self_hosting_opened` | On-site self-hosting guide (`/guides/self-hosting/`) or GitHub reference clicked | `location` |
 | `web_app_opened` | Public website link to `/app/` clicked | `location` |
 | `source_opened` | Repository link clicked | `location` |
 
 `location` is `hero`, `navigation`, `footer`, `install_dialog`, or `content`. Events measure consenting visitors only. Downloads are click intent, not verified file transfers or installations. Arbitrary query strings, fragments, and referrer paths are omitted; campaign parameters are not explicitly forwarded. GA4's built-in session and engagement events may also appear.
+
+## PostHog website analytics
+
+Set the Pocket project's public capture token and ingestion host in Netlify's production build environment. Verify the deployed site in a fresh browser before and after choosing **Allow analytics**. Check PostHog's Live Events for one `$pageview` per visited page and one `download_clicked` per installer link click. Each event includes `locale` (`en` or `es`) and the clean `page_location`. PostHog uses the website events above with `$pageview` in place of `page_view`.
+
+| Question | PostHog report |
+| --- | --- |
+| Which landing pages lead to installer interest? | Funnel from `$pageview` to `download_clicked`. Break down by locale or filter the first step to a landing page. |
+| Which installers and placements get clicks? | Trend of unique visitors who triggered `download_clicked`, broken down by `platform` or `location`. Filter out `location=install_dialog` for first-click analysis. |
+| Where do Mac visitors need installation help? | Compare `install_help_viewed`, `install_help_retry`, and `install_help_support` by page and locale. |
+
+The consent banner covers the public site, including download pages, about pages, and guides. The paired browser app stays outside PostHog, and replay and automatic click capture are disabled.
 
 ## Your manual steps: Sentry
 

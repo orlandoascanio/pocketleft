@@ -2,8 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ANALYTICS_CONFIGURED, ANALYTICS_PREFERENCE, MEASUREMENT_ID, analyticsEnabledForHost, pageLocation, readAnalyticsConsent, saveAnalyticsConsent, removeAnalyticsCookies, trackWebsiteEvent, type AnalyticsConsent, type AnalyticsChoice } from "@/lib/analytics";
-import { HOMEPAGE_PATHS, type Locale } from "@/lib/locale";
+import { ANALYTICS_PREFERENCE, MEASUREMENT_ID, analyticsEnabledForHost, googleAnalyticsEnabledForHost, pageLocation, readAnalyticsConsent, saveAnalyticsConsent, removeAnalyticsCookies, stopPostHog, trackWebsiteEvent, type AnalyticsConsent, type AnalyticsChoice } from "@/lib/analytics";
+import { DOWNLOAD_PATHS, type Locale } from "@/lib/locale";
 import { DOWNLOAD_URL, REPO_URL, SELF_HOSTING_GUIDE_URL, SELF_HOSTING_URL, WINDOWS_SETUP_URL } from "@/lib/site";
 import "./website-analytics.css";
 
@@ -27,19 +27,16 @@ export function WebsiteAnalytics({ locale }: { locale: Locale }) {
   const preference = consent?.choice;
   const [ready, setReady] = useState(false);
   const [editing, setEditing] = useState(false);
-  const initialized = useRef(false);
+  const googleInitialized = useRef(false);
   const lastPage = useRef("");
   const opener = useRef<HTMLElement | null>(null);
   const firstChoice = useRef<HTMLButtonElement>(null);
-  const marketing = pathname === HOMEPAGE_PATHS[locale] || pathname === "/changelog/" || pathname === "/privacy/" || pathname === "/share/";
 
   useEffect(() => {
     function refresh() {
       const saved = readAnalyticsConsent();
-      if (initialized.current && saved?.choice !== "accepted") {
-        removeAnalyticsCookies();
-        window.location.reload();
-      } else setConsent(saved);
+      if (lastPage.current && saved?.choice !== "accepted") stopTracking();
+      setConsent(saved);
     }
     refresh();
     setReady(analyticsEnabledForHost(window.location.hostname));
@@ -66,10 +63,8 @@ export function WebsiteAnalytics({ locale }: { locale: Locale }) {
     // Browser timeouts are limited to about 25 days; recheck long-lived tabs in chunks.
     const timer = window.setTimeout(() => {
       const saved = readAnalyticsConsent();
-      if (initialized.current && saved?.choice !== "accepted") {
-        removeAnalyticsCookies();
-        window.location.reload();
-      } else setConsent(saved);
+      if (lastPage.current && saved?.choice !== "accepted") stopTracking();
+      setConsent(saved);
     }, Math.min(Math.max(0, consent.expiresAt - Date.now()), 2_147_483_647));
     return () => window.clearTimeout(timer);
   }, [consent]);
@@ -85,9 +80,9 @@ export function WebsiteAnalytics({ locale }: { locale: Locale }) {
   }, [editing]);
 
   useEffect(() => {
-    if (!ready || !ANALYTICS_CONFIGURED || !marketing || preference !== "accepted") return;
-    if (!initialized.current) {
-      initialized.current = true;
+    if (!ready || preference !== "accepted") return;
+    if (!googleInitialized.current && googleAnalyticsEnabledForHost(window.location.hostname)) {
+      googleInitialized.current = true;
       window.dataLayer = window.dataLayer || [];
       window.gtag = function () { window.dataLayer?.push(arguments); };
       window.gtag("consent", "default", {
@@ -114,19 +109,34 @@ export function WebsiteAnalytics({ locale }: { locale: Locale }) {
     }
 
     function onClick(event: MouseEvent) {
+      if (event.type === "auxclick" && event.button !== 1) return;
       const link = event.target instanceof Element ? event.target.closest("a") : null;
       if (!link) return;
       const location = link.closest(".dl") ? "install_dialog" : link.closest(".nav-shell") ? "navigation" : link.closest(".hero") ? "hero" : link.closest("footer") ? "footer" : "content";
       if (link.hasAttribute("data-star")) trackWebsiteEvent("star_link_opened", { location });
-      else if (link.href === DOWNLOAD_URL) trackWebsiteEvent("download_clicked", { location, download_target: "latest" });
-      else if (link.href === WINDOWS_SETUP_URL) trackWebsiteEvent("download_clicked", { location, download_target: "windows" });
+      else if (link.href === DOWNLOAD_URL) trackWebsiteEvent("download_clicked", { location, download_target: "latest", platform: "mac" });
+      else if (link.href === WINDOWS_SETUP_URL) trackWebsiteEvent("download_clicked", { location, download_target: "windows", platform: "windows" });
+      else if (link.origin === window.location.origin && (link.pathname === DOWNLOAD_PATHS.en || link.pathname === DOWNLOAD_PATHS.es) && link.pathname !== pathname) trackWebsiteEvent("download_page_opened", { location });
       else if (link.href === SELF_HOSTING_URL || (link.origin === window.location.origin && link.pathname === SELF_HOSTING_GUIDE_URL)) trackWebsiteEvent("self_hosting_opened", { location });
-      else if (link.pathname === "/app/") trackWebsiteEvent("web_app_opened", { location });
+      else if (link.origin === window.location.origin && link.pathname === "/app/") trackWebsiteEvent("web_app_opened", { location });
       else if (link.href === REPO_URL) trackWebsiteEvent("source_opened", { location });
     }
     document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
-  }, [pathname, preference, marketing, ready]);
+    document.addEventListener("auxclick", onClick);
+    return () => {
+      document.removeEventListener("click", onClick);
+      document.removeEventListener("auxclick", onClick);
+    };
+  }, [pathname, preference, ready]);
+
+  function stopTracking() {
+    const tracked = Boolean(lastPage.current);
+    stopPostHog();
+    window.gtag?.("consent", "update", { analytics_storage: "denied" });
+    removeAnalyticsCookies();
+    lastPage.current = "";
+    if (tracked) window.location.reload();
+  }
 
   function dismiss() {
     setEditing(false);
@@ -136,15 +146,10 @@ export function WebsiteAnalytics({ locale }: { locale: Locale }) {
   function choose(value: AnalyticsChoice) {
     setConsent(saveAnalyticsConsent(value));
     dismiss();
-    if (value === "rejected") {
-      window.gtag?.("consent", "update", { analytics_storage: "denied" });
-      removeAnalyticsCookies();
-      // Unload an already accepted tag so no further automatic events can run.
-      if (initialized.current) window.location.reload();
-    }
+    if (value === "rejected") stopTracking();
   }
 
-  if (!ANALYTICS_CONFIGURED || !ready || !marketing) return null;
+  if (!ready) return null;
   const prompt = (preference !== "accepted" && preference !== "rejected") || editing;
 
   return <>

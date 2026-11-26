@@ -81,8 +81,9 @@ The default site runs without local environment overrides. [`web/.env.example`](
 
 | Setting | Behavior |
 | --- | --- |
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Leave unset to use the built-in GA4 stream on `pocketleft.app`. Set it to a different stream ID to override the default, or set an empty value to disable analytics. Analytics requires visitor consent. |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Leave unset to use the built-in GA4 stream on `pocketleft.app`. Set it to a different stream ID to override the default, or set an empty value to disable GA4. Analytics requires visitor consent. |
 | `NEXT_PUBLIC_GA_DEBUG` | Set to `true` when testing GA4 in a test deployment. |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`, `NEXT_PUBLIC_POSTHOG_HOST` | Use the Pocket project's public capture token and ingestion host. Browser capture runs on `pocketleft.app` after visitor consent. |
 | `NEXT_PUBLIC_SENTRY_DSN` | Enables Sentry when set. |
 | `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | Labels events by environment, such as `production`. |
 | `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | Optional build-time source map uploads. Store the auth token as a private build variable. |

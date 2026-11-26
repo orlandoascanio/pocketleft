@@ -96,4 +96,68 @@ globals.window.gtag = () => { throw new Error("Tag blocked"); };
 assert.doesNotThrow(() => analytics.trackWebsiteEvent("download_clicked", { location: "hero" }));
 globals.localStorage.getItem = () => { throw new Error("Storage blocked"); };
 assert.doesNotThrow(() => analytics.trackWebsiteEvent("download_clicked", { location: "hero" }));
-console.log("Passed: Sentry privacy and app exclusion; consent persistence, migration, expiry, and failure tolerance.");
+
+let postHogOptions;
+let postHogOptedOut = true;
+const postHogEvents = [];
+const postHogGlobals = {
+  ...globals,
+  process: { env: {
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: "",
+    NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN: "test-project-token",
+    NEXT_PUBLIC_POSTHOG_HOST: "https://us.i.posthog.com",
+  } },
+  localStorage: { ...globals.localStorage, getItem: () => preference },
+  window: { location: { pathname: "/es/download/", hostname: "pocketleft.app" } },
+};
+const postHogAnalytics = load("lib/analytics.ts", postHogGlobals, {
+  ...siteDependency,
+  "posthog-js": { default: {
+    init: (_, options) => { assert.equal(postHogOptions, undefined); postHogOptions = options; },
+    has_opted_out_capturing: () => postHogOptedOut,
+    opt_in_capturing: ({ captureEventName }) => {
+      assert.equal(captureEventName, false);
+      postHogOptedOut = false;
+    },
+    opt_out_capturing: () => { postHogOptedOut = true; },
+    capture: (...args) => postHogEvents.push(args),
+  } },
+});
+assert.equal(postHogAnalytics.analyticsEnabledForHost("pocketleft.app"), true);
+assert.equal(postHogAnalytics.googleAnalyticsEnabledForHost("pocketleft.app"), false);
+assert.equal(postHogAnalytics.analyticsEnabledForHost("deploy-preview.netlify.app"), false);
+for (const choice of [null, "rejected"]) {
+  preference = choice;
+  postHogAnalytics.trackWebsiteEvent("page_view", {});
+  assert.equal(postHogOptions, undefined);
+}
+preference = "accepted";
+postHogGlobals.window.location.pathname = "/app/index.html";
+postHogAnalytics.trackWebsiteEvent("page_view", {});
+assert.equal(postHogOptions, undefined);
+postHogGlobals.window.location.pathname = "/es/download/";
+postHogAnalytics.trackWebsiteEvent("page_view", { page_title: "Descargas" });
+postHogAnalytics.trackWebsiteEvent("download_clicked", { platform: "windows", download_target: "windows" });
+assert.equal(postHogOptedOut, false);
+assert.deepEqual(postHogEvents.map(([name]) => name), ["$pageview", "download_clicked"]);
+assert.equal(postHogEvents[1][1].locale, "es");
+assert.equal(postHogEvents[1][1].page_location, "https://pocketleft.app/es/download/");
+assert.equal(postHogEvents[1][2].transport, "sendBeacon");
+assert.equal(postHogOptions.autocapture, false);
+assert.equal(postHogOptions.capture_pageview, false);
+assert.equal(postHogOptions.disable_session_recording, true);
+const sanitized = postHogOptions.before_send({ properties: {
+  $current_url: "https://pocketleft.app/es/download/?code=private#key",
+  $session_entry_url: "https://pocketleft.app/?code=private#key",
+  $referrer: "https://example.com/private?secret=value",
+} });
+assert.equal(sanitized.properties.$current_url, "https://pocketleft.app/es/download/");
+assert.equal(sanitized.properties.$session_entry_url, "https://pocketleft.app/");
+assert.equal(sanitized.properties.$referrer, "https://example.com");
+preference = "rejected";
+postHogAnalytics.stopPostHog();
+assert.equal(postHogOptedOut, true);
+assert.equal(postHogOptions.before_send(sanitized), null);
+postHogAnalytics.trackWebsiteEvent("download_clicked", {});
+assert.equal(postHogEvents.length, 2);
+console.log("Passed: Sentry privacy, app exclusion, Google Analytics and PostHog consent, and PostHog event delivery configuration.");
