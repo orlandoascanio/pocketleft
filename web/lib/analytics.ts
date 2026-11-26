@@ -1,3 +1,4 @@
+import posthog from "posthog-js";
 import { SITE_URL } from "./site";
 
 export const ANALYTICS_PREFERENCE = "pocket-website-analytics";
@@ -39,6 +40,9 @@ export function readAnalyticsConsent(now = Date.now()): AnalyticsConsent | null 
 // The Measurement ID is public. An explicit env value overrides it; blank disables tracking.
 export const MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-6LLJJ52MDL";
 export const ANALYTICS_CONFIGURED = /^G-[A-Z0-9]+$/.test(MEASUREMENT_ID);
+const POSTHOG_CONFIGURED = Boolean(
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN && process.env.NEXT_PUBLIC_POSTHOG_HOST,
+);
 type Gtag = (...args: unknown[]) => void;
 
 export function analyticsEnabledForHost(hostname: string) {
@@ -63,11 +67,15 @@ export function pageLocation(pathname: string) {
 export function trackWebsiteEvent(name: string, properties: Record<string, string>) {
   try {
     if (!analyticsEnabledForHost(window.location.hostname) || readAnalyticsConsent()?.choice !== "accepted") return;
-    window.gtag?.("event", name, {
+    const eventProperties = {
       ...properties,
       page_location: pageLocation(window.location.pathname),
+    };
+    window.gtag?.("event", name, {
+      ...eventProperties,
       ...(process.env.NEXT_PUBLIC_GA_DEBUG === "true" ? { debug_mode: true } : {}),
     });
+    if (POSTHOG_CONFIGURED && name !== "page_view") posthog.capture(name, eventProperties);
   } catch { /* Download and navigation always work, even with blocked storage or tags. */ }
 }
 
