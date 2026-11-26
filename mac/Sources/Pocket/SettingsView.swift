@@ -80,6 +80,14 @@ struct SettingsView: View {
             }
 
             Section {
+                Toggle("Share anonymous usage data and crash reports", isOn: $store.shareUsageData)
+            } header: {
+                Text("Usage data")
+            } footer: {
+                Text("Pocket counts things like opening the app, adding an entry or scheduling a payment, with the app version, macOS version and language, and reports crashes to help fix them. Amounts, names, categories, balances and currency are never sent. Turn this off to stop both and delete the random ID that groups the counts. [Details](https://pocketleft.app/privacy/#mac-app)")
+            }
+
+            Section {
                 LabeledContent("Backup") {
                     HStack {
                         Button("Export…", action: export).disabled(store.loadError != nil)
@@ -126,7 +134,8 @@ struct SettingsView: View {
             } footer: {
                 Text(store.connected
                      ? "Synced with your account. This Mac keeps its own copy, with a daily backup for the last 7 days."
-                     : "Everything stays on this Mac in one file, with a daily backup for the last 7 days. Nothing is sent anywhere.")
+                     : "Everything stays on this Mac in one file, with a daily backup for the last 7 days."
+                        + (store.shareUsageData ? " Your money data isn't sent anywhere." : " Nothing is sent anywhere."))
             }
 
             Section {

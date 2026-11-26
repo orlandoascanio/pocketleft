@@ -27,6 +27,8 @@ Keep the production signing identity and bundle ID compatible with the installed
      NOTARY_PROFILE=pocket-notary ./mac/build.sh --release
    ```
 
+   The release step also uploads `mac/dist/Pocket.app.dSYM` to the Sentry project `orlando-ascanio/pocket-mac` with the `sentry` CLI, so crash reports show function names. Install the CLI and sign in with `sentry auth login` first; without it the build warns and continues.
+
    Open `mac/dist/Pocket-$pocket_version.dmg` on macOS. Test installation and launch, then verify an upgrade from the previous version with a test ledger.
 3. Publish the tested image against its pushed commit. The public asset name `Pocket.dmg` is used by the website and the in-app updater.
 
@@ -86,7 +88,7 @@ The default site runs without local environment overrides. [`web/.env.example`](
 | `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`, `NEXT_PUBLIC_POSTHOG_HOST` | Use the Pocket project's public capture token and ingestion host. Browser capture runs on `pocketleft.app` after visitor consent. |
 | `NEXT_PUBLIC_SENTRY_DSN` | Enables Sentry when set. |
 | `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | Labels events by environment, such as `production`. |
-| `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | Optional build-time source map uploads. Store the auth token as a private build variable. |
+| `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | Build-time source map uploads so website errors show readable stack traces. Use `orlando-ascanio` and `pocketleft-page`. Store the auth token as a private build variable. |
 
 Keep real credentials in the local ignored environment files or the deployment provider’s secret settings. See [website integrations](../web/SEO-SETUP.md) for analytics and monitoring verification.
 

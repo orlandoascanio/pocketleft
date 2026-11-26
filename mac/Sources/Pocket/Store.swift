@@ -104,6 +104,15 @@ final class Store: ObservableObject {
     var showSharePrompt: Bool { sharePrompt == "due" }
     @Published private(set) var sendingTestReminder = false
     var notificationServicesAvailable: Bool { reminderClient != nil }
+    /// Anonymous usage counts (UsageAnalytics.swift) and crash reports (CrashReporting.swift).
+    /// On by default; turned off in Settings.
+    @Published var shareUsageData: Bool {
+        didSet {
+            usage.setEnabled(shareUsageData)
+            if servicesEnabled { CrashReporting.update(enabled: shareUsageData) }
+        }
+    }
+    let usage: UsageAnalytics
 
     /// The ledger file in use: the local one, or this Mac's copy of the account.
     var fileURL: URL { accountKey == nil ? localURL : accountURL }
@@ -172,7 +181,8 @@ final class Store: ObservableObject {
 
     init(directory: URL? = nil, defaults suppliedDefaults: UserDefaults? = nil, servicesEnabled: Bool = true,
          session: URLSession = .shared, keyStore: AccountKeyStore? = nil,
-         reminderClient: ReminderClient? = nil, reminderNow: @escaping () -> Date = Date.init) {
+         reminderClient: ReminderClient? = nil, reminderNow: @escaping () -> Date = Date.init,
+         usageTransport: UsageAnalytics.Transport? = nil) {
         // POCKET_DATA_DIR (development only) points the app at a separate folder, e.g. demo data.
         let env = ProcessInfo.processInfo.environment
         self.servicesEnabled = servicesEnabled && directory == nil && env["POCKET_DATA_DIR"] == nil
@@ -192,6 +202,11 @@ final class Store: ObservableObject {
         // The real Keychain only for the installed app; tests and demo folders keep keys in memory.
         self.keyStore = keyStore ?? (directory == nil && env["POCKET_DATA_DIR"] == nil ? .keychain : .memory())
         self.session = session
+        // Tests pass a capture; demo folders and test stores without one never send.
+        usage = UsageAnalytics(defaults: self.defaults,
+                               transport: usageTransport ?? (self.servicesEnabled ? UsageAnalytics.network(session) : nil))
+        shareUsageData = usage.enabled
+        if self.servicesEnabled { CrashReporting.update(enabled: usage.enabled) }
         server = self.defaults.data(forKey: "accountServer").flatMap { try? JSONDecoder().decode(Server.self, from: $0) } ?? .original
         let key = self.keyStore.load()
         accountKey = key
@@ -377,6 +392,7 @@ final class Store: ObservableObject {
             }
         }
         scheduleReminders()
+        usage.recordActive(on: today.iso)
         if connected { Task { await syncNow(automatically: true) } }
     }
 
@@ -420,6 +436,7 @@ final class Store: ObservableObject {
         }
         receipt = EntryReceipt(text: "Added \(money.string(cents, signed: true)) · \(label)", target: .editEntry(entry.id))
         earnSharePrompt(gotPaid: false)
+        usage.capture(.entryAdded)
         return entry.id
     }
 
@@ -475,6 +492,7 @@ final class Store: ObservableObject {
             say(Lines.shared.line(rule.cents > 0 ? "waiting" : "planned"), face: rule.cents > 0 ? .hope : .happy)
         }
         if !rule.auto { requestNotificationPermission() }
+        usage.capture(.paymentScheduled)
         return true
     }
 
@@ -877,6 +895,7 @@ final class Store: ObservableObject {
         scheduleNextSync()
         onboarded = true
         scheduleReminders()
+        usage.capture(.syncConnected)
     }
 
     private func use(_ target: Server) {
@@ -932,6 +951,7 @@ final class Store: ObservableObject {
         }
         syncState = .syncing
         onboarded = true
+        usage.capture(.syncConnected)
         await syncNow()
     }
 

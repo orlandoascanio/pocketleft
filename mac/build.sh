@@ -23,6 +23,8 @@ BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/Pocket
 rm -rf dist
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Pocket"
+# Debug symbols so Sentry crash reports show function names (uploaded with --release).
+dsymutil "$BIN" -o dist/Pocket.app.dSYM
 iconutil -c icns AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
@@ -72,6 +74,14 @@ if [[ "${1:-}" != "--release" ]]; then
 fi
 
 : "${NOTARY_PROFILE:?Set NOTARY_PROFILE to your notarytool keychain profile name}"
+
+echo "› Uploading debug symbols to Sentry"
+if command -v sentry >/dev/null; then
+  SENTRY_ORG=orlando-ascanio SENTRY_PROJECT=pocket-mac sentry debug-files upload dist/Pocket.app.dSYM --type dsym
+else
+  echo "! The sentry CLI isn't installed, so crash reports for $VERSION won't show function names."
+  echo "  Install it (https://cli.sentry.dev), then run: SENTRY_ORG=orlando-ascanio SENTRY_PROJECT=pocket-mac sentry debug-files upload dist/Pocket.app.dSYM"
+fi
 
 echo "› Notarizing the app"
 ditto -c -k --keepParent "$APP" dist/Pocket.zip

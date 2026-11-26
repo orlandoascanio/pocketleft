@@ -1,6 +1,6 @@
 # Pocket for Mac (PocketLeft)
 
-PocketLeft is a free, offline expense tracker at pocketleft.app. On Mac, your recorded balance stays visible in the menu bar. Enter income and expenses by hand and estimate how upcoming bills and expected payments could affect your balance. Local use requires neither a bank connection nor a Pocket account.
+PocketLeft is a free, offline expense tracker at pocketleft.app. On Mac, your recorded balance stays visible in the menu bar. Enter income and expenses by hand and estimate how upcoming bills and expected payments could affect your balance. Local use requires neither a bank connection nor a Pocket account. The Mac app sends anonymous usage counts, which never include your money data and can be turned off in Settings ([details](https://pocketleft.app/privacy/#mac-app)).
 
 [Download Pocket](https://pocketleft.app/) · [Open the web app](https://pocketleft.app/app/) · [Read the guides](https://pocketleft.app/guides/) · [Changelog](https://pocketleft.app/changelog/)
 
