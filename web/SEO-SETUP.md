@@ -72,7 +72,7 @@ Pocket is an ordinary software download website. The AMP report in the supplied 
 
 ## PostHog website analytics
 
-Set the Pocket project's public capture token and ingestion host in Netlify's production build environment. Verify the deployed site in a fresh browser before and after choosing **Allow analytics**. Check PostHog's Live Events for one `$pageview` per visited page and one `download_clicked` per installer link click. Each event includes `locale` (`en` or `es`) and the clean `page_location`. PostHog uses the website events above with `$pageview` in place of `page_view`.
+Set the Pocket project's public capture token and ingestion host in Vercel's Production environment. Verify the deployed site in a fresh browser before and after choosing **Allow analytics**. Check PostHog's Live Events for one `$pageview` per visited page and one `download_clicked` per installer link click. Each event includes `locale` (`en` or `es`) and the clean `page_location`. PostHog uses the website events above with `$pageview` in place of `page_view`.
 
 | Question | PostHog report |
 | --- | --- |
@@ -85,8 +85,8 @@ The consent banner covers the public site, including download pages, about pages
 ## Your manual steps: Sentry
 
 1. Create or select a Sentry organization. Create a **Next.js** project named **pocket-web**; keep the native Mac app in a separate project if you add native reporting later.
-2. In **Project Settings → Client Keys (DSN)**, copy the DSN. In Netlify’s production environment, set `NEXT_PUBLIC_SENTRY_DSN` to the DSN and `NEXT_PUBLIC_SENTRY_ENVIRONMENT` to `production`.
-3. For readable source-mapped errors, copy your organization and project **slugs** into `SENTRY_ORG` and `SENTRY_PROJECT`. Create a Sentry auth token with the source-map and release upload permissions required for the organization. Save it as `SENTRY_AUTH_TOKEN` in Netlify’s private build environment.
+2. In **Project Settings → Client Keys (DSN)**, copy the DSN. In Vercel's Production environment, set `NEXT_PUBLIC_SENTRY_DSN` to the DSN and `NEXT_PUBLIC_SENTRY_ENVIRONMENT` to `production`.
+3. For readable source-mapped errors, copy your organization and project **slugs** into `SENTRY_ORG` and `SENTRY_PROJECT`. Create a Sentry auth token with the source-map and release upload permissions required for the organization. Save it as a sensitive `SENTRY_AUTH_TOKEN` variable in Vercel.
 4. Redeploy. Check the build log for successful source map upload. Without the token, error capture can still work, but readable source-mapped stacks are not established.
 5. In a test deployment, trigger a browser error after the page has loaded, for example using DevTools: `setTimeout(() => { throw new Error("Pocket website setup test"); }, 0)`. Find it in Sentry Issues and confirm the environment and absence of query strings, cookies, headers, and user data. This verifies ingestion; verify source mapping separately on an error originating from app source. Resolve the test issue afterwards.
 6. Configure an alert for a new production issue and another for a recurring error spike. Use your preferred notification destination. Enable IP-address scrubbing in the project's security/privacy settings: providers still receive network information when processing requests.
@@ -96,8 +96,8 @@ Implementation follows [Sentry's Next.js manual setup](https://docs.sentry.io/pl
 
 ## Deployment and validation
 
-See the [release runbook](../docs/RELEASING.md#website-environment-variables) for environment settings and Netlify deployment checks. Run `npm run check` in `web/` to check TypeScript and the consent, failure tolerance, and Sentry redaction helpers. Run `npm run build` to verify production compilation. Use your account dashboards to verify event ingestion, Google-selected canonicals, and indexing.
+See the [release runbook](../docs/RELEASING.md#website-environment-variables) for environment settings and Vercel deployment checks. Run `npm run check` in `web/` to check TypeScript and the consent, failure tolerance, and Sentry redaction helpers. Run `npm run build` to verify production compilation. Use your account dashboards to verify event ingestion, Google-selected canonicals, and indexing.
 
 Validation completed locally: production builds passed both without IDs and with synthetic GA4/Sentry IDs; TypeScript and helper checks passed. At 390px, browser checks confirmed no Google tag before consent or after rejection, one page view after acceptance, one download event per tested click, working install instructions, sanitized query/hash values, withdrawal unloading the tag, correct changelog/website-privacy canonicals, and no horizontal overflow. The Google script was deliberately blocked during synthetic-ID testing; no real GA4 or Sentry account delivery or source map upload was verified. `/app/` still returned `noindex` and its HTML contained neither integration.
 
-After the Netlify production deploy, verify the title, `/privacy/`, sitemap, download target, and `noindex` on `/app/` again. Add a link to pocketleft.app from the repository's website/About field and your portfolio if missing; useful links help discovery. No public posts or external account settings were changed in this audit.
+After the production deploy, verify the title, `/privacy/`, sitemap, download target, and `noindex` on `/app/` again. Add a link to pocketleft.app from the repository's website/About field and your portfolio if missing; useful links help discovery. No public posts or external account settings were changed in this audit.

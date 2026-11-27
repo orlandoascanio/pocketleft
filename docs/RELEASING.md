@@ -64,7 +64,7 @@ Keep the production signing identity and bundle ID compatible with the installed
 
 ## Website and browser app
 
-Netlify deploys `main` with `web` as the base directory and `npm run build` as the build command. In Netlify, verify that the production deploy corresponds to the intended commit.
+Vercel deploys `main` from the `web` root directory using the Next.js preset. After deployment, check that [build-id.txt](https://pocketleft.app/build-id.txt) matches the intended commit. The IndexNow workflow uses this endpoint before submitting the sitemap.
 
 1. When shipping changes to the static browser client, keep `APP_VERSION` in `web/public/app/app.js`, the version in `web/public/app/version.json`, and the asset query versions in `web/public/app/index.html` in sync.
 2. Before deploying, run the website checks and production build.
@@ -79,7 +79,7 @@ Netlify deploys `main` with `web` as the base directory and `npm run build` as t
 
 ### Website environment variables
 
-The default site runs without local environment overrides. [`web/.env.example`](../web/.env.example) lists optional settings. Set local overrides in `web/.env.local` and production overrides in the Netlify site's environment variables. Redeploy to apply changes to `NEXT_PUBLIC_*` build settings.
+The default site runs without local environment overrides. [`web/.env.example`](../web/.env.example) lists optional settings. Set local overrides in `web/.env.local` and production overrides in the Vercel project's Production environment. Keep Vercel system environment variables enabled so the build receives the Git commit SHA. Redeploy to apply changes to `NEXT_PUBLIC_*` build settings.
 
 | Setting | Behavior |
 | --- | --- |

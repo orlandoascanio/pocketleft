@@ -1,6 +1,5 @@
-# After a push to main deploys on Netlify, tell Bing and other IndexNow engines what changed.
-# Netlify doesn't report deploys back to GitHub, so this waits until /build-id.txt on the live
-# site shows the pushed commit, then submits every sitemap URL.
+# Wait until the live site's /build-id.txt shows the pushed commit, then submit every sitemap URL
+# to Bing and other IndexNow engines.
 name: Submit pages to IndexNow
 on:
   push:
@@ -26,7 +25,7 @@ jobs:
             if [ "$live" = "$GITHUB_SHA" ]; then echo "Live after $attempt checks."; exit 0; fi
             sleep 20
           done
-          echo "Commit $GITHUB_SHA never went live (last seen: ${live:-nothing}). Check the Netlify deploy."
+          echo "Commit $GITHUB_SHA never went live (last seen: ${live:-nothing}). Check the production deployment."
           exit 1
       - name: Submit sitemap URLs
         run: node web/scripts/indexnow.mjs

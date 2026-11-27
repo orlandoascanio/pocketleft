@@ -1,5 +1,5 @@
 // Initialize Sentry for edge routes and middleware.
-// Keep privacy controls shared with the browser; configure the DSN in Netlify.
+// Keep privacy controls shared with the browser.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";

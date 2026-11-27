@@ -11,6 +11,12 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
+  const isVercel = process.env.VERCEL === "1";
+  const hostingProvider = isVercel ? "Vercel" : "Netlify";
+  const hostingPrivacyUrl = isVercel
+    ? "https://vercel.com/legal/privacy-notice"
+    : "https://www.netlify.com/privacy/";
+
   return <>
     <SiteNav />
     <main className="section wrap" style={{ paddingTop: 140, maxWidth: 760 }}>
@@ -30,8 +36,8 @@ export default function PrivacyPage() {
       <h2>Website error reports</h2>
       <p>When configured, Sentry receives errors from the public website to help fix broken pages. Reports can include the error, stack trace, browser information, and website version. Request headers, cookies, bodies, user identity, and URL query parameters are excluded. Session replay and performance tracing are disabled. Sentry error reporting operates independently of the analytics choice.</p>
       <h2>Hosting and downloads</h2>
-      <p>Netlify hosts the website and GitHub hosts downloads. These services can process requests and technical information such as IP addresses under their own policies.</p>
-      <p><a href="https://policies.google.com/privacy">Google privacy policy</a> · <a href="https://sentry.io/privacy/">Sentry privacy policy</a> · <a href="https://www.netlify.com/privacy/">Netlify privacy policy</a> · <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub privacy policy</a></p>
+      <p>{hostingProvider} hosts the website and GitHub hosts downloads. These services can process requests and technical information such as IP addresses under their own policies.</p>
+      <p><a href="https://policies.google.com/privacy">Google privacy policy</a> · <a href="https://sentry.io/privacy/">Sentry privacy policy</a> · <a href={hostingPrivacyUrl}>{hostingProvider} privacy policy</a> · <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub privacy policy</a></p>
       <p>Questions or corrections: <a href={`${REPO_URL}/issues`}>open an issue on GitHub</a>. Don’t include private money data in a public issue.</p>
     </main>
     <SiteFooter />
