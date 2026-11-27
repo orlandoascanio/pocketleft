@@ -27,6 +27,7 @@ struct PlanView: View {
                 }
                 SaveFailureView()
                 PaydayCard()
+                TryPurchaseCard()
                 Card {
                     ForecastChart(projection: p, money: store.money)
                         .frame(height: 240)
@@ -191,20 +192,26 @@ struct PlanView: View {
     }
 }
 
+extension Store {
+    private var paydayLimit: Day { today.adding(days: 365) }
+    /// The next scheduled income after today, used until someone picks a payday.
+    var suggestedPayday: Day? {
+        ledger.upcoming(today: today, days: 365).first { $0.cents > 0 && $0.day > today }?.day
+    }
+    /// The payday Plan estimates against: the one chosen, or the next scheduled income.
+    var payday: Day? {
+        if let chosen = Day(iso: paydayDate), chosen > today, chosen <= paydayLimit { return chosen }
+        return suggestedPayday
+    }
+}
+
 private struct PaydayCard: View {
     @EnvironmentObject var store: Store
     @State private var cushionText = ""
 
     private var maxPayday: Day { store.today.adding(days: 365) }
-    private var suggestedPayday: Day? {
-        store.ledger.upcoming(today: store.today, days: 365).first {
-            $0.cents > 0 && $0.day > store.today
-        }?.day
-    }
-    private var payday: Day? {
-        if let chosen = Day(iso: store.paydayDate), chosen > store.today, chosen <= maxPayday { return chosen }
-        return suggestedPayday
-    }
+    private var suggestedPayday: Day? { store.suggestedPayday }
+    private var payday: Day? { store.payday }
     private var cushion: Cents? {
         let text = cushionText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.contains("-") && !text.contains("−") else { return nil }
@@ -260,6 +267,117 @@ private struct PaydayCard: View {
         if !store.paydayDate.isEmpty, suggestedPayday != nil {
             Button("Use Next Scheduled Income") { store.paydayDate = "" }.buttonStyle(.link)
         }
+    }
+}
+
+/// "$200 on Wednesday": how a purchase would move the low point, saved only if the person goes ahead.
+struct TryPurchaseCard: View {
+    @EnvironmentObject var store: Store
+    @State private var text: String
+    @State private var name = ""
+    @State private var confirmation: String?
+    @State private var error: String?
+
+    init(text: String = "") { _text = State(initialValue: text) }
+
+    private static let dayFirst: Bool = {
+        let pattern = DateFormatter.dateFormat(fromTemplate: "Md", options: 0, locale: .current) ?? "M/d"
+        return (pattern.firstIndex(of: "d") ?? pattern.endIndex) < (pattern.firstIndex(of: "M") ?? pattern.endIndex)
+    }()
+
+    private var parsed: Result<PurchaseIdea, PurchaseParseError>? {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : PurchaseParser.parse(t, today: store.today, dayFirst: Self.dayFirst)
+    }
+
+    var body: some View {
+        if store.loadError == nil {
+            Card {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Try a purchase").font(.headline)
+                    TextField("Purchase to try", text: $text, prompt: Text("$200 on Wednesday"))
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 320)
+                        .onChange(of: text) { confirmation = nil; error = nil }
+                        .help("Type an amount and a day, like “45 tomorrow” or “1,200 on Dec 3 for a laptop”.")
+                    switch parsed {
+                    case nil:
+                        Text(confirmation ?? "See how an amount on a given day changes your lowest balance. Nothing is saved unless you choose to.")
+                            .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    case .failure(let failure):
+                        Text(message(failure)).font(.callout).foregroundStyle(.secondary)
+                    case .success(let idea):
+                        result(idea)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func message(_ failure: PurchaseParseError) -> String {
+        switch failure {
+        case .noAmount: "Start with an amount, like “200 on Wednesday”."
+        case .unknownDay(let words): "Pocket didn’t recognize “\(words)” as a day. Try “tomorrow”, “Friday” or “Dec 3”."
+        case .pastDay: "Choose today or a later day."
+        case .tooFar: "Choose a day within the next year."
+        }
+    }
+
+    private func short(_ day: Day) -> String { day.localDate.formatted(.dateTime.month(.abbreviated).day()) }
+
+    @ViewBuilder private func result(_ idea: PurchaseIdea) -> some View {
+        let money = store.money
+        let check = store.ledger.checkPurchase(idea, today: store.today, days: store.range, everyday: store.forecastEveryday,
+                                               payday: store.payday, paydayEveryday: store.everyday?.perDay ?? 0)
+        let when = idea.day == store.today ? "today" : idea.day.localDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+        VStack(alignment: .leading, spacing: 6) {
+            Text("\(money.string(idea.cents)) \(idea.day == store.today ? "" : "on ")\(when)")
+                .font(.title3.weight(.semibold)).monospacedDigit()
+            Group {
+                if let shortfall = check.after.hitZero, check.causesShortfall {
+                    Text("Your balance would go below zero on \(short(shortfall)), down to \(money.string(check.after.lowBalance))"
+                         + (check.after.lowDay == shortfall ? "." : " on \(short(check.after.lowDay))."))
+                } else if check.lowersLowPoint {
+                    Text("Lowest balance would be \(money.string(check.after.lowBalance)) on \(short(check.after.lowDay)), instead of \(money.string(check.before.lowBalance)).")
+                } else {
+                    Text("Your lowest balance stays \(money.string(check.before.lowBalance)) on \(short(check.before.lowDay)).")
+                }
+            }
+            .foregroundStyle(check.after.lowBalance < 0 ? Palette.negative : Color.secondary)
+            .monospacedDigit()
+            if let before = check.paydayBefore, let after = check.paydayAfter, let payday = store.payday {
+                let cushion = store.paydayCushion
+                let left = after.lowBalance - cushion
+                Text(left < 0
+                     ? "Before payday on \(short(payday)), you’d be \(money.string(-left)) short of your cushion."
+                     : "Available until payday on \(short(payday)) goes from \(money.string(max(0, before.lowBalance - cushion))) to \(money.string(left)).")
+                    .foregroundStyle(left < 0 ? Palette.negative : Color.secondary)
+                    .monospacedDigit()
+            }
+            Text("Based on scheduled payments\(store.forecastEveryday > 0 ? " and usual everyday spending" : ""). Nothing has been saved.")
+                .font(.callout).foregroundStyle(.secondary)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
+        HStack(spacing: 8) {
+            TextField("Name", text: $name, prompt: Text(idea.label ?? "What is it?"))
+                .textFieldStyle(.roundedBorder).frame(width: 180)
+            Button(idea.day == store.today ? "Add to Today’s Spending" : "Save as Planned Expense") { save(idea) }
+        }
+        if let error { Text(error).font(.callout).foregroundStyle(Palette.negative) }
+    }
+
+    private func save(_ idea: PurchaseIdea) {
+        let typed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let label = typed.isEmpty ? idea.label : typed else { error = "Name the purchase first."; return }
+        guard store.planPurchase(idea, label: label) else { error = "Couldn't save. Try again."; return }
+        confirmation = idea.day == store.today
+            ? "Added “\(label)” to today’s spending."
+            : "Planned “\(label)” for \(short(idea.day)). It’s in Coming up, and you can edit or remove it there."
+        name = ""
+        text = ""
     }
 }
 

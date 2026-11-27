@@ -36,6 +36,14 @@ enum WindowRequest: Equatable {
 }
 
 /// One of the daily copies kept next to the data file.
+/// One statement import, kept so all of it can be undone together.
+struct StatementBatch: Codable, Identifiable, Equatable {
+    var id = UUID()
+    var date: Date
+    var fileName: String
+    var entryIDs: [UUID]
+}
+
 struct Backup: Identifiable, Equatable {
     let day: Day
     let url: URL
@@ -81,6 +89,10 @@ final class Store: ObservableObject {
     @Published var hideDesktopBalance: Bool { didSet { defaults.set(hideDesktopBalance, forKey: "hideDesktopBalance") } }
     @Published var paydayCushion: Cents { didSet { defaults.set(paydayCushion, forKey: "paydayCushion") } }
     @Published var paydayDate: String { didSet { defaults.set(paydayDate, forKey: "paydayDate") } }
+    /// Newest first. Entries keep these ids until the account answers with its own (see `flush`).
+    @Published private(set) var statementImports: [StatementBatch] {
+        didSet { defaults.set(try? JSONEncoder().encode(statementImports), forKey: "statementImports") }
+    }
     @Published var reminders: Bool {
         didSet {
             defaults.set(reminders, forKey: "reminders")
@@ -234,6 +246,8 @@ final class Store: ObservableObject {
         hideDesktopBalance = defaults.bool(forKey: "hideDesktopBalance")
         paydayCushion = defaults.integer(forKey: "paydayCushion")
         paydayDate = defaults.string(forKey: "paydayDate") ?? ""
+        statementImports = defaults.data(forKey: "statementImports")
+            .flatMap { try? JSONDecoder().decode([StatementBatch].self, from: $0) } ?? []
         reminders = defaults.object(forKey: "reminders") as? Bool ?? true
         subscriptionReminders = defaults.bool(forKey: "subscriptionReminders")
         let previousTiming = defaults.data(forKey: "renewalReminderTiming")
@@ -496,6 +510,17 @@ final class Store: ObservableObject {
         return true
     }
 
+    /// "Try a purchase" → go ahead: a one-time planned expense on its day, or spending now when it's today.
+    @discardableResult
+    func planPurchase(_ idea: PurchaseIdea, label: String) -> Bool {
+        let category = ledger.guessCategory(for: label, income: false)
+        if idea.day <= today {
+            return addEntry(cents: -idea.cents, label: label, day: today, category: category) != nil
+        }
+        return addRule(Rule(cents: -idea.cents, label: label, cadence: .monthly, anchor: idea.day, total: 1, auto: true,
+                            category: category))
+    }
+
     @discardableResult
     func updateRule(_ id: UUID, cents: Cents, label: String, cadence: Cadence, next: Day, left: Int?,
                     category: String?, auto: Bool, subscription: Bool? = nil, once: Bool? = nil) -> Bool {
@@ -677,6 +702,75 @@ final class Store: ObservableObject {
         onboarded = true
     }
 
+    // MARK: statement import
+
+    /// Adds the chosen statement rows as entries in one change, remembered so the import can be undone.
+    @discardableResult
+    func importStatement(_ rows: [StatementRow], fileName: String) -> StatementBatch? {
+        guard !rows.isEmpty, loadError == nil else { return nil }
+        let now = Date()
+        let entries = rows.map { Entry(cents: $0.cents, label: $0.label, day: $0.day, category: $0.category, created: now) }
+        guard mutate({ for e in entries { $0.add(e) } }) else { return nil }
+        for e in entries {
+            send("pocket_add", ["p_amount": dollars(e.cents), "p_label": e.label, "p_on": e.day.iso, "p_category": e.category ?? NSNull()],
+                 label: e.label, localID: e.id, start: false)
+        }
+        if connected { Task { await syncNow() } }
+        let batch = StatementBatch(date: now, fileName: fileName, entryIDs: entries.map(\.id))
+        statementImports = [batch] + statementImports.prefix(9)
+        say("All caught up", face: .happy)
+        return batch
+    }
+
+    /// Ids of a batch's entries as this Mac's copy knows them, including adds the account hasn't answered yet.
+    private func ledgerIDs(_ batch: StatementBatch) -> Set<UUID> {
+        let ids = Set(batch.entryIDs)
+        return ids.union(journal.ids.filter { ids.contains($0.value) }.map(\.key))
+    }
+
+    /// Entries from an import that are still in Pocket (edited ones included, deleted ones not).
+    func remainingEntries(_ batch: StatementBatch) -> [Entry] {
+        let ids = ledgerIDs(batch)
+        return ledger.entries.filter { ids.contains($0.id) }
+    }
+
+    /// The latest import with anything left to undo.
+    var lastStatementImport: StatementBatch? { statementImports.first { !remainingEntries($0).isEmpty } }
+
+    /// Removes everything an import added. Returns what to tell the person when it can't.
+    func undoStatementImport(_ batch: StatementBatch) -> String? {
+        let present = remainingEntries(batch)
+        guard !present.isEmpty else {
+            statementImports.removeAll { $0.id == batch.id }
+            return nil
+        }
+        let ids = Set(present.map(\.id))
+        let pendingAdds = journal.outbox.filter { $0.function == "pocket_add" && $0.localID.map(ids.contains) == true }
+        if pendingAdds.contains(where: \.needsReview) {
+            return "Some entries from this import need a look in Sync settings before undoing."
+        }
+        guard mutate(deleted: true, { $0.entries.removeAll { ids.contains($0.id) } }) else { return "Couldn't undo. Try again." }
+        var unsent: Set<UUID> = []
+        for op in pendingAdds where op.id != sendingOpID { unsent.insert(op.id) }
+        if !unsent.isEmpty {
+            journal.outbox.removeAll { unsent.contains($0.id) }
+            saveJournal()
+        }
+        for e in present where !pendingAdds.contains(where: { $0.localID == e.id && unsent.contains($0.id) }) {
+            let inFlight = pendingAdds.first { $0.localID == e.id && $0.id == sendingOpID }
+            send("pocket_delete", ["p_id": e.id.uuidString], label: e.label, start: false, undoOf: inFlight?.localID)
+        }
+        if connected { Task { await syncNow() } }
+        statementImports.removeAll { $0.id == batch.id }
+        say("Import undone", face: .happy)
+        return nil
+    }
+
+    private func remapStatementEntry(_ local: UUID, to remote: UUID) {
+        guard let i = statementImports.firstIndex(where: { $0.entryIDs.contains(local) }) else { return }
+        statementImports[i].entryIDs = statementImports[i].entryIDs.map { $0 == local ? remote : $0 }
+    }
+
     func eraseEverything() {
         guard !connected else { return }
         let currency = ledger.currency
@@ -822,6 +916,7 @@ final class Store: ObservableObject {
                    let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
                    let remote = (obj["id"] as? String).flatMap(UUID.init(uuidString:)) {
                     journal.ids[local] = remote
+                    remapStatementEntry(local, to: remote)
                 }
                 journal.outbox.removeAll { $0.id == op.id }
                 saveJournal()

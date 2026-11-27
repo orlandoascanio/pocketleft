@@ -12,6 +12,8 @@ struct SettingsView: View {
     @State private var pendingImport: URL?
     @State private var pendingRestore: Backup?
     @State private var message: String?
+    @State private var statement: StatementFile?
+    @State private var pendingUndo: StatementBatch?
 
     private static let currencies: [String] = {
         let common = ["USD", "EUR", "GBP", "CAD", "AUD", "MXN", "COP", "ARS", "BRL", "CLP", "PEN", "JPY", "KRW", "CHF", "INR"]
@@ -95,6 +97,21 @@ struct SettingsView: View {
                     }
                 }
                 LabeledContent {
+                    Button("Import Statement…", action: chooseStatement).disabled(store.loadError != nil)
+                } label: {
+                    Text("Bank statement")
+                    Text("Catch up from a CSV your bank or card exports. Preview the rows first; likely duplicates start unchecked.")
+                }
+                if let batch = store.lastStatementImport {
+                    let count = store.remainingEntries(batch).count
+                    LabeledContent {
+                        Button("Undo Import…") { pendingUndo = batch }
+                    } label: {
+                        Text("Last statement import")
+                        Text("\(count) \(count == 1 ? "entry" : "entries") from \(batch.fileName), \(batch.date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))")
+                    }
+                }
+                LabeledContent {
                     Button("Export CSV…") { message = saveCSV(store, entries: store.ledger.sortedEntries, name: "Pocket \(store.today.iso)") }
                         .disabled(store.loadError != nil || store.ledger.entries.isEmpty)
                 } label: {
@@ -172,6 +189,19 @@ struct SettingsView: View {
         } message: { _ in
             Text("What's in Pocket now is replaced by that day's copy. Export first if you want to keep it.")
         }
+        .sheet(item: $statement) { file in
+            StatementImportSheet(file: file) { message = $0 }
+        }
+        .confirmationDialog("Undo the import from \(pendingUndo?.fileName ?? "")?", isPresented: Binding(
+            get: { pendingUndo != nil }, set: { if !$0 { pendingUndo = nil } }), presenting: pendingUndo) { batch in
+            Button("Remove Imported Entries", role: .destructive) {
+                let count = store.remainingEntries(batch).count
+                message = store.undoStatementImport(batch) ?? "Removed \(count) imported \(count == 1 ? "entry" : "entries")."
+            }
+        } message: { batch in
+            let count = store.remainingEntries(batch).count
+            Text("This removes the \(count) \(count == 1 ? "entry" : "entries") it added, including any you edited since. Entries you added yourself stay.")
+        }
         .confirmationDialog("Replace your data with this file?", isPresented: Binding(
             get: { pendingImport != nil }, set: { if !$0 { pendingImport = nil } }), presenting: pendingImport) { url in
             Button("Replace") { runImport(url) }
@@ -199,6 +229,15 @@ struct SettingsView: View {
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
         pendingImport = url
+    }
+
+    private func chooseStatement() {
+        guard let url = StatementFile.choose() else { return }
+        do {
+            statement = try StatementFile.read(url)
+        } catch {
+            message = "Couldn't read \(url.lastPathComponent): \(error.localizedDescription)"
+        }
     }
 
     private func runRestore(_ backup: Backup) {
