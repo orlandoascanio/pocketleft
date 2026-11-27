@@ -9,7 +9,7 @@ export const DESCRIPTION =
 
 // Bump these with each release (see README: Releasing a new version).
 export const VERSION = "1.6.0";
-export const DMG_SIZE = "4.9 MB";
+export const DMG_SIZE = "9.0 MB";
 export const RELEASE_URL = `${REPO_URL}/releases/tag/v${VERSION}`;
 export const RELEASES_URL = `${REPO_URL}/releases`;
 // The on-site guide is where visitors go; the GitHub file stays the full technical reference.
