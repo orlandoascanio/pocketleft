@@ -269,6 +269,15 @@
   .hint { color: var(--muted); font-size: 13px; margin: 4px 2px 0; }
   .form-msg { color: var(--neg); font-size: 14px; margin: 8px 2px 0; }
   .form-msg:empty { display: none; }
+  .delivery { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: baseline; margin: 10px 4px 0; font-size: 13px; color: var(--muted); }
+  .delivery[hidden] { display: none; }
+  .delivery .ico { grid-row: span 2; width: 16px; height: 16px; align-self: center; }
+  .delivery .ico .ic { width: 16px; height: 16px; }
+  .delivery .what { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .delivery.ok .ico { color: var(--accent); }
+  .delivery.off .ico { color: var(--neg); }
+  .delivery.wait .ico .ic { animation: pulse 1600ms ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .delivery.wait .ico .ic { animation: none; } }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .shake { animation: shake 360ms ease; }
   @keyframes shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }

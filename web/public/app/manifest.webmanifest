@@ -5,6 +5,9 @@
   "display": "standalone",
   "background_color": "#f6f5f2",
   "theme_color": "#f6f5f2",
+  "shortcuts": [
+    { "name": "Add spending", "short_name": "Add", "description": "Open Pocket on the amount field", "url": "./?add", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+  ],
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },

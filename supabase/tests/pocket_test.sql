@@ -101,6 +101,14 @@ select pg_temp.eq((select tok is not null from t_tok), true, 'right code gives a
 select pg_temp.eq(pocket_pair_finish((select code from t_pair), 'Again')->>'error', 'expired', 'code works only once');
 select pocket_state((select tok from t_tok), '2026-10-11');
 select pg_temp.eq((select (pocket_devices((select tok from t_tok))->'devices'->0->>'this')::boolean), true, 'device knows itself');
+-- The phone can tell when the main key (the Mac) last synced, to say an entry reached it.
+update app_secret set last_seen = now() - interval '1 hour';
+select pocket_state(pg_temp.k(), '2026-10-11');
+select pg_temp.eq((select last_seen > now() - interval '1 minute' from app_secret), true, 'main key use is recorded');
+select pg_temp.eq((pocket_devices((select tok from t_tok))->>'master_seen') is not null, true, 'devices list shows when the main key was seen');
+update devices set last_seen = now() - interval '1 minute' where name = 'Phone';
+select pocket_state((select tok from t_tok), '2026-10-11');
+select pg_temp.eq((select last_seen > now() - interval '5 seconds' from devices where name = 'Phone'), true, 'device use is recorded within 30 seconds');
 select pocket_device_remove(pg_temp.k(), (select id from devices where name = 'Phone'));
 do $$ begin
   perform pocket_state((select tok from t_tok));

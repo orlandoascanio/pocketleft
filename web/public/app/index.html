@@ -15,7 +15,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="app.css?v=13">
+<link rel="stylesheet" href="app.css?v=14">
 </head>
 <body>
 <main>
@@ -142,6 +142,7 @@
       </div>
       <p id="formMsg" class="form-msg" role="alert"></p>
     </form>
+    <p id="delivery" class="delivery" role="status" aria-live="polite" hidden></p>
 
     <nav class="tabs" role="tablist" aria-label="Views">
       <button class="tab" role="tab" id="tab-activity" aria-controls="panel-activity" aria-selected="true">Activity</button>
@@ -273,7 +274,12 @@
     <p class="lead">Leave the amount empty for things that cost something different each time.</p>
     <div id="presetList" class="rows"></div>
     <h3>This device</h3>
-    <p id="serverDetails" class="lead">Server: <b id="serverName"></b></p>
+    <div id="quickOpen">
+      <label class="check"><input id="quickOpenBox" type="checkbox"> Open to a new entry from the home screen</label>
+      <p class="fine-print">Pocket starts on the amount so you can log a purchase at checkout. Long-press the icon on Android for <b>Add spending</b>.</p>
+      <p id="quickOpenIOS" class="fine-print" hidden>On iPhone and iPad, tap the amount once to bring up the keyboard.</p>
+    </div>
+    <p id="serverDetails" class="lead" style="margin-top:14px">Server: <b id="serverName"></b></p>
     <button id="forget" class="btn wide ghost" type="button">Lock this device</button>
   </div>
 </dialog>
@@ -299,7 +305,7 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastBtn" type="button" tabindex="-1"></button></div>
 
-<script src="subscriptions.js?v=13"></script>
-<script src="app.js?v=13"></script>
+<script src="subscriptions.js?v=14"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

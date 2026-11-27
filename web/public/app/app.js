@@ -8,8 +8,14 @@ const QUEUE_STORE = "pocket.queue";
 const RANGE_STORE = "pocket.range";
 const TAB_STORE = "pocket.tab";
 const GREET_STORE = "pocket.greeted";
+const SENT_STORE = "pocket.sent";
+const QUICK_STORE = "pocket.quickOpen";
 const desktop = window.PocketDesktop;
 const localLedger = desktop?.ledgerMode === "local";
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+// Opened from the home screen shortcut (?add), or as the home screen app with "open to a new entry" on.
+const quickLaunch = !desktop && (new URLSearchParams(location.search).has("add") || (standalone && ls.get(QUICK_STORE) === "1"));
+let quickLaunchDone = false;
 
 const CADENCE = {
   weekly:   { name: "Weekly",        perMonth: 52 / 12, unit: "week" },
@@ -473,9 +479,10 @@ async function rpcAdd(fn, args, options) {
   catch (e) {
     if (!isNetErr(e)) throw e;
     const q = readQueue();
-    q.push({ fn, args });
+    const qid = fn === "pocket_add" ? `q${Date.now()}${Math.random().toString(36).slice(2, 7)}` : undefined;
+    q.push({ fn, args, qid });
     saveQueue(q);
-    return { queued: true };
+    return { queued: true, qid };
   }
 }
 async function flushQueue() {
@@ -483,7 +490,11 @@ async function flushQueue() {
   const q = readQueue();
   if (!q.length) return;
   while (q.length) {
-    try { await rpc(q[0].fn, q[0].args); q.shift(); }
+    try {
+      const result = await rpc(q[0].fn, q[0].args);
+      if (q[0].qid && result?.id) sentArrived(q[0].qid, result);
+      q.shift();
+    }
     catch (e) {
       if (isNetErr(e) || e.badKey) { saveQueue(q); throw e; }
       q.shift(); // the server refused it for good; don't retry forever
@@ -514,6 +525,7 @@ async function load({ quiet = false } = {}) {
     const waiting = readQueue().length;
     const t = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     setSync(waiting ? "off" : "", waiting ? `${waiting} waiting to sync` : `Synced ${t}`);
+    void refreshDelivery();
   } catch (e) {
     if (key !== accessKey || server.url !== serverUrl) return;
     if (localLedger) { setSync("off", "Local ledger unavailable"); return; }
@@ -526,6 +538,7 @@ async function load({ quiet = false } = {}) {
     desktop?.onLoaded();
     const waiting = readQueue().length;
     setSync("off", waiting ? `Offline · ${waiting} waiting` : "Offline, retrying");
+    renderDelivery();
   }
 }
 
@@ -1001,6 +1014,7 @@ function renderHistory() {
     sec.append(rows);
     list.append(sec);
   }
+  markHistoryDelivery();
 }
 
 function renderPlan() {
@@ -1513,6 +1527,7 @@ async function onSubmit(e) {
     if (saveAsPreset) {
       await rpcAdd("pocket_preset_save", { p_label: label, p_sign: sign, p_amount: amount, p_category: cat });
     }
+    if (!editing && !planned) trackSent(res, label, signedAmount);
     if (res?.queued) {
       resetForm();
       face("hope", 1500);
@@ -1520,7 +1535,7 @@ async function onSubmit(e) {
         showTrayEntryReceipt(res, label, signedAmount, entryAccount, entryServer);
         return;
       }
-      toast("You're offline. Saved here, and it'll sync when you're back.");
+      toast("You're offline. Saved on this phone, and it'll sync when you're back.");
       setSync("off", `${readQueue().length} waiting to sync`);
       return;
     }
@@ -1646,6 +1661,7 @@ async function usePreset(p, chip) {
   chip.disabled = true;
   try {
     const res = await rpcAdd("pocket_add", { p_amount: amount, p_label: p.label, p_on: todayISO(), p_category: p.category }, { quickEntry });
+    trackSent(res, p.label, amount);
     if (res?.queued) {
       if (quickEntry) {
         showTrayEntryReceipt(res, p.label, amount, entryAccount, entryServer);
@@ -1674,6 +1690,105 @@ async function usePreset(p, chip) {
   } finally {
     chip.disabled = false;
   }
+}
+
+// ---------- phone quick entry: has it reached the desktop ledger? ----------
+// Entries added on this phone, newest first: { id, qid, label, amount, at, reached, where }.
+// `at` is when the account saved it. A computer that syncs after that has it, so "seen since" means delivered.
+let desktopSeen = null;        // { at, name } for the computer that synced most recently
+let deliveryKnown = false;     // the server reports when computers sync (older servers may not for the main key)
+let devicesCheckedAt = 0;
+function readSent() {
+  try {
+    const list = JSON.parse(ls.get(SENT_STORE) || "[]");
+    const cutoff = Date.now() - 3 * 86400e3;
+    return Array.isArray(list) ? list.filter((s) => (s.at ? Date.parse(s.at) : s.t) > cutoff) : [];
+  } catch { return []; }
+}
+function saveSent(list) { if (list.length) ls.set(SENT_STORE, JSON.stringify(list.slice(0, 20))); else ls.del(SENT_STORE); }
+function trackSent(res, label, amount) {
+  if (desktop || localLedger || !res || !(res.id || res.qid)) return;
+  const entry = { id: res.id || null, qid: res.qid || null, label, amount, at: res.created_at || null, t: Date.now() };
+  saveSent([entry, ...readSent().filter((s) => !(entry.id && s.id === entry.id) && !(entry.qid && s.qid === entry.qid))]);
+  devicesCheckedAt = 0;
+  renderDelivery();
+}
+function sentArrived(qid, row) {
+  const list = readSent();
+  const s = list.find((x) => x.qid === qid);
+  if (!s) return;
+  s.id = row.id; s.at = row.created_at || new Date().toISOString();
+  saveSent(list);
+  devicesCheckedAt = 0;
+}
+function computerName(name) { return /mac/i.test(name) ? "your Mac" : /windows|pc\b/i.test(name) ? "your PC" : "your computer"; }
+function latestComputer(d) {
+  let best = null;
+  const consider = (iso, name) => {
+    const at = Date.parse(iso);
+    if (Number.isFinite(at) && (!best || at > best.at)) best = { at, name };
+  };
+  // The main key usually belongs to the Mac that set up sync. When this phone holds it, it isn't a computer.
+  if (!d.master && d.master_seen) consider(d.master_seen, "your Mac");
+  for (const dev of d.devices || []) if (!dev.this && deviceIcon(dev.name) === "laptop") consider(dev.last_seen, computerName(dev.name));
+  deliveryKnown = "master_seen" in d || (d.devices || []).some((dev) => !dev.this && deviceIcon(dev.name) === "laptop");
+  return best;
+}
+async function refreshDelivery() {
+  if (desktop || localLedger) return;
+  let list = readSent();
+  // Entries deleted since (undo, or removed on the Mac) no longer need a status.
+  if (loaded) list = list.filter((s) => !s.id || txs.some((t) => t.id === s.id));
+  if (list.some((s) => s.at && !s.reached) && Date.now() - devicesCheckedAt > 10000) {
+    devicesCheckedAt = Date.now();
+    try { desktopSeen = latestComputer(await rpc("pocket_devices")); } catch { /* keep the last answer */ }
+  }
+  for (const s of list) {
+    if (!s.reached && s.at && desktopSeen && desktopSeen.at >= Date.parse(s.at)) { s.reached = desktopSeen.at; s.where = desktopSeen.name; }
+  }
+  saveSent(list);
+  renderDelivery();
+  if (tab === "activity") markHistoryDelivery();
+}
+const clock = (ms) => new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+function deliveryText(s) {
+  const what = `${s.label} ${signed(s.amount)}`;
+  if (!s.at) return [what, "Saved on this phone. It goes to your account when you’re back online.", "off"];
+  if (s.reached) return [what, `On ${s.where} since ${clock(s.reached)}`, "ok"];
+  if (!deliveryKnown) return [what, "In your account. Your computer adds it the next time it syncs.", ""];
+  const where = desktopSeen?.name || "your computer";
+  const last = desktopSeen ? ` It last synced ${ago(new Date(desktopSeen.at).toISOString()).replace("active now", "moments ago")}.` : "";
+  return [what, `In your account, waiting for ${where} to sync.${last}`, "wait"];
+}
+function renderDelivery() {
+  const el = $("delivery");
+  if (!el) return;
+  const s = readSent()[0];
+  // A delivered entry stays confirmed for a while; a pending one stays until it arrives.
+  if (desktop || localLedger || !s || (s.reached && Date.now() - s.reached > 30 * 60e3)) { el.hidden = true; return; }
+  const [what, status, state] = deliveryText(s);
+  el.hidden = false;
+  el.className = "delivery" + (state ? " " + state : "");
+  const ico = mk("span", "ico");
+  ico.innerHTML = icon(state === "ok" ? "check" : state === "off" ? "x" : "clock");
+  el.replaceChildren(ico, mk("span", "what", what), mk("span", "status", status));
+}
+function markHistoryDelivery() {
+  if (desktop || localLedger) return;
+  const waiting = new Set(readSent().filter((s) => s.id && !s.reached && deliveryKnown).map((s) => s.id));
+  document.querySelectorAll("#list .tx[data-id]").forEach((r) => {
+    const tag = r.querySelector(".tag.not-delivered");
+    if (waiting.has(r.dataset.id) && !tag) r.querySelector(".what")?.append(mk("span", "tag not-delivered", "not on computer yet"));
+    if (!waiting.has(r.dataset.id) && tag) tag.remove();
+  });
+}
+
+function startQuickEntry() {
+  if (!quickLaunch || quickLaunchDone) return;
+  quickLaunchDone = true;
+  if (sign !== -1) setSign(-1);
+  $("txForm").scrollIntoView({ block: "start", behavior: "auto" });
+  $("amount").focus({ preventScroll: true });
 }
 
 // ---------- toast ----------
@@ -1905,6 +2020,7 @@ function renderPresetList() {
 }
 
 function openSettings() {
+  $("quickOpenBox").checked = ls.get(QUICK_STORE) === "1";
   $("serverName").textContent = isDefaultServer() ? "Pocket" : new URL(server.url).host;
   $("pairBox").hidden = true;
   $("pairStart").disabled = false;
@@ -1962,6 +2078,8 @@ async function unlock(k) {
   setTab(tab);
   resetForm();
   if (!loaded) renderSkeleton();
+  startQuickEntry();
+  renderDelivery();
   await load();
   if (key) {
     if (!localLedger) ls.set(KEY_STORE, key);
@@ -2100,6 +2218,9 @@ $("cancelBtn").addEventListener("click", resetForm);
 $("detailsBtn").addEventListener("click", () => setDetails(!$("details").classList.contains("open")));
 $("forget").addEventListener("click", () => { $("settings").close(); lock(); });
 $("settingsBtn").addEventListener("click", openSettings);
+$("quickOpenBox").addEventListener("change", (e) => { if (e.target.checked) ls.set(QUICK_STORE, "1"); else ls.del(QUICK_STORE); });
+if (desktop) $("quickOpen").hidden = true;
+else if (/iPhone|iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent))) $("quickOpenIOS").hidden = false;
 $("pairStart").addEventListener("click", startPairing);
 $("amount").addEventListener("input", updatePreview);
 $("label").addEventListener("input", guessCategory);
@@ -2157,14 +2278,16 @@ scheduleBlink();
 
 // Browsers sometimes keep an old copy of this page. Ask for the current version (never cached)
 // and reload into it when it changed, so nobody gets stuck on an old release.
-const APP_VERSION = "13";
+const APP_VERSION = "14";
 async function checkForUpdate() {
   try {
     const res = await fetch(`version.json?t=${Date.now()}`, { cache: "no-store" });
     const { version } = await res.json();
     if (version && version !== APP_VERSION && sessionStorage.getItem("pocket.reloadedFor") !== version) {
       sessionStorage.setItem("pocket.reloadedFor", version);
-      location.replace(`${location.pathname}?v=${encodeURIComponent(version)}${location.hash}`);
+      const query = new URLSearchParams(location.search);
+      query.set("v", version);
+      location.replace(`${location.pathname}?${query}${location.hash}`);
     }
   } catch { /* offline or blocked: keep running this copy */ }
 }
