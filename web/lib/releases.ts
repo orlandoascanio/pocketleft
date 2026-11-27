@@ -17,6 +17,25 @@ export type Release = {
 // and update VERSION in site.ts. Dates are publication dates, not commit dates.
 export const RELEASES: Release[] = [
   {
+    version: "1.6.0",
+    date: "2026-11-26",
+    title: "Try a purchase before you make it.",
+    summary: "Pocket for Mac shows how a purchase would change your lowest balance before payday, and catches you up from a bank statement in one step you can undo.",
+    theme: "update",
+    highlights: [
+      { title: "Try a purchase", description: "In Plan, type something like “$200 on Wednesday”. Pocket shows your new lowest balance, whether you’d drop below zero, and what’s left until payday. Nothing is saved unless you choose Save as Planned Expense." },
+      { title: "Import a bank statement", description: "In Settings, choose Import Statement and pick a CSV from your bank or card. Preview the rows first. Rows that look like entries you already recorded start unchecked, and Undo Import removes everything the import added." },
+      { title: "Quick entry on your phone", description: "The Pocket web app can open straight to the amount from your home screen. After you add an entry, it shows whether the entry is saved on your phone, waiting in your account, or on your Mac." },
+    ],
+    detailsTitle: "Also in this release",
+    details: [
+      "Pocket for Mac sends anonymous usage counts and crash reports. They never include amounts, names, categories, balances or currency. You can turn them off in Settings.",
+      "Statement import reads common bank and card formats, including separate money-in and money-out columns, and asks whether dates are day-first when a file could be read either way.",
+      "Confirming that an entry reached your Mac requires the latest sync database update from the migrations folder.",
+    ],
+    source: "https://github.com/orlandoascanio/pocketleft/releases/tag/v1.6.0",
+  },
+  {
     version: "1.5.5",
     date: "2026-11-22",
     title: "See what you can spend before payday.",

@@ -11,7 +11,7 @@ export const FACTS: Fact[] = [
   { label: "Mac", value: "macOS 14 Sonoma or later on Apple Silicon and Intel. Developer-signed and Apple-notarized." },
   { label: "Latest Mac version", value: `${VERSION} (${RELEASES[0].date}) · ${DMG_SIZE}. [Mac installer and setup](${DOWNLOAD_PAGE}#mac)` },
   { label: "Windows", value: `[Pocket ${WINDOWS_VERSION} preview](${DOWNLOAD_PAGE}#windows) for Windows 11 on Intel, AMD, and ARM PCs. The preview installer is unsigned.` },
-  { label: "How it works", value: "You record money in and out by hand. Pocket does not connect to banks." },
+  { label: "How it works", value: "You record money in and out by hand, or import a CSV statement your bank exports. Pocket does not connect to banks." },
   {
     label: "Balance forecast",
     value: "Plan estimates how your balance could change over 1, 3, 6 or 12 months based on the bills and income you've scheduled. On Mac, it can include a typical week of everyday spending from your recent entries.",
@@ -19,6 +19,14 @@ export const FACTS: Fact[] = [
   {
     label: "Available until payday",
     value: "On Mac, choose a payday and a minimum balance to keep. Pocket subtracts your cushion from the lowest projected balance before payday. The estimate includes usual spending when you have enough history and leaves out income awaiting confirmation. [Set your payday and cushion](/guides/freelance-income/#before-payday).",
+  },
+  {
+    label: "Try a purchase",
+    value: "On Mac, type an amount and a day in Plan, like “$200 on Wednesday”, to see your new lowest balance and what’s left until payday. Nothing is saved unless you choose Save as Planned Expense.",
+  },
+  {
+    label: "Statement import",
+    value: "On Mac, import a CSV statement from your bank or card in Settings. Preview the rows first; likely duplicates of entries you already recorded start unchecked. Undo Import removes everything the import added.",
   },
   {
     label: "Quick Entry on Mac",
@@ -30,7 +38,7 @@ export const FACTS: Fact[] = [
   },
   {
     label: "Data",
-    value: "The ledger stays on your device by default. On Mac, Pocket stores it in ~/Library/Application Support/Pocket/ledger.json, keeps seven daily backups, and supports JSON import and export and CSV export.",
+    value: "The ledger stays on your device by default. On Mac, Pocket stores it in ~/Library/Application Support/Pocket/ledger.json, keeps seven daily backups, and supports JSON import and export, CSV export, and CSV statement import.",
   },
   {
     label: "Optional sync",
@@ -39,7 +47,7 @@ export const FACTS: Fact[] = [
   { label: "Currencies", value: "Any standard currency, one per ledger. Changing it relabels amounts; it does not convert them." },
   {
     label: "Phone access",
-    value: "Pair your phone to use the Pocket web app once you've set up sync. [Web app setup and pairing](/download/#web).",
+    value: "Pair your phone to use the Pocket web app once you've set up sync. It can open straight to the amount from your home screen and shows when an entry has reached your Mac. [Web app setup and pairing](/download/#web).",
   },
   { label: "Made by", value: "[Orlando Ascanio](https://www.orlandoascanio.com), an independent developer." },
   { label: "Source code", value: `View Pocket's public source on [GitHub](${REPO_URL}).` },
@@ -54,7 +62,7 @@ export const FACTS_ES: Fact[] = [
   { label: "Mac", value: "macOS 14 Sonoma o posterior en Apple Silicon e Intel. Con firma del desarrollador y notarización de Apple." },
   { label: "Última versión para Mac", value: `${VERSION} (${RELEASES[0].date}) · ${DMG_SIZE}. [Instalador y pasos para Mac](${DOWNLOAD_PATHS.es}#mac)` },
   { label: "Windows", value: `[Versión preliminar de Pocket ${WINDOWS_VERSION}](${DOWNLOAD_PATHS.es}#windows) para Windows 11 en equipos con Intel, AMD o ARM. El instalador preliminar no tiene firma.` },
-  { label: "Cómo funciona", value: "Registra tus gastos e ingresos a mano, sin conectar una cuenta bancaria." },
+  { label: "Cómo funciona", value: "Registra tus gastos e ingresos a mano o importa el CSV que exporta tu banco, sin conectar una cuenta bancaria." },
   {
     label: "Proyección del saldo",
     value: "En Plan puedes ver cómo cambiaría tu saldo en 1, 3, 6 o 12 meses con los pagos e ingresos que programaste. En Mac, Pocket también puede estimar los gastos de una semana normal a partir de tus movimientos recientes.",
@@ -62,6 +70,14 @@ export const FACTS_ES: Fact[] = [
   {
     label: "Disponible hasta el próximo cobro",
     value: "En Mac, elige cuándo vuelves a cobrar y qué saldo mínimo quieres mantener. Pocket busca el saldo más bajo previsto antes del cobro y le resta el mínimo que elegiste. El cálculo deja fuera los ingresos sin confirmar y cuenta los gastos habituales si ya tienes suficiente historial. [Configura tu fecha de cobro y saldo mínimo](/guides/freelance-income/#before-payday).",
+  },
+  {
+    label: "Prueba una compra",
+    value: "En Mac, escribe un monto y un día en Plan, como “$200 on Wednesday”, para ver tu nuevo saldo más bajo y cuánto te queda hasta el próximo cobro. Pocket no guarda nada hasta que eliges Save as Planned Expense.",
+  },
+  {
+    label: "Importar un extracto",
+    value: "En Mac, importa desde Settings el extracto en CSV de tu banco o tarjeta. Primero revisas las filas; las que parecen movimientos que ya registraste aparecen sin marcar. Undo Import quita todo lo que agregó la importación.",
   },
   {
     label: "Registro rápido en Mac",
@@ -73,7 +89,7 @@ export const FACTS_ES: Fact[] = [
   },
   {
     label: "Datos",
-    value: "Por defecto, Pocket guarda el registro en tu dispositivo. En Mac, el archivo está en ~/Library/Application Support/Pocket/ledger.json y Pocket conserva siete copias de seguridad diarias. Puedes importar y exportar en JSON o exportar en CSV.",
+    value: "Por defecto, Pocket guarda el registro en tu dispositivo. En Mac, el archivo está en ~/Library/Application Support/Pocket/ledger.json y Pocket conserva siete copias de seguridad diarias. Puedes importar y exportar en JSON, exportar en CSV e importar extractos bancarios en CSV.",
   },
   {
     label: "Sincronización opcional",
@@ -82,7 +98,7 @@ export const FACTS_ES: Fact[] = [
   { label: "Monedas", value: "Elige una moneda estándar por registro. Si la cambias, Pocket actualiza cómo se muestran los montos y conserva las cifras que ingresaste." },
   {
     label: "Acceso desde el celular",
-    value: `Después de configurar la sincronización, vincula el celular y abre tu registro en el navegador. [Configura y vincula la app web](${DOWNLOAD_PATHS.es}#web).`,
+    value: `Después de configurar la sincronización, vincula el celular y abre tu registro en el navegador. Desde la pantalla de inicio, la app web se abre lista para escribir el monto y te muestra cuándo un movimiento ya llegó a tu Mac. [Configura y vincula la app web](${DOWNLOAD_PATHS.es}#web).`,
   },
   { label: "Autor", value: "[Orlando Ascanio](https://www.orlandoascanio.com), desarrollador independiente." },
   { label: "Código fuente", value: `Consulta el código público de Pocket en [GitHub](${REPO_URL}).` },
